@@ -1,0 +1,78 @@
+
+@font-face{
+    font-family: 'Railway';
+    src: url(C:\Users\bewho\Desktop\beanToMug\beantomug\src\fonts\Raleway) format('woff2');
+   
+  }
+  *{
+    font-family: 'Railway';
+  }
+.menu{
+   padding-left: 50px;
+    overflow:hidden;
+    flex:1 1 0;
+    margin-top: 60px;
+   
+  
+}
+.menuWrapper{
+    display: flex;
+    min-height: 100vh;
+
+ 
+  justify-content: center;
+  
+
+
+    margin-top: 20px;
+    margin-left: 60px;
+  
+    
+}
+.sidebar {
+    
+  flex: 0 0 300px;
+    
+    
+   
+    padding: 20px;
+  }
+
+  .sidebar>nav>ul{
+    
+   display: block;
+   
+  }
+    .sidebar>nav>ul>li{
+        margin-top:2.4rem;
+       
+        margin-bottom: 20px;
+         
+        transition: transform 0.5s;
+    }
+    .sidebar>nav>ul>li:hover{
+        transform: scale3d(1.5, 1.5, 2);
+        transition: transform 0.5s;
+    }
+    .menu>h2{
+        font-family: 'Railway';
+        font-size: 30px;
+        color: #896651;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    
+
+
+
+
+    .categoryItem{
+        text-decoration: none;;
+        font-family:'railway';
+        font-size: larger;
+        font-weight:bold;
+        color:#896651;
+       
+        
+
+    }
