@@ -1,0 +1,76 @@
+
+.itemName{
+    font-family: 'Raleway', sans-serif;
+    font-size: larger;
+    font-weight: bold;
+    color: #896651;
+    border-bottom: 1px solid #896651;
+    padding:0.5rem;
+    margin-bottom: 0.9rem;
+}
+div>img{
+      max-width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: 0.75rem;
+}
+.quantityControls {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+.quantityControls button {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  
+}
+
+.quantityControls span {
+  min-width: 20px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+}
+.itemOptions {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  justify-content: space-between;  
+   align-items: center;
+
+}
+
+
+
+
+
+.fieldset {
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 3rem;
+  margin-bottom: 1rem;
+}
+
+
+.legend {
+  font-weight: bold;
+  padding: 0 0.5rem;
+}
+.addToCartBtn{
+  background-color: #896651;
+  color: #F3D9CA;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top:1.5rem;
+}
+.addToCartBtn:hover {
+  background-color: #F3D9CA;
+  color: #896651;
+  transition: background-color 1s ;
+}
