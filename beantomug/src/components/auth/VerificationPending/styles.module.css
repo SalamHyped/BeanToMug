@@ -1,0 +1,118 @@
+.verificationPage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px);
+  background-color: #f9f5f1;
+  padding: 1rem;
+}
+
+.verificationCard {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
+.title {
+  font-size: 1.5rem;
+  color: #5d4037;
+  margin-bottom: 1.5rem;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.emailIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.emailAddress {
+  font-weight: bold;
+  color: #5d4037;
+  background-color: #f9f5f1;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+.infoBox {
+  background-color: #f9f5f1;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  text-align: left;
+  width: 100%;
+}
+
+.infoBox h3 {
+  color: #5d4037;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.infoBox ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.infoBox li {
+  margin-bottom: 0.5rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.infoBox li::before {
+  content: "•";
+  color: #5d4037;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.buttonContainer {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.resendButton, .loginButton {
+  padding: 0.75em 1.5em;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.3s;
+}
+
+.resendButton {
+  background-color: #5d4037;
+  color: white;
+  border: none;
+}
+
+.resendButton:hover {
+  background-color: #4b332b;
+}
+
+.loginButton {
+  background-color: transparent;
+  color: #5d4037;
+  border: 1px solid #5d4037;
+}
+
+.loginButton:hover {
+  background-color: #f9f5f1;
+} 

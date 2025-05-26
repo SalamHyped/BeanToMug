@@ -1,0 +1,120 @@
+.category_container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+  width: 100%;
+  animation: fadeInUp 0.8s ease;
+}
+
+.item_wrapper {
+  background: #fff;
+  border-radius: 15px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.item_wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(137, 102, 81, 0.05), rgba(213, 181, 163, 0.05));
+  border-radius: 15px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.item_wrapper:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(137, 102, 81, 0.15);
+}
+
+.item_wrapper:hover::before {
+  opacity: 1;
+}
+
+.item_wrapper > a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  gap: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.itemName {
+  color: #896651;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  transition: color 0.3s ease;
+}
+
+.itemPrice {
+  color: #d5b5a3;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 0.25rem 1rem;
+  background: rgba(137, 102, 81, 0.1);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.item_wrapper:hover .itemPrice {
+  background: #896651;
+  color: #fff;
+}
+
+@media (max-width: 1200px) {
+  .category_container {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .category_container {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .item_wrapper {
+    padding: 1rem;
+  }
+
+  .itemName {
+    font-size: 1.1rem;
+  }
+
+  .itemPrice {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .category_container {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

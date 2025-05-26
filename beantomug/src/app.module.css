@@ -1,0 +1,13 @@
+.app {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #D5B5A3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+
+
+
+  

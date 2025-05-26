@@ -1,0 +1,50 @@
+.errorMessage {
+  background-color: #fde8e8;
+  border: 1px solid #f8b4b4;
+  color: #c81e1e;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: fadeInOut 3s ease-in-out;
+  box-shadow: 0 2px 4px rgba(200, 30, 30, 0.1);
+}
+
+.successMessage {
+  background-color: #e6f7ef;
+  border: 1px solid #a3e2c5;
+  color: #0d7847;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: fadeInOut 3s ease-in-out;
+  box-shadow: 0 2px 4px rgba(13, 120, 71, 0.1);
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  85% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+} 

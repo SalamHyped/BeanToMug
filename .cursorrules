@@ -1,0 +1,14 @@
+My project's programming language is React JavaScript
+Place each component in a separate folder under the "components" directory
+Organize components into distinct folders as much as possible
+Keep components small as possible.
+Reuse components where possible.
+Use a "controls" folder specifically for control components
+Make site to be responsive.
+Define styles for each component using CSS Modules
+Ensure consistent styling across the application
+Use em units for button paddings
+Use rem units for font sizes
+Define global styles for the entire website in index.css.
+Store shared styles for all pages in page.module.css.
+Use index.js in each component folder

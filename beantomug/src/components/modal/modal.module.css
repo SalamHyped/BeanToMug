@@ -1,0 +1,11 @@
+.modal_content {
+background: linear-gradient(to bottom, #F3D9CA, #D5B5A3);  padding: 2rem;
+  border:1px solid #896651;
+  border-radius: 1rem;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  position: relative;
+  opacity: 0;
+  animation: slideIn 0.3s ease forwards;
+}
