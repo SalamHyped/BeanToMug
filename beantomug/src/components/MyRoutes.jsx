@@ -28,6 +28,7 @@ export default function MyRoutes(){
             <Route path="/verify-email" element={<EmailVerification/>} />
             <Route path="/verify-email/pending" element={<VerificationPending/>} />
             <Route path="/resend-verification" element={<ResendVerification/>} />
+            <Route path="/cart" element={<CartPage/>} />
             
             {/* Customer protected routes */}
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']} />}>

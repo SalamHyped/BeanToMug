@@ -235,18 +235,9 @@ router.post('/resend-verification', async (req, res) => {
 // Login endpoint
 router.post('/login', async (req, res) => {
   try {
-    // Regenerate session to prevent session fixation
-    if (req.session) {
-      await new Promise((resolve, reject) => {
-        req.session.regenerate(err => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-    }
-
     const { username, password } = req.body;
     
+    // 1. Validate input
     if (!username || !password) {
       return res.status(400).json({ 
         success: false, 
@@ -254,7 +245,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Query database for user
+    // 2. Query database for user
     const [users] = await req.db.query(
       'SELECT * FROM users WHERE username = ?', 
       [username]
@@ -269,7 +260,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Compare password
+    // 3. Validate password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     
     if (!isPasswordValid) {
@@ -279,7 +270,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Check if email is verified
+    // 4. Check email verification
     if (!user.email_verified) {
       return res.status(401).json({
         success: false,
@@ -289,21 +280,25 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Set the session data
+    // 5. Set session data
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.role = user.role;
 
     // Save the session
     await new Promise((resolve, reject) => {
-      req.session.save(err => {
-        if (err) reject(err);
-        else resolve();
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          reject(err);
+          return;
+        }
+        resolve();
       });
     });
 
-    // Respond with success
-    res.json({ 
+    // 6. Send success response
+    return res.json({ 
       success: true, 
       user: {
         id: user.id,

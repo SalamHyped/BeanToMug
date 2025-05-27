@@ -5,7 +5,7 @@ const cors = require('cors');
 const session = require('express-session');
 const { dbMiddleware } = require('./dbSingleton');
 const menuRouter = require('./Routes/menu');
-const cartRouter = require('./Routes/Cart');
+const cartRouter = require('./Routes/cart');
 const authRouter = require('./Routes/auth');
 
 app.use(express.json());
@@ -36,4 +36,3 @@ app.use('/auth', authRouter);  // Auth routes mounted at root path
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
-  

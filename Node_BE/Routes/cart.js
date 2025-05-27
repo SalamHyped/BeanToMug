@@ -6,7 +6,7 @@ const router = express.Router();
 router.get('/',async (req, res) => {
   if (!req.session.cart) {
     req.session.cart = [];
-    req.session.role = 'guest';
+    
   }
   res.json(req.session.cart);
 });

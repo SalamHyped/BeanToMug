@@ -4,19 +4,24 @@ import Sidebar from '../../layouts/Sidebar';
 import styles from './protectedRoute.module.css';
 
 const ProtectedRoute = ({ allowedRoles }) => {
-  const { user } = useUser();
+  const { user, loading } = useUser();
+
+  // Wait for auth check
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   // If user is not authenticated, redirect to login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // If user's role is not in the allowed roles, redirect to home
+  // If user's role not allowed, redirect to home
   if (!allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
-  // If user is authenticated and has the right role, render the layout with sidebar
+  // Render protected content
   return (
     <div className={styles.layout}>
       <Sidebar user={user} />

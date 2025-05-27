@@ -16,9 +16,12 @@ export function UserProvider({ children }) {
         
         if (response.data.authenticated && response.data.user) {
           dispatch({ type: 'SET_USER', payload: response.data.user });
+        } else {
+          dispatch({ type: 'LOGOUT' });
         }
       } catch (error) {
         console.error('Auth check failed:', error);
+        dispatch({ type: 'LOGOUT' });
       }
     };
 
@@ -34,10 +37,9 @@ export function UserProvider({ children }) {
       await axios.post('http://localhost:8801/auth/logout', {}, {
         withCredentials: true
       });
-      dispatch({ type: 'LOGOUT' });
     } catch (error) {
       console.error('Logout failed:', error);
-      // Still clear the frontend state even if the backend call fails
+    } finally {
       dispatch({ type: 'LOGOUT' });
     }
   }, []);
