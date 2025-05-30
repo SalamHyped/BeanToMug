@@ -55,16 +55,35 @@
     font-size: 1.2rem;
   }
   .cartButton {
-    padding: 0.5em 1.5em;
+    padding: 0.8em 1.2em;
     font-size: 1rem;
-    border: none;
+    font-weight: 600;
+    border: 1px solid #ddd;
     border-radius: 0.5em;
-    background: #f0f0f0;
+    background: #fff;
+    color: #333;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
+    min-width: 2.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .cartButton:active {
-    background: #ddd;
+  .cartButton:hover:not(:disabled) {
+    background: #f8f9fa;
+    border-color: #666;
+    transform: translateY(-1px);
+  }
+  .cartButton:active:not(:disabled) {
+    background: #e9ecef;
+    transform: translateY(0);
+  }
+  .cartButton:disabled {
+    background: #f5f5f5;
+    color: #ccc;
+    border-color: #e9ecef;
+    cursor: not-allowed;
+    opacity: 0.6;
   }
   .cartDelete {
     margin-left: auto;
@@ -72,13 +91,29 @@
     background: #e74c3c;
     border: none;
     border-radius: 0.5em;
-    padding: 0.5em 1.5em;
+    padding: 0.8em 1.2em;
     font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3em;
   }
-  .cartDelete:active {
+  .cartDelete:hover:not(:disabled) {
     background: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+  }
+  .cartDelete:active:not(:disabled) {
+    background: #a93226;
+    transform: translateY(0);
+  }
+  .cartDelete:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.6;
   }
   @media (max-width: 850px) {
     .cartCard {

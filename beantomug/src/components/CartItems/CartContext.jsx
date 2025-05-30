@@ -35,17 +35,29 @@ console.log('Cart items:', cartItems);
  
 
   const removeFromCart = (itemToRemove) => {
-  setCartItems((prevItems) =>
-    prevItems.filter(
-      (item) =>
-        item.id !== itemToRemove.id ||
-        JSON.stringify(item.options) !== JSON.stringify(itemToRemove.options)
-    )
-  );
-};
+    axios.delete('http://localhost:8801/cart/remove', {
+      data: {
+        itemId: itemToRemove.id,
+        options: itemToRemove.options
+      },
+      withCredentials: true
+    })
+    .then(res => setCartItems(res.data))
+    .catch(err => console.error('Error removing from cart:', err));
+  };
+
+  const updateQuantity = (itemId, newQuantity, options) => {
+    axios.put('http://localhost:8801/cart/update-quantity', {
+      itemId,
+      quantity: newQuantity,
+      options
+    }, { withCredentials: true })
+    .then(res => setCartItems(res.data))
+    .catch(err => console.error('Error updating quantity:', err));
+  };
 
   return (
-    <CartContext.Provider value={{ cartItems, addToCart ,removeFromCart}}>
+    <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity }}>
       {children}
     </CartContext.Provider>
   );

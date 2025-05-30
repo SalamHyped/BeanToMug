@@ -1,6 +1,10 @@
 import classes from "./Cart.module.css";
+import { useContext } from "react";
+import { CartContext } from "./CartContext";
 
 export default function Cart({ item }) {
+  const { removeFromCart, updateQuantity } = useContext(CartContext);
+
   function handleOptions() {
     const options = Object.entries(item.options)
       .map(([key, value]) => {
@@ -12,6 +16,20 @@ export default function Cart({ item }) {
 
     return options.join(", ");
   }
+
+  const handleDecreaseQuantity = () => {
+    if (item.quantity > 1) {
+      updateQuantity(item.id, item.quantity - 1, item.options);
+    }
+  };
+
+  const handleIncreaseQuantity = () => {
+    updateQuantity(item.id, item.quantity + 1, item.options);
+  };
+
+  const handleRemoveItem = () => {
+    removeFromCart(item);
+  };
 
   return (
     <div className={classes.cartCard}>
@@ -31,15 +49,28 @@ export default function Cart({ item }) {
         </div>
       </div>
       <div className={classes.cartQuantity}>
-        <button className={classes.cartButton} disabled>
+        <button 
+          className={classes.cartButton}
+          onClick={handleDecreaseQuantity}
+          disabled={item.quantity <= 1}
+          aria-label="Decrease quantity"
+        >
           -
         </button>
         <span>{item.quantity}</span>
-        <button className={classes.cartButton} disabled>
+        <button 
+          className={classes.cartButton}
+          onClick={handleIncreaseQuantity}
+          aria-label="Increase quantity"
+        >
           +
         </button>
       </div>
-      <button className={classes.cartDelete} disabled>
+      <button 
+        className={classes.cartDelete}
+        onClick={handleRemoveItem}
+        aria-label="Remove item from cart"
+      >
         🗑️
       </button>
     </div>

@@ -32,5 +32,54 @@ router.post('/add', async(req, res) => {
   res.json(cart); // return updated cart
 });
 
+router.put('/update-quantity', async(req, res) => {
+  const { itemId, quantity, options } = req.body;
+  
+  if (!req.session.cart) {
+    req.session.cart = [];
+  }
+
+  const cart = req.session.cart;
+  const index = cart.findIndex(
+    (i) => i.id === itemId && JSON.stringify(i.options) === JSON.stringify(options)
+  );
+
+  if (index >= 0) {
+    if (quantity <= 0) {
+      // Remove item if quantity is 0 or less
+      cart.splice(index, 1);
+    } else {
+      cart[index].quantity = quantity;
+    }
+    req.session.cart = cart;
+    console.log('Updated cart quantity:', req.session.cart);
+    res.json(cart);
+  } else {
+    res.status(404).json({ error: 'Item not found in cart' });
+  }
+});
+
+router.delete('/remove', async(req, res) => {
+  const { itemId, options } = req.body;
+  
+  if (!req.session.cart) {
+    req.session.cart = [];
+  }
+
+  const cart = req.session.cart;
+  const index = cart.findIndex(
+    (i) => i.id === itemId && JSON.stringify(i.options) === JSON.stringify(options)
+  );
+
+  if (index >= 0) {
+    cart.splice(index, 1);
+    req.session.cart = cart;
+    console.log('Removed item from cart:', req.session.cart);
+    res.json(cart);
+  } else {
+    res.status(404).json({ error: 'Item not found in cart' });
+  }
+});
+
 
 module.exports = router;
