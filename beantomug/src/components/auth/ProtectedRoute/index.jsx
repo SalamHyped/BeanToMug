@@ -1,10 +1,12 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { useState } from 'react';
 import { useUser } from '../../../context/UserContext/UserContext';
 import Sidebar from '../../layouts/Sidebar';
 import styles from './protectedRoute.module.css';
 
 const ProtectedRoute = ({ allowedRoles }) => {
   const { user, loading } = useUser();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Wait for auth check
   if (loading) {
@@ -23,8 +25,12 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
   // Render protected content
   return (
-    <div className={styles.layout}>
-      <Sidebar user={user} />
+    <div className={`${styles.layout} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
+      <Sidebar 
+        user={user} 
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
       <main className={styles.content}>
         <Outlet />
       </main>

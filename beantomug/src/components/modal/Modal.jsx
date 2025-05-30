@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import classes from "./modal.module.css";
+
 export default function Modal({
   isOpen,
   onClose,
@@ -22,16 +23,16 @@ export default function Modal({
   }, [onClose]);
 
   return (
-    
-      <div className={classes.modal_content} onClick={handleOverlayClick}>
-        {title && <h2 className="text-lg font-semibold mb-4">{title}</h2>}
-        <div className="mb-4">{children}</div>
+    <div className={`${classes.modal_overlay} ${isOpen ? classes.active : ""}`} onClick={handleOverlayClick}>
+      <div className={classes.modal_content}>
+        {title && <h2 className={classes.modal_title}>{title}</h2>}
+        <div className={classes.modal_body}>{children}</div>
         {footerButtons && (
-          <div className="flex justify-end gap-3">
+          <div className={classes.modal_footer}>
             {footerButtons.map((btn, index) => (
               <button
                 key={index}
-                className={btn.className || "px-4 py-2 rounded transition"}
+                className={btn.className || classes.modal_button}
                 onClick={btn.onClick}
               >
                 {btn.label}
@@ -39,6 +40,10 @@ export default function Modal({
             ))}
           </div>
         )}
+        <button className={classes.modal_close} onClick={onClose}>
+          ✕
+        </button>
       </div>
+    </div>
   );
 }

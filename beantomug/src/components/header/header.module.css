@@ -1,139 +1,139 @@
-
-@font-face{
-  font-family: 'Railway';
-  src: url(/beantomug/src/fonts/Raleway/Raleway-VariableFont_wght.ttf);
- 
-}
 .menuItem.active {
-    
-    color: #ffffff;
+  color: #ffffff;
 }
 
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-
 .menuItem {
-    position:relative;
-    display: inline-block;
-  
-   
- padding: 5px 10px;
-  
+  position: relative;
+  display: inline-block;
+
+  padding: 5px 10px;
+
   overflow: hidden;
   text-decoration: none;
   transition: border 0.5s;
   z-index: 0;
   text-transform: uppercase;
-  font-family: 'Railway';
-  font-weight:200;
+  font-family: "Railway";
+  font-weight: 200;
   color: #896651;
   cursor: pointer;
-  
-
 }
 
-.menuItem::before, .menu-item::after {
-    position: absolute;
-    
-    z-index: -1;
-    transition: 1s;
-    content: '';
-  }
+.menuItem::before,
+.menu-item::after {
+  position: absolute;
 
-  .menuItem::before {
-    height: 50px;
-    width: 130px;
-    top:0;
-    left:0;
-  }
-  
-  .menuItem::after {
-    width: 150px;
-    height: 30px;
-    bottom: 0;
-    right: 0;
-  }
-  .menuItem:hover::before {
-    width: 0px;
-    background: #fff;
-  }
-  
-  .menuItem:hover::after {
-    height: 0px;
-    background: #fff;
-  }
+  z-index: -1;
+  transition: 1s;
+  content: "";
+}
 
-ul{
-    display: flex; 
-    gap: 20px;
-    
-   
-  
-    
-    
-    padding: 0;
-    margin: 0;
-    list-style: none;
-    
-    
+.menuItem::before {
+  height: 50px;
+  width: 130px;
+  top: 0;
+  left: 0;
+}
 
-    
-    
+.menuItem::after {
+  width: 150px;
+  height: 30px;
+  bottom: 0;
+  right: 0;
 }
-nav{
-    flex: 1;
-    
-    
-    
+.menuItem:hover::before {
+  width: 0px;
+  background: #fff;
 }
-header{
-    background:  #F3D9CA;
-    
-    height: 120px;
-}
-.headerWrapper{
-    display: flex;
-    justify-content: space-between;
-    
-   
-    
-}
-button{
-  background-color: transparent;
-  padding: 5px;
-  background-color: #896651;
-  border-radius: 0.3em;
-  
 
+.menuItem:hover::after {
+  height: 0px;
+  background: #fff;
 }
-.login_butt{
-  color:#F3D9CA;
-  font-family: 'Railway';
-  font-weight:200;
+
+ul {
+  display: flex;
+  gap: 20px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+
+.headerWrapper {
+  display: flex;
+  justify-content: space-between;
+  background: #f3d9ca;
+  padding: 0 1rem;
+  height: 5rem;
+  align-items: center;
+  border-radius: 0 0 1.5em 1.5em;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+}
+
+.headerWrapper img {
+  width: 5rem;
+}
+
+
+.login_butt {
+  color: #f3d9ca;
+  background-color: #896551;
+  font-family: "Railway";
+  font-weight: 200;
   text-decoration: none;
-  
+  font-size: 11px;
+  border-radius: 20px;
+  padding: 10px 20px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: transform 80ms ease-in;
+  cursor: pointer;
 }
-.loginWrapper{
+.cart_button{
+  color: #f3d9ca;
+  background-color: #896551;
+  font-family: "Railway";
+  font-weight: 200;
+  text-decoration: none;
+        
+  border-radius: 20px;
+  padding: 8px 15px;
+}
 
-    display: flex;
-    justify-content: flex-end;
-    gap: 3px;
-    margin-right: 10px;
-    margin-top: 5px;
-    align-items: center;
-    
- 
- 
+.loginWrapper {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-right: 10px;
+  margin-top: 5px;
+  align-items: center;
 }
-.headerWrapper>div{
- max-width:80px;
- max-height: fit-content;
+
+@media screen and (max-width: 840px) {
+  .headerWrapper {
+    flex-direction: column;
+    height: fit-content;
+    padding: 0 0.5rem;
+    gap: 1rem;
+  }
+  ul {
+    gap: 0.5rem;
+  }
+  .loginWrapper{
+    padding-bottom: 1rem;
+  }
 }
-.headerWrapper>div>img{
-  width:100%;
-  object-fit: cover;
-}
+
+
+
+/* .headerWrapper > div {
+  max-width: 80px;
+  max-height: fit-content;
+} */

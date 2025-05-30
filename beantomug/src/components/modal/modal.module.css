@@ -1,11 +1,135 @@
+.modal_overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s;
+  pointer-events: none;
+}
+
+.modal_overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 .modal_content {
-background: linear-gradient(to bottom, #F3D9CA, #D5B5A3);  padding: 2rem;
-  border:1px solid #896651;
+  background: linear-gradient(to bottom, #F3D9CA, #D5B5A3);
+  padding: 2rem;
+  border: 1px solid #896651;
   border-radius: 1rem;
   max-width: 500px;
   width: 90%;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   position: relative;
-  opacity: 0;
+  transform: translateY(-20px);
   animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal_title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #896651;
+  border-bottom: 1px solid #896651;
+  padding-bottom: 0.5rem;
+}
+
+.modal_body {
+  margin-bottom: 1.5rem;
+  color: #4a4a4a;
+}
+
+.modal_footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.modal_button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background-color: #896651;
+  color: #F3D9CA;
+}
+
+.modal_button:hover {
+  background-color: #F3D9CA;
+  color: #896651;
+  transform: translateY(-1px);
+}
+
+.modal_close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #896651;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.modal_close:hover {
+  background-color: rgba(137, 102, 81, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modal_content {
+    width: 95%;
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .modal_title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal_content {
+    padding: 1rem;
+  }
+  
+  .modal_title {
+    font-size: 1.125rem;
+  }
+  
+  .modal_footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .modal_button {
+    width: 100%;
+  }
 }

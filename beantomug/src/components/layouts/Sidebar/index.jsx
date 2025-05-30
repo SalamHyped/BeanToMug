@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useUser } from '../../../context/UserContext/UserContext';
 import classes from './sidebar.module.css';
 
-const Sidebar = ({ user }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const Sidebar = ({ user, isCollapsed = false, onToggleCollapse }) => {
   const { logout } = useUser();
 
   const handleToggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    }
   };
 
   const handleLogout = async () => {

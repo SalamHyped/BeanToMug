@@ -8,7 +8,7 @@ import EmailVerification from './auth/EmailVerification';
 import ResendVerification from './auth/ResendVerification';
 import VerificationPending from './auth/VerificationPending';
 import ProtectedRoute from './auth/ProtectedRoute';
-import Dashboard from '../pages/customer/Dashboard';   
+import Dashboard from '../pages/staff/DashBoard';
 import Header from '../components/header/Header'
 
 export default function MyRoutes(){

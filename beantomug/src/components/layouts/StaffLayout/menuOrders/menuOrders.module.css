@@ -1,0 +1,158 @@
+.container {
+  padding: 1rem;
+  gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.instructionText {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.orderItem {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 1em;
+  border-radius: 0.5rem;
+  cursor: grab;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.orderItem:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.orderItem:active {
+  cursor: grabbing;
+}
+
+.orderItem.dragging {
+  transform: scale(1.05) rotate(2deg);
+  z-index: 10;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+}
+
+.orderContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.orderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dragHandle {
+  color: #9ca3af;
+  font-size: 1rem;
+}
+
+.orderInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.orderText {
+  font-weight: 500;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.priorityText {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: capitalize;
+}
+
+.orderRight {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.dragProgressBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 0.25rem;
+  background-color: #10b981;
+  border-radius: 0.125rem;
+}
+
+.dropZone {
+  border: 2px dashed #86efac;
+  border-radius: 0.5rem;
+  padding: 1em;
+  text-align: center;
+  color: #16a34a;
+  background-color: #f0fdf4;
+  transition: all 0.2s ease;
+}
+
+.dropZone.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.dropZone.hidden {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Priority Color Classes */
+.highPriority {
+  background-color: #fef2f2;
+  border-left: 4px solid #ef4444;
+}
+
+.mediumPriority {
+  background-color: #fffbeb;
+  border-left: 4px solid #f59e0b;
+}
+
+.lowPriority {
+  background-color: #f0fdf4;
+  border-left: 4px solid #10b981;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0.5rem;
+  }
+  
+  .orderItem {
+    padding: 0.75em;
+  }
+  
+  .orderText {
+    font-size: 0.875rem;
+  }
+  
+  .priorityText {
+    font-size: 0.625rem;
+  }
+  
+  .instructionText {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .orderLeft {
+    gap: 0.5rem;
+  }
+  
+  .dragHandle {
+    font-size: 0.875rem;
+  }
+  
+  .orderRight {
+    font-size: 0.75rem;
+  }
+} 
