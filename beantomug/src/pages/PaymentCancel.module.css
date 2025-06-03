@@ -1,0 +1,102 @@
+.paymentCancelContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.paymentCancelCard {
+  background: white;
+  border-radius: 1rem;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 100%;
+}
+
+.cancelIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.paymentCancelCard h2 {
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 2rem;
+}
+
+.paymentCancelCard p {
+  color: #666;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.cancelActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.backToCartButton {
+  background: #8B4513;
+  color: white;
+  border: none;
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.backToCartButton:hover {
+  background: #A0522D;
+}
+
+.homeButton {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.homeButton:hover {
+  background: #5a6268;
+}
+
+.helpText {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.helpText p {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .paymentCancelContainer {
+    padding: 1rem;
+  }
+  
+  .paymentCancelCard {
+    padding: 2rem;
+  }
+  
+  .cancelActions {
+    flex-direction: column;
+  }
+  
+  .paymentCancelCard h2 {
+    font-size: 1.5rem;
+  }
+} 

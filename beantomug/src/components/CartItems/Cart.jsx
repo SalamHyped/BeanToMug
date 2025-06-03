@@ -18,13 +18,14 @@ export default function Cart({ item }) {
   }
 
   const handleDecreaseQuantity = () => {
+
     if (item.quantity > 1) {
-      updateQuantity(item.id, item.quantity - 1, item.options);
+      updateQuantity(item.item_id, item.quantity - 1, item.options);
     }
   };
 
   const handleIncreaseQuantity = () => {
-    updateQuantity(item.id, item.quantity + 1, item.options);
+    updateQuantity(item.item_id, item.quantity + 1, item.options);
   };
 
   const handleRemoveItem = () => {

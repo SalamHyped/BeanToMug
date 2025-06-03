@@ -1,0 +1,364 @@
+.paypalContainer {
+  background: #ffffff;
+  border-radius: 1em;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 2em;
+  margin: 1em 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  border: 1px solid #e3e8ee;
+}
+
+.paypalSummary {
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.paypalTitle {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  margin-bottom: 0.5em;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Authentication Required */
+.authRequired {
+  text-align: center;
+  padding: 2em;
+  border: 2px dashed #ffc107;
+  border-radius: 1em;
+  background: #fff8e1;
+}
+
+.authRequired h3 {
+  color: #f57c00;
+  margin-bottom: 1em;
+  font-size: 1.5rem;
+}
+
+.authRequired p {
+  color: #666;
+  margin-bottom: 1.5em;
+  font-size: 1.1rem;
+}
+
+.loginButton {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.8em 2em;
+  border-radius: 0.5em;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.loginButton:hover {
+  background: #0056b3;
+}
+
+/* User Info */
+.userInfo {
+  color: #28a745;
+  font-size: 0.9rem;
+  margin-bottom: 1em;
+  text-align: center;
+}
+
+/* Guest Info */
+.guestInfo {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-bottom: 1em;
+  text-align: center;
+  font-style: italic;
+}
+
+.guestNote {
+  color: #6c757d;
+  font-size: 0.8rem;
+  margin-top: 0.5em;
+  text-align: center;
+}
+
+.guestNote a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.guestNote a:hover {
+  text-decoration: underline;
+}
+
+/* Order error styling */
+.orderError {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 1em;
+  border-radius: 0.5em;
+  margin-bottom: 1em;
+  border: 1px solid #f5c6cb;
+}
+
+.orderError p {
+  color: #856404;
+  margin: 0 0 0.5em 0;
+  font-weight: 500;
+}
+
+.retryButton {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 0.3em;
+  cursor: pointer;
+  margin-top: 0.5em;
+}
+
+.retryButton:hover {
+  background: #c82333;
+}
+
+.paypalItems {
+  background: #f8f9fa;
+  border-radius: 0.5em;
+  padding: 1em;
+  margin-bottom: 1em;
+}
+
+.paypalItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5em 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.paypalItem:last-child {
+  border-bottom: none;
+}
+
+.itemName {
+  flex: 1;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.itemOptions {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.itemQuantity {
+  min-width: 80px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.itemPrice {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 600;
+  color: #28a745;
+}
+
+.paypalTotal {
+  text-align: center;
+  font-size: 1.2rem;
+  padding: 1em;
+  background: #e9ecef;
+  border-radius: 0.5em;
+  color: #2c3e50;
+}
+
+/* PayPal Button Container */
+.paypalButtonContainer {
+  position: relative;
+  min-height: 60px;
+}
+
+.paypalButtonWrapper {
+  transition: opacity 0.3s ease;
+}
+
+.paypalButtonWrapper.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Loading States */
+.loadingButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1em;
+  background: #f8f9fa;
+  border-radius: 0.5em;
+  color: #6c757d;
+  gap: 0.5em;
+}
+
+.buttonSpinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #0070ba;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Processing overlay */
+.processingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1em;
+  z-index: 10;
+}
+
+.processingOverlay p {
+  margin: 0.5em 0;
+  font-size: 1.1rem;
+  color: #333;
+  text-align: center;
+}
+
+.processingOverlay p:first-of-type {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-top: 1em;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 2em;
+  height: 2em;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #0070ba;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1em;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.securityInfo {
+  text-align: center;
+  margin-top: 1em;
+  padding-top: 1em;
+  border-top: 1px solid #e9ecef;
+}
+
+.securityBadges {
+  display: flex;
+  justify-content: center;
+  gap: 0.5em;
+  margin-bottom: 0.5em;
+  flex-wrap: wrap;
+}
+
+.badge {
+  background: #e9ecef;
+  color: #495057;
+  padding: 0.3em 0.6em;
+  border-radius: 1em;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.stockWarning {
+  text-align: center;
+  color: #e74c3c;
+  font-size: 0.9rem;
+  margin-top: 1em;
+  font-weight: 500;
+}
+
+.sdkError {
+  text-align: center;
+  color: #e74c3c;
+  font-size: 1rem;
+  margin: 1em 0;
+  padding: 1em;
+  background: #ffeaea;
+  border: 1px solid #ffcdd2;
+  border-radius: 0.5em;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .paypalContainer {
+    padding: 1.5em;
+    margin: 1em 0;
+  }
+  
+  .paypalTitle {
+    font-size: 1.3rem;
+  }
+  
+  .paypalItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5em;
+  }
+  
+  .itemPrice {
+    align-self: flex-end;
+  }
+
+  .itemQuantity {
+    align-self: flex-start;
+  }
+  
+  .securityBadges {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .paypalContainer {
+    padding: 1em;
+  }
+  
+  .paypalTitle {
+    font-size: 1.2rem;
+  }
+  
+  .paypalItems {
+    padding: 0.8em;
+  }
+
+  .orderError {
+    padding: 0.8em;
+  }
+
+  .processingOverlay p {
+    font-size: 1rem;
+  }
+  
+  .authRequired {
+    padding: 1.5em;
+  }
+  
+  .authRequired h3 {
+    font-size: 1.3rem;
+  }
+} 

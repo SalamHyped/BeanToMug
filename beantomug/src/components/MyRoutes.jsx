@@ -7,6 +7,8 @@ import LogIn from '../pages/LogIn';
 import EmailVerification from './auth/EmailVerification';
 import ResendVerification from './auth/ResendVerification';
 import VerificationPending from './auth/VerificationPending';
+import PaymentSuccess from '../pages/PaymentSuccess';
+import PaymentCancel from '../pages/PaymentCancel';
 import ProtectedRoute from './auth/ProtectedRoute';
 import Dashboard from '../pages/staff/DashBoard';
 import Header from '../components/header/Header'
@@ -29,6 +31,8 @@ export default function MyRoutes(){
             <Route path="/verify-email/pending" element={<VerificationPending/>} />
             <Route path="/resend-verification" element={<ResendVerification/>} />
             <Route path="/cart" element={<CartPage/>} />
+            <Route path="/payment-success" element={<PaymentSuccess/>} />
+            <Route path="/payment-cancel" element={<PaymentCancel/>} />
             
             {/* Customer protected routes */}
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']} />}>
