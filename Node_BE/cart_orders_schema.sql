@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS orders (
     total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     customer_email VARCHAR(255) NULL,
     is_cart BOOLEAN DEFAULT TRUE,       -- TRUE for cart, FALSE for completed orders
+    order_type ENUM('Dine In', 'Take Away') DEFAULT 'Dine In', -- Order type
     status ENUM('pending', 'completed', 'failed', 'refunded') NULL, -- Order status (NULL for carts)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -25,6 +25,7 @@ export default function Cart({ item }) {
   };
 
   const handleIncreaseQuantity = () => {
+    console.log(item.item_id);
     updateQuantity(item.item_id, item.quantity + 1, item.options);
   };
 

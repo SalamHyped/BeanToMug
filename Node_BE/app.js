@@ -8,6 +8,7 @@ const menuRouter = require('./Routes/menu');
 const cartRouter = require('./Routes/cart');
 const authRouter = require('./Routes/auth');
 const paypalRouter = require('./Routes/paypal');
+const ratingsRouter = require('./Routes/ratings');
 app.use(express.json());
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174'],  // Allow both ports
@@ -33,6 +34,7 @@ app.use('/menu', menuRouter);
 app.use('/cart', cartRouter);
 app.use('/auth', authRouter);  // Auth routes mounted at root path
 app.use('/paypal', paypalRouter);
+app.use('/ratings', ratingsRouter);
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });

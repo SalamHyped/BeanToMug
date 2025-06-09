@@ -75,7 +75,7 @@ async function mergeItemsIntoCart(connection, sessionItems, userCart) {
     // Validate item exists and get current price
     const [itemDetails] = await connection.execute(
       'SELECT item_id, price FROM dish WHERE item_id = ?',
-      [item.id]
+      [item.item_id]
     );
     
     if (itemDetails.length === 0) {
@@ -104,7 +104,7 @@ async function mergeItemsIntoCart(connection, sessionItems, userCart) {
       await connection.execute(`
         INSERT INTO order_items (order_id, item_id, quantity, price, item_options, created_at)
         VALUES (?, ?, ?, ?, ?, NOW())
-      `, [userCart.id, item.id, item.quantity, currentPrice, optionsJson]);
+      `, [userCart.order_id, item.item_id, item.quantity, currentPrice, optionsJson]);
     }
   }
   
@@ -123,8 +123,8 @@ async function createCartFromItems(connection, sessionItems, userId) {
     VALUES (?, TRUE, 0.00, NOW())
   `, [userId]);
   
-  const newCartId = cartResult.insertId;
-  
+
+    const newCartId = cartResult.insertId;
   // Add items to cart
   for (const item of sessionItems) {
     // Validate item and get current price
@@ -187,7 +187,7 @@ async function getCartItems(connection, cartId) {
   `, [cartId]);
   
   return items.map(item => ({
-    id: item.item_id,
+    item_id: item.item_id,
     item_name: item.item_name,
     item_price: item.price, // Price when added to cart
     quantity: item.quantity,

@@ -19,13 +19,22 @@ class CartService {
       if (cartOrder) {
         const connection = await dbSingleton.getConnection();
         const cartItems = await getCartItems(connection, cartOrder.order_id);
-        return cartItems;
+        return {
+          items: cartItems,
+          orderType: cartOrder.order_type
+        };
       } else {
-        return [];
+        return {
+          items: [],
+          orderType: 'Dine In'
+        };
       }
     } else {
       // Guest user - return session cart
-      return sessionCart;
+      return {
+        items: sessionCart.items,
+        orderType: sessionCart.orderType || 'Dine In' 
+      };
     }
   }
   
@@ -101,7 +110,7 @@ class CartService {
       // Try to find existing user cart
       const [existingCart] = await connection.execute(`
         SELECT * FROM orders 
-        WHERE order_id = ? AND is_cart = TRUE
+        WHERE user_id = ? AND is_cart = TRUE
         ORDER BY updated_at DESC 
         LIMIT 1
       `, [userId]);
@@ -111,11 +120,17 @@ class CartService {
       
       // Create new cart order for user
       const [result] = await connection.execute(`
-        INSERT INTO orders (order_id, is_cart, total_price, created_at) 
-        VALUES (?, TRUE, 0.00, NOW())
+        INSERT INTO orders (user_id, is_cart, total_price, order_type, created_at) 
+        VALUES (?, TRUE, 0.00, 'Dine In', NOW())
       `, [userId]);
       
-      return { id: result.insertId, total_amount: 0.00, is_cart: true };
+      return { 
+        order_id: result.order_id, 
+        user_id: userId,
+        total_price: 0.00, 
+        is_cart: true,
+        order_type: 'Dine In'
+      };
       
     } catch (error) {
       console.error('Error getting/creating cart order:', error);
@@ -162,8 +177,8 @@ class CartService {
       } else {
         // Add new item to cart
         await connection.execute(`
-          INSERT INTO order_items (order_id, item_id, quantity, price, item_options)
-          VALUES (?, ?, ?, ?, ?)
+          INSERT INTO order_items (order_id, item_id, quantity, price, item_options, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, NOW(), NOW())
         `, [cartOrder.order_id, item.item_id, quantity, currentPrice, optionsJson]);
       }
       
@@ -186,7 +201,6 @@ class CartService {
     try {
       connection = await dbSingleton.getConnection();
       await connection.beginTransaction();
-      
       const cartOrder = await this.getOrCreateUserCart(userId);
       const optionsJson = JSON.stringify(options || {});
       
@@ -195,20 +209,25 @@ class CartService {
         await connection.execute(`
           DELETE FROM order_items 
           WHERE order_id = ? AND item_id = ? AND item_options = ?
-        `, [cartOrder.id, itemId, optionsJson]);
+        `, [cartOrder.order_id, itemId, optionsJson]);
       } else {
         // Update quantity
         await connection.execute(`
           UPDATE order_items 
-          SET quantity = ?
+          SET quantity = ?, updated_at = NOW()
           WHERE order_id = ? AND item_id = ? AND item_options = ?
-        `, [quantity, cartOrder.id, itemId, optionsJson]);
+        `, [quantity, cartOrder.order_id, itemId, optionsJson]);
       }
-      
-      await updateCartTotal(connection, cartOrder.id);
+     
+      await updateCartTotal(connection, cartOrder.order_id);
       await connection.commit();
       
-      return await getCartItems(connection, cartOrder.id);
+      // Get updated cart items
+      const updatedItems = await getCartItems(connection, cartOrder.order_id);
+      return {
+        items: updatedItems,
+        orderType: cartOrder.order_type
+      };
       
     } catch (error) {
       if (connection) await connection.rollback();
@@ -229,12 +248,13 @@ class CartService {
       await connection.execute(`
         DELETE FROM order_items 
         WHERE order_id = ? AND item_id = ? AND item_options = ?
-      `, [cartOrder.id, itemId, optionsJson]);
+      `, [cartOrder.order_id, itemId, optionsJson]);
       
-      await updateCartTotal(connection, cartOrder.id);
+      // Update cart total with the correct order_id
+      await updateCartTotal(connection, cartOrder.order_id);
       await connection.commit();
       
-      return await getCartItems(connection, cartOrder.id);
+      return await getCartItems(connection, cartOrder.order_id);
       
     } catch (error) {
       if (connection) await connection.rollback();
@@ -270,32 +290,39 @@ class CartService {
   // Session Cart Methods (Guest)
   
   addToSessionCart(sessionCart, item, quantity, options) {
-    const cart = [...sessionCart];
-    const index = cart.findIndex(
-      (i) => i.id === item.id && JSON.stringify(i.options) === JSON.stringify(options)
+    const cart = {
+      items: [...(sessionCart.items || [])],
+      orderType: sessionCart.orderType || 'Dine In'
+    };
+    
+    const index = cart.items.findIndex(
+      (i) => i.item_id === item.item_id && JSON.stringify(i.options) === JSON.stringify(options)
     );
     
     if (index >= 0) {
-      cart[index].quantity += quantity;
+      cart.items[index].quantity += quantity;
     } else {
-      cart.push({ ...item, quantity, options });
+      cart.items.push({ ...item, quantity, options });
     }
     
     return cart;
   }
   
   updateSessionCartQuantity(sessionCart, itemId, quantity, options) {
-    const cart = [...sessionCart];
+    const cart = {
+      items: [...(sessionCart.items || [])],
+      orderType: sessionCart.orderType || 'Dine In'
+    };
 
-    const index = cart.findIndex(
+    const index = cart.items.findIndex(
       (i) => i.item_id === itemId && JSON.stringify(i.options) === JSON.stringify(options)
     );
     
     if (index >= 0) {
       if (quantity <= 0) {
-        cart.splice(index, 1);
+        cart.items.splice(index, 1);
       } else {
-        cart[index].quantity = quantity;
+        cart.items[index].quantity = quantity;
       }
       return { success: true, cart };
     } else {
@@ -304,16 +331,50 @@ class CartService {
   }
   
   removeFromSessionCart(sessionCart, itemId, options) {
-    const cart = [...sessionCart];
-    const index = cart.findIndex(
+    const cart = {
+      items: [...(sessionCart.items || [])],
+      orderType: sessionCart.orderType || 'Dine In'
+    };
+    
+    const index = cart.items.findIndex(
       (i) => i.item_id === itemId && JSON.stringify(i.options) === JSON.stringify(options)
     );
     
     if (index >= 0) {
-      cart.splice(index, 1);
+      cart.items.splice(index, 1);
       return { success: true, cart };
     } else {
       return { success: false, error: 'Item not found in cart' };
+    }
+  }
+
+  /**
+   * Update order type
+   */
+  async updateOrderType(userId, orderType) {
+    if (!['Dine In', 'Take Away'].includes(orderType)) {
+      throw new Error('Invalid order type');
+    }
+
+    const connection = await dbSingleton.getConnection();
+    
+    try {
+      const cartOrder = await this.getOrCreateUserCart(userId);
+      
+      await connection.execute(`
+        UPDATE orders 
+        SET order_type = ?, updated_at = NOW()
+        WHERE order_id = ?
+      `, [orderType, cartOrder.order_id]);
+
+      return {
+        success: true,
+        orderType
+      };
+      
+    } catch (error) {
+      console.error('Error updating order type:', error);
+      throw error;
     }
   }
 }

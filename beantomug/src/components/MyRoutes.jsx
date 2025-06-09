@@ -36,8 +36,7 @@ export default function MyRoutes(){
             
             {/* Customer protected routes */}
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']} />}>
-                <Route path="" element={<CartPage />} />
-           
+                <Route index element={<Menu />} />
             </Route>
 
             {/* Admin protected routes */}

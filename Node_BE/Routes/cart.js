@@ -5,7 +5,10 @@ const cartService = require('../services/cartService');
 // Initialize session cart if it doesn't exist
 const initializeSessionCart = (req) => {
   if (!req.session.cart) {
-    req.session.cart = [];
+    req.session.cart = {
+      items: [],
+      orderType: 'Dine In'
+    };
   }
   return req.session.cart;
 };
@@ -25,6 +28,46 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get cart'
+    });
+  }
+});
+
+// Update order type
+router.put('/order-type', async (req, res) => {
+  try {
+    const { orderType } = req.body;
+    
+    if (!orderType || !['Dine In', 'Take Away'].includes(orderType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid order type is required'
+      });
+    }``
+    
+    if (req.session.userId) {
+      // User is logged in - update in database
+      const result = await cartService.updateOrderType(req.session.userId, orderType);
+      res.json({
+        success: true,
+        orderType: result.orderType
+      });
+    } else {
+      // Guest user - update in session
+      const sessionCart = initializeSessionCart(req);
+      sessionCart.orderType = orderType;
+      req.session.cart = sessionCart;
+      
+      res.json({
+        success: true,
+        orderType: orderType
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error updating order type:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update order type'
     });
   }
 });
@@ -74,10 +117,25 @@ router.post('/add', async (req, res) => {
 router.put('/update-quantity', async (req, res) => {
   try {
     const { itemId, quantity, options = {} } = req.body;
-    if (!itemId || quantity < 0) {
+    
+    if (!itemId) {
       return res.status(400).json({
         success: false,
-        error: 'Valid item ID and quantity are required'
+        error: 'Item ID is required'
+      });
+    }
+
+    if (quantity === undefined || quantity === null) {
+      return res.status(400).json({
+        success: false,
+        error: 'Quantity is required'
+      });
+    }
+
+    if (quantity < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Quantity cannot be negative'
       });
     }
     
@@ -179,12 +237,15 @@ router.delete('/clear', async (req, res) => {
   try {
     await cartService.clearCart(req.session.userId);
     
-    // Clear session cart
-    req.session.cart = [];
+    // Clear session cart while maintaining structure
+    req.session.cart = {
+      items: [],
+      orderType: req.session.cart?.orderType || 'Dine In'
+    };
     
     res.json({
       success: true,
-      cart: [],
+      cart: req.session.cart,
       message: 'Cart cleared'
     });
     
@@ -203,7 +264,7 @@ router.get('/count', async (req, res) => {
     const sessionCart = initializeSessionCart(req);
     const cart = await cartService.getCart(req.session.userId, sessionCart);
     
-    const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const totalCount = cart.items.reduce((sum, item) => sum + item.quantity, 0);
     
     res.json({
       success: true,

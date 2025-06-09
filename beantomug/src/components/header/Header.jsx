@@ -1,9 +1,12 @@
 import classes from "./header.module.css";
-import { FaShoppingCart } from "react-icons/fa";
+import { FaShoppingCart, FaUser } from "react-icons/fa";
 import React from "react";
-
 import { NavLink, Link } from "react-router-dom";
+import { useUser } from "../../context/UserContext/UserContext";
+
 export default function Header() {
+  const { user, logout } = useUser();
+
   return (
     <header className={classes.header}>
       <div className={classes.headerWrapper}>
@@ -66,16 +69,29 @@ export default function Header() {
           </ul>
         </nav>
         <div className={classes.loginWrapper}>
-        
-            <Link to="/cart" className={classes.cart_button}>
-              <FaShoppingCart />
-            </Link>
-      
+          <Link to="/cart" className={classes.cart_button}>
+            <FaShoppingCart />
+          </Link>
 
+          {user ? (
+            <div className={classes.userMenu}>
+              <button className={classes.userButton}>
+                <FaUser />
+                <span>{user.name}</span>
+              </button>
+              <div className={classes.dropdownMenu}>
+                <Link to="/customer/profile">Profile</Link>
+                <Link to="/customer/orders">Orders</Link>
+                <button onClick={logout} className={classes.logoutButton}>
+                  Logout
+                </button>
+              </div>
+            </div>
+          ) : (
             <Link className={classes.login_butt} to="/login">
               Log In
             </Link>
-          
+          )}
         </div>
       </div>
     </header>

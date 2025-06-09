@@ -4,16 +4,17 @@ import PayPal from "../components/CartItems/PayPal";
 import { useContext, useState } from "react";
 import { CartContext } from "../components/CartItems/CartContext";
 import classes from "../components/CartItems/Cart.module.css";
+import OrderTypeSelector from "../components/CartItems/OrderTypeSelector/OrderTypeSelector";
 
 export default function CartPage() {
-  const { cartItems } = useContext(CartContext);
+  const { cartItems, orderType, updateOrderType } = useContext(CartContext);
   const [orderStatus, setOrderStatus] = useState(null);
 
   const handlePaymentSuccess = (details) => {
     console.log('Payment successful:', details);
     setOrderStatus({
       type: 'success',
-      message: `Order #${details.orderId} completed successfully! Thank you for your purchase.`
+      message: `Order #${details.order_id} completed successfully! Thank you for your purchase.`
     });
   };
 
@@ -61,6 +62,12 @@ export default function CartPage() {
           </button>
         </div>
       )}
+      
+      {/* Order Type Selector */}
+      <OrderTypeSelector 
+        selectedType={orderType}
+        onTypeChange={updateOrderType}
+      />
       
       {/* Cart Items */}
       <div className={classes.cartItems}>

@@ -1,17 +1,9 @@
 import React from "react";
+import classes from './CenteredLayout.module.css';
 
 export default function CenteredLayout({ children }) {
   return (
-    <div style={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      minHeight: "100vh",
-      flexDirection: "column",
-      
-     
-     
-    }}>
+    <div className={classes.container}>
       {children}
     </div>
   );

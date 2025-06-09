@@ -12,15 +12,16 @@
 /* Sidebar Container */
 .sidebar {
   background-color: var(--white);
-  position: fixed;
-  top: 0;
+  position: sticky;
+  top: 90px; /* Match header height */
   left: 0;
   padding: 2rem 3rem;
   width: 15rem;
-  height: 100vh;
+  height: calc(100vh - 90px);
   transition: 0.5s all;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  z-index: 999;
+  overflow-y: auto;
 }
 
 /* Logo Section */
@@ -270,15 +271,15 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .sidebar {
+    position: fixed;
+    top: 90px;
+    height: calc(100vh - 90px);
     width: 100%;
-    height: auto;
-    position: relative;
     padding: 1rem;
   }
   
   .sidebar.active {
-    width: 100%;
-    padding: 1rem;
+    width: 4rem;
   }
   
   .burgerContainer {
@@ -286,13 +287,10 @@
   }
   
   .contentsContainer ul {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    gap: 0.5rem;
   }
   
   .contentsContainer ul li {
-    margin: 0.5rem;
-    min-width: 120px;
+    padding: 0.5rem;
   }
 }

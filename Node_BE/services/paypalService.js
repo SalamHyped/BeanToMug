@@ -76,7 +76,7 @@ class PayPalService {
   }
 
   async createOrderFromSessionCart(connection, sessionCart) {
-    if (!sessionCart || sessionCart.length === 0) {
+    if (!sessionCart || sessionCart.items.length === 0) {
       throw new Error("Cart is empty");
     }
 
@@ -94,6 +94,7 @@ class PayPalService {
     );
 
     const tempOrderId = orderResult.insertId;
+
 
     for (const item of validatedItems) {
       await connection.execute(
@@ -137,7 +138,7 @@ class PayPalService {
     let totalAmount = 0;
     const priceDiscrepancies = [];
 
-    for (const cartItem of sessionCart) {
+    for (const cartItem of sessionCart.items) {
       const [dbItem] = await connection.execute(
         "SELECT item_id, item_name, price FROM dish WHERE item_id = ?",
         [cartItem.item_id]
@@ -209,10 +210,11 @@ class PayPalService {
           
           return {
             success: true,
-            order_id: orderId,
+            paypal_order_id: orderId,
             capture_id:
               captureResult.result.purchase_units[0].payments.captures[0].id,
-            db_order_id: order.id,
+            order_id: order.order_id,
+            
             is_guest: order.user_id === null,
           };
         } else {

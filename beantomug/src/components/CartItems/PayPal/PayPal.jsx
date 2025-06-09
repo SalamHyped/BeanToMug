@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../CartContext';
 import { useUser } from '../../../context/UserContext/UserContext';
 import classes from './PayPal.module.css';
@@ -8,6 +9,7 @@ import axios from 'axios';
  * PayPal Component with Guest Checkout Support
  */
 export default function PayPal({ onSuccess, onError, onCancel }) {
+  const navigate = useNavigate();
   const { cartItems, setCartItems } = useContext(CartContext);
   const { user } = useUser(); // Get authentication status (optional for guests)
   const paypalRef = useRef();
@@ -49,6 +51,7 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
         withCredentials: true,
         timeout: 15000
       });
+      console.log('PayPal order created:', response.data);
 
       return response.data.order_id;
     } catch (err) {
@@ -83,6 +86,13 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
         // Clear cart after successful payment
         setCartItems([]);
         
+        // Navigate to payment success page
+        navigate('/payment-success', { 
+          state: { 
+            orderDetails: response.data 
+          }
+        });
+        
         // Notify parent of success
         if (onSuccess) {
           onSuccess({
@@ -103,7 +113,7 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
       }
       throw err;
     } finally {
-      setIsProcessing(false); // ← Critical fix: Always reset loading state
+      setIsProcessing(false);
     }
   };
 

@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useUser } from '../../../context/UserContext/UserContext';
 import Sidebar from '../../layouts/Sidebar';
@@ -7,6 +7,10 @@ import styles from './protectedRoute.module.css';
 const ProtectedRoute = ({ allowedRoles }) => {
   const { user, loading } = useUser();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const location = useLocation();
+  
+  // Check if the current route is a customer route
+  const isCustomerRoute = location.pathname.startsWith('/customer');
 
   // Wait for auth check
   if (loading) {
@@ -23,7 +27,12 @@ const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to="/" replace />;
   }
 
-  // Render protected content
+  // For customer routes, render without sidebar (same as guest layout)
+  if (isCustomerRoute) {
+    return <Outlet />;
+  }
+
+  // Render protected content with sidebar for admin/staff routes
   return (
     <div className={`${styles.layout} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
       <Sidebar 
