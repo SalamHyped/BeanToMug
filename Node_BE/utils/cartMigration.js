@@ -29,7 +29,7 @@ async function migrateSessionCartToUser(userId, sessionCartItems = []) {
     `, [userId]);
     
     let finalCartId = null;
-    
+    console.log(sessionCartItems);
     if (sessionCartItems.length > 0) {
       if (userCart.length > 0) {
         // User has existing cart - merge session items into it
@@ -43,7 +43,7 @@ async function migrateSessionCartToUser(userId, sessionCartItems = []) {
     } else if (userCart.length > 0) {
       // No session items, but user has existing cart
       console.log('No session items - using existing user cart');
-      finalCartId = userCart[0].id;
+      finalCartId = userCart[0].order_id;
     }
     
     await connection.commit();
@@ -71,46 +71,46 @@ async function migrateSessionCartToUser(userId, sessionCartItems = []) {
  * Merge session items into existing user cart
  */
 async function mergeItemsIntoCart(connection, sessionItems, userCart) {
+
   for (const item of sessionItems) {
     // Validate item exists and get current price
     const [itemDetails] = await connection.execute(
       'SELECT item_id, price FROM dish WHERE item_id = ?',
       [item.item_id]
     );
-    
     if (itemDetails.length === 0) {
       console.log(`Item ${item.id} no longer exists - skipping`);
       continue;
     }
-    
+
     const currentPrice = itemDetails[0].price;
     const optionsJson = JSON.stringify(item.options || {});
-    
+
     // Check if item with same options already exists
     const [existingItems] = await connection.execute(`
-      SELECT * FROM order_items 
+      SELECT * FROM order_item 
       WHERE order_id = ? AND item_id = ? AND item_options = ?
-    `, [userCart.id, item.id, optionsJson]);
-    
+    `, [userCart.order_id, item.item_id, optionsJson]);
+
     if (existingItems.length > 0) {
       // Update quantity
       await connection.execute(`
-        UPDATE order_items 
+        UPDATE order_item 
         SET quantity = quantity + ?, updated_at = NOW()
         WHERE id = ?
       `, [item.quantity, existingItems[0].id]);
     } else {
       // Add new item
       await connection.execute(`
-        INSERT INTO order_items (order_id, item_id, quantity, price, item_options, created_at)
+        INSERT INTO order_item (order_id, item_id, quantity, price, item_options, created_at)
         VALUES (?, ?, ?, ?, ?, NOW())
       `, [userCart.order_id, item.item_id, item.quantity, currentPrice, optionsJson]);
     }
   }
-  
+
   // Update cart total
-  await updateCartTotal(connection, userCart.id);
-  return userCart.id;
+  await updateCartTotal(connection, userCart.order_id);
+  return userCart.order_id;
 }
 
 /**
@@ -142,7 +142,7 @@ async function createCartFromItems(connection, sessionItems, userId) {
     const optionsJson = JSON.stringify(item.options || {});
     
     await connection.execute(`
-      INSERT INTO order_items (order_id, item_id, quantity, price, item_options, created_at)
+      INSERT INTO order_item (order_id, item_id, quantity, price, item_options, created_at)
       VALUES (?, ?, ?, ?, ?, NOW())
     `, [newCartId, item.id, item.quantity, currentPrice, optionsJson]);
   }
@@ -158,7 +158,7 @@ async function createCartFromItems(connection, sessionItems, userId) {
 async function updateCartTotal(connection, cartId) {
   const [totalResult] = await connection.execute(`
     SELECT COALESCE(SUM(price * quantity), 0) as total
-    FROM order_items WHERE order_id = ?
+    FROM order_item WHERE order_id = ?
   `, [cartId]);
   
   const newTotal = totalResult[0].total;
@@ -180,7 +180,7 @@ async function getCartItems(connection, cartId) {
       oi.*, 
       d.item_name, 
       d.price as current_price
-    FROM order_items oi
+    FROM order_item oi
     JOIN dish d ON oi.item_id = d.item_id
     WHERE oi.order_id = ?
     ORDER BY oi.created_at DESC

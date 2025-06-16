@@ -280,7 +280,25 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // 5. Set session data
+    // 5. CART MIGRATION: Only for customers
+    let cartMigrationResult = null;
+    if (user.role === 'customer') {
+      const cartService = require('../services/cartService');
+      // Get session cart items array, default to empty array if not exists
+      const sessionCart = req.session.cart?.items || [];
+      console.log(sessionCart);
+      cartMigrationResult = await cartService.migrateSessionToUser(
+        user.id, 
+        sessionCart
+      );
+      // Update session cart with merged cart (for compatibility)
+      req.session.cart = {
+        items: cartMigrationResult.cartItems,
+        orderType: cartMigrationResult.orderType || 'Dine In'
+      };
+    }
+
+    // 6. Set session data
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.role = user.role;
@@ -297,15 +315,23 @@ router.post('/login', async (req, res) => {
       });
     });
 
-    // 6. Send success response
-    return res.json({ 
+    // 7. Send success response with cart info (only for customers)
+    const response = { 
       success: true, 
       user: {
         id: user.id,
         username: user.username,
         role: user.role
       }
-    });
+    };
+
+    // Add cart info only for customers
+    if (user.role === 'customer' && cartMigrationResult) {
+      response.cart = cartMigrationResult.cartItems;
+      response.cartMigrated = cartMigrationResult.migrationPerformed;
+    }
+
+    return res.json(response);
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ 

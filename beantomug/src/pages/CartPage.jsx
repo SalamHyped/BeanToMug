@@ -7,7 +7,7 @@ import classes from "../components/CartItems/Cart.module.css";
 import OrderTypeSelector from "../components/CartItems/OrderTypeSelector/OrderTypeSelector";
 
 export default function CartPage() {
-  const { cartItems, orderType, updateOrderType } = useContext(CartContext);
+  const { cartItems, orderType, updateOrderType, error } = useContext(CartContext);
   const [orderStatus, setOrderStatus] = useState(null);
 
   const handlePaymentSuccess = (details) => {
@@ -49,6 +49,19 @@ export default function CartPage() {
   return (
     <div className={classes.cartContainer}>
       <h2 className={classes.cartTitle}>Your Cart</h2>
+      
+      {/* Error Messages */}
+      {error && (
+        <div className={`${classes.orderStatus} ${classes.error}`}>
+          <p>{error}</p>
+          <button 
+            className={classes.closeStatus}
+            onClick={() => setError(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
       
       {/* Order Status Messages */}
       {orderStatus && (

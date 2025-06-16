@@ -48,7 +48,7 @@ class PayPalService {
 
     const { items, totalAmount } = await this.validateCartItems(
       connection,
-      cart.id
+      cart.order_id
     );
     if (items.length === 0) {
       throw new Error("Cart is empty");
@@ -56,13 +56,13 @@ class PayPalService {
 
     const paypalOrder = await this.createPayPalOrder(
       totalAmount,
-      cart.id,
+      cart.order_id,
       "user"
     );
 
     await this.convertCartToOrder(
       connection,
-      cart.id,
+      cart.order_id,
       paypalOrder.id,
       totalAmount
     );
@@ -95,21 +95,38 @@ class PayPalService {
 
     const tempOrderId = orderResult.insertId;
 
-
     for (const item of validatedItems) {
-      await connection.execute(
+      const [itemResult] = await connection.execute(
         `
-        INSERT INTO order_items (order_id, item_id, quantity, price, item_options)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO order_item (order_id, item_id, quantity, price, created_at)
+        VALUES (?, ?, ?, ?, NOW())
       `,
         [
           tempOrderId,
           item.item_id,
           item.quantity,
-          item.item_price,
-          JSON.stringify(item.options || {}),
+          item.item_price
         ]
       );
+
+      if (item.options) {
+        const optionIds = Object.values(item.options);
+        if (optionIds.length > 0) {
+          const placeholders = optionIds.map(() => '?').join(',');
+          const [ingredients] = await connection.execute(`
+            SELECT ingredient_id, price
+            FROM ingredient
+            WHERE ingredient_id IN (${placeholders})
+          `, optionIds);
+
+          for (const ingredient of ingredients) {
+            await connection.execute(`
+              INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price)
+              VALUES (?, ?, ?)
+            `, [itemResult.insertId, ingredient.ingredient_id, ingredient.price]);
+          }
+        }
+      }
     }
 
     const paypalOrder = await this.createPayPalOrder(
@@ -271,7 +288,7 @@ class PayPalService {
           [order.id]
         );
       } else {
-        await this.deleteGuestOrder(connection, order.id);
+        await this.deleteGuestOrder(connection, order.order_id);
       }
 
       await connection.commit();
@@ -332,7 +349,7 @@ class PayPalService {
     const [items] = await connection.execute(
       `
       SELECT oi.*, d.price as current_price
-      FROM order_items oi
+      FROM order_item oi
       JOIN dish d ON oi.item_id = d.item_id
       WHERE oi.order_id = ?
     `,
@@ -390,7 +407,7 @@ class PayPalService {
 
     await connection.execute(
       `
-      UPDATE orders SET total_amount = ? WHERE id = ?
+      UPDATE orders SET total_price = ? WHERE order_id = ?
     `,
       [totalResult[0].total, cartId]
     );
@@ -408,7 +425,7 @@ class PayPalService {
             value: totalAmount.toFixed(2),
           },
           description: `Bean to Mug ${
-            orderType === "guest" ? "Guest " : ""
+            orderType === "guest" ? "Guest " : "customer"
           }Order #${orderId}`,
         },
       ],
@@ -418,18 +435,18 @@ class PayPalService {
     return response.result;
   }
 
-  async convertCartToOrder(connection, cartId, paypalOrderId, totalAmount) {
+  async convertCartToOrder(connection, orderId, paypalOrderId, totalAmount) {
     await connection.execute(
       `
       UPDATE orders
       SET is_cart = FALSE,
           status = 'pending',
           paypal_order_id = ?,
-          total_amount = ?,
+          total_price = ?,
           updated_at = NOW()
-      WHERE id = ?
+      WHERE order_id = ?
     `,
-      [paypalOrderId, totalAmount, cartId]
+      [paypalOrderId, totalAmount, orderId]
     );
   }
 
@@ -472,7 +489,7 @@ class PayPalService {
   async deleteGuestOrder(connection, orderId) {
     await connection.execute(
       `
-      DELETE FROM order_items WHERE order_id = ?
+      DELETE FROM order_item WHERE order_id = ?
     `,
       [orderId]
     );

@@ -4,68 +4,6 @@ const { dbSingleton } = require('../dbSingleton');
 const cartService = require('../services/cartService');
 const router = express.Router();
 
-// Login route with cart migration
-router.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password are required' });
-    }
-    
-    const connection = await dbSingleton.getConnection();
-    
-    // Find user
-    const [users] = await connection.execute(
-      'SELECT * FROM users WHERE username = ?',
-      [username]
-    );
-    
-    if (users.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    const user = users[0];
-    
-    // Verify password (assuming bcrypt)
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-    
-    // CART MIGRATION: Handle guest cart from session
-    const sessionCart = req.session.cart || [];
-    const migrationResult = await cartService.migrateSessionToUser(
-      user.id, 
-      sessionCart // Session cart items from req.session.cart
-    );
-    
-    // Set session data
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.isAuthenticated = true;
-    
-    // Update session cart with merged cart (for compatibility)
-    req.session.cart = migrationResult.cartItems;
-    
-    res.json({
-      success: true,
-      message: 'Logged in successfully',
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email
-      },
-      cart: migrationResult.cartItems,
-      cartMigrated: migrationResult.migrationPerformed
-    });
-    
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
-
 // Register route
 router.post('/register', async (req, res) => {
   try {
@@ -132,29 +70,6 @@ router.post('/register', async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Registration failed' });
-  }
-});
-
-// Logout route
-router.post('/logout', (req, res) => {
-  try {
-    // Clear user session but keep guest cart
-    req.session.userId = null;
-    req.session.username = null;
-    req.session.isAuthenticated = false;
-    
-    // Keep cart for guest session
-    const guestCart = req.session.cart || [];
-    
-    res.json({
-      success: true,
-      message: 'Logged out successfully',
-      cart: guestCart
-    });
-    
-  } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({ error: 'Logout failed' });
   }
 });
 

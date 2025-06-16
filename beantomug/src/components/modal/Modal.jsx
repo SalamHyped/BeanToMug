@@ -25,7 +25,7 @@ export default function Modal({
   return (
     <div className={`${classes.modal_overlay} ${isOpen ? classes.active : ""}`} onClick={handleOverlayClick}>
       <div className={classes.modal_content}>
-        {title && <h2 className={classes.modal_title}>{title}</h2>}
+        
         <div className={classes.modal_body}>{children}</div>
         {footerButtons && (
           <div className={classes.modal_footer}>
@@ -40,9 +40,7 @@ export default function Modal({
             ))}
           </div>
         )}
-        <button className={classes.modal_close} onClick={onClose}>
-          ✕
-        </button>
+       
       </div>
     </div>
   );

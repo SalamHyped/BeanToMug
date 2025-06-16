@@ -1,40 +1,86 @@
 import classes from "./Cart.module.css";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { CartContext } from "./CartContext";
 
 export default function Cart({ item }) {
-  const { removeFromCart, updateQuantity } = useContext(CartContext);
+  const { removeFromCart, updateQuantity, error } = useContext(CartContext);
+  const [localError, setLocalError] = useState(null);
 
   function handleOptions() {
-    const options = Object.entries(item.options)
-      .map(([key, value]) => {
-        if (value) {
-          return typeof value === "boolean" ? key : value.toString();
-        }
-      })
-      .filter(Boolean);
+    if (!item.options) return "";
+    
+    const selectedOptionsList = [];
+    
+    // Handle selected ingredients
+    if (item.selectedIngredients && Array.isArray(item.selectedIngredients)) {
+      item.selectedIngredients.forEach(ingredient => {
+        selectedOptionsList.push(ingredient.name);
+      });
+    }
 
-    return options.join(", ");
+    return selectedOptionsList.join(', ');
   }
 
-  const handleDecreaseQuantity = () => {
-
+  const handleDecreaseQuantity = async () => {
     if (item.quantity > 1) {
-      updateQuantity(item.item_id, item.quantity - 1, item.options);
+      try {
+        await updateQuantity(item.item_id, item.quantity - 1, item.options);
+        setLocalError(null);
+      } catch (err) {
+        setLocalError(err.message || 'Failed to update quantity');
+      }
     }
   };
 
-  const handleIncreaseQuantity = () => {
-    console.log(item.item_id);
-    updateQuantity(item.item_id, item.quantity + 1, item.options);
+  const handleIncreaseQuantity = async () => {
+    try {
+      await updateQuantity(item.item_id, item.quantity + 1, item.options);
+      setLocalError(null);
+    } catch (err) {
+      setLocalError(err.message || 'Failed to update quantity');
+    }
   };
 
-  const handleRemoveItem = () => {
-    removeFromCart(item);
+  const handleRemoveItem = async () => {
+    try {
+      await removeFromCart(item);
+      setLocalError(null);
+    } catch (err) {
+      setLocalError(err.message || 'Failed to remove item');
+    }
+  };
+
+  const calculateItemTotal = () => {
+    const basePrice = Number(item.item_price || item.price || 0);
+    let totalPrice = basePrice;
+
+    // Add prices from selected ingredients
+    if (item.options) {
+      Object.entries(item.options).forEach(([key, value]) => {
+        if (value && item.ingredientPrices && item.ingredientPrices[key]) {
+          totalPrice += Number(item.ingredientPrices[key] || 0);
+        }
+      });
+    }
+
+    return (totalPrice * item.quantity).toFixed(2);
   };
 
   return (
     <div className={classes.cartCard}>
+      {/* Error Message */}
+      {localError && (
+        <div className={classes.errorMessage}>
+          <p>{localError}</p>
+          <button 
+            className={classes.closeError}
+            onClick={() => setLocalError(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className={classes.cartImage}>
         <img
           className={classes.cartImg}
@@ -44,10 +90,18 @@ export default function Cart({ item }) {
       </div>
       <div className={classes.cartDetails}>
         <div className={classes.cartName}>{item.item_name}</div>
-        <div className={classes.cartOptions}>
-          {item.options && Object.keys(item.options).length
-            ? handleOptions()
-            : ""}
+        {item.options && Object.keys(item.options).length > 0 && (
+          <div className={classes.cartOptions}>
+            {handleOptions()}
+          </div>
+        )}
+        <div className={classes.cartPrice}>
+          <span className={classes.unitPrice}>
+            ${Number(item.item_price || item.price || 0).toFixed(2)} base
+          </span>
+          <span className={classes.totalPrice}>
+            Total: ${calculateItemTotal()}
+          </span>
         </div>
       </div>
       <div className={classes.cartQuantity}>
@@ -57,9 +111,9 @@ export default function Cart({ item }) {
           disabled={item.quantity <= 1}
           aria-label="Decrease quantity"
         >
-          -
+          −
         </button>
-        <span>{item.quantity}</span>
+        <span className={classes.quantityNumber}>{item.quantity}</span>
         <button 
           className={classes.cartButton}
           onClick={handleIncreaseQuantity}

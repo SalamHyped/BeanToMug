@@ -30,12 +30,35 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
     ).join('|');
   }, [cartItems]);
 
+  // Format options for display
+  const formatOptions = (options) => {
+    if (!options) return '';
+    
+    // Group options by category
+    const optionsByCategory = {};
+    Object.entries(options).forEach(([key, value]) => {
+      if (value) {
+        const category = key.split('_')[0]; // Assuming format: "category_ingredient"
+        if (!optionsByCategory[category]) {
+          optionsByCategory[category] = [];
+        }
+        optionsByCategory[category].push(value);
+      }
+    });
+
+    // Format options by category
+    return Object.entries(optionsByCategory)
+      .map(([category, ingredients]) => `${category}: ${ingredients.join(', ')}`)
+      .join(' | ');
+  };
+
   /**
    * Calculate total price for display
    */
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => {
-      return total + (item.item_price * item.quantity);
+      const itemTotal = (item.item_price || item.price) * item.quantity;
+      return total + itemTotal;
     }, 0).toFixed(2);
   };
 
@@ -390,16 +413,13 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
                 {item.item_name}
                 {item.options && Object.keys(item.options).length > 0 && (
                   <span className={classes.itemOptions}>
-                    ({Object.entries(item.options)
-                      .filter(([key, value]) => value)
-                      .map(([key, value]) => typeof value === 'boolean' ? key : value)
-                      .join(', ')})
+                    ({formatOptions(item.options)})
                   </span>
                 )}
               </span>
               <span className={classes.itemQuantity}>Qty: {item.quantity}</span>
               <span className={classes.itemPrice}>
-                ${(item.item_price * item.quantity).toFixed(2)}
+                ${((item.item_price || item.price) * item.quantity).toFixed(2)}
               </span>
             </div>
           ))}

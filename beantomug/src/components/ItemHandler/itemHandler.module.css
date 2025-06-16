@@ -1,7 +1,6 @@
-
 .itemName{
     font-family: 'Raleway', sans-serif;
-    font-size: larger;
+    font-size: 1.5rem;
     font-weight: bold;
     color: #896651;
     border-bottom: 1px solid #896651;
@@ -17,60 +16,186 @@ div>img{
 .quantityControls {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin-top: 1rem;
+  gap: 0.5rem;
 }
 .quantityControls button {
   background-color: #f0f0f0;
   border: 1px solid #ccc;
-  padding: 5px 10px;
-  font-size: 16px;
+  padding: 0.5em 1em;
+  font-size: 1rem;
   cursor: pointer;
-  
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
 }
-
+.quantityControls button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+.quantityControls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .quantityControls span {
-  min-width: 20px;
+  min-width: 2rem;
   text-align: center;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .itemOptions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-top: 1rem;
-  justify-content: space-between;  
-   align-items: center;
-
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
 }
-
-
-
-
-
-.fieldset {
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  padding: 3rem;
+.optionGroup {
+  background-color: white;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+.optionGroupTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #896651;
   margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e9ecef;
 }
-
-
-.legend {
-  font-weight: bold;
+.typeFieldset {
+  border: 1px solid #e0e0e0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  background-color: #f8f9fa;
+}
+.typeLegend {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
   padding: 0 0.5rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.required {
+  color: #ff4444;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: white;
+  transition: border-color 0.2s ease;
+}
+.select:focus {
+  border-color: #007bff;
+  outline: none;
+}
+.checkboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  color: #333;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+.checkboxLabel:hover {
+  background-color: #e9ecef;
+}
+.checkboxLabel input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: #007bff;
+}
+.error {
+  color: #dc3545;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  margin: 1rem 0;
+  text-align: center;
 }
 .addToCartBtn{
   background-color: #896651;
   color: #F3D9CA;
-  padding: 10px 20px;
+  padding: 0.75em 1.5em;
   border: none;
-  border-radius: 5px;
+  border-radius: 0.5rem;
   cursor: pointer;
-  font-size: 16px;
-  margin-top:1.5rem;
+  font-size: 1rem;
+  margin-top: 1.5rem;
+  width: 50%;
+  transition: all 0.3s ease;
 }
-.addToCartBtn:hover {
+.addToCartBtn:hover:not(:disabled) {
   background-color: #F3D9CA;
   color: #896651;
-  transition: background-color 1s ;
+}
+.addToCartBtn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+/* Responsive styles */
+@media (max-width: 768px) {
+  .itemOptions {
+    padding: 0.75rem;
+  }
+  .optionGroup {
+    padding: 0.75rem;
+  }
+  .typeFieldset {
+    padding: 0.75rem;
+  }
+  .typeLegend {
+    font-size: 0.95rem;
+  }
+  .select {
+    padding: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .checkboxLabel {
+    font-size: 0.95rem;
+    padding: 0.4rem;
+  }
+  .addToCartBtn {
+    padding: 0.5em 1em;
+  }
+  .itemName {
+    font-size: 1.25rem;
+  }
+}
+@media (max-width: 480px) {
+  .itemOptions {
+    padding: 0.5rem;
+  }
+  .optionGroup {
+    padding: 0.5rem;
+  }
+  .typeFieldset {
+    padding: 0.5rem;
+  }
+  .checkboxLabel {
+    padding: 0.25rem;
+  }
 }
