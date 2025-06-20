@@ -26,7 +26,8 @@ async function getAvailableIngredients(itemId) {
         ic.name as category_name,
         iii.quantity_required,
         it.option_group,
-        it.name as option_label
+        it.name as option_label,
+        it.is_physical
       FROM ingredients_in_item iii
       JOIN ingredient i ON iii.ingredient_id = i.ingredient_id
       JOIN ingredient_category ic ON i.type_id = ic.type_id
@@ -44,6 +45,7 @@ async function getAvailableIngredients(itemId) {
           label: ing.option_label,
           required: ing.quantity_required > 0,
           category: ing.category_name,
+          isPhysical: ing.is_physical,
           ingredients: []
         };
       }
@@ -105,18 +107,14 @@ class CartService {
    * Add item to cart
    */
   async addToCart(userId, sessionCart, item, quantity, options) {
-   
-    if (!item || !item.item_id || quantity <= 0) {
-      throw new Error('Invalid item or quantity');
-    }
-    
     if (userId) {
-  
-      // User is logged in - save to database
+      // User is logged in - add to database cart
+      console.log('Adding item to database cart for user:', userId);
       return await this.addToUserCart(userId, item, quantity, options);
     } else {
-      // Guest user - save to session
-      return this.addToSessionCart(sessionCart, item, quantity, options);
+      // Guest user - add to session cart
+      console.log('Adding item to session cart for guest');
+      return await this.addToSessionCart(sessionCart, item, quantity, options);
     }
   }
   
@@ -162,7 +160,6 @@ class CartService {
    * Migrate session cart to user cart on login
    */
   async migrateSessionToUser(userId, sessionCart) {
-    console.log(sessionCart);
    
     return await migrateSessionCartToUser(userId, sessionCart);
   }
@@ -227,53 +224,35 @@ class CartService {
       let totalPrice = itemDetails[0].price;
       const selectedIngredients = [];
 
-      if (options && item.options) {
-        // Get ingredient prices from the database
-        const [ingredients] = await connection.execute(`
-          SELECT i.ingredient_id, i.ingredient_name, i.price
-          FROM ingredient i
-          JOIN ingredients_in_item ii ON i.ingredient_id = ii.ingredient_id
-          WHERE ii.item_id = ?
-        `, [item.item_id]);
-
-        // Add prices for selected ingredients
-        Object.entries(options).forEach(([group, groupOptions]) => {
-          if (groupOptions) {
-            const optionGroup = item.options[group];
-            if (optionGroup) {
-              optionGroup.types.forEach(type => {
-                if (type.type === 'select') {
-                  const selectedValue = groupOptions[type.label];
-                  if (selectedValue) {
-                    const ingredient = ingredients.find(ing => ing.ingredient_name === selectedValue);
-                    if (ingredient) {
-                      totalPrice += ingredient.price;
-                      selectedIngredients.push({
-                        ingredient_id: ingredient.ingredient_id,
-                        price: ingredient.price
-                      });
-                    }
-                  }
-                } else if (type.type === 'checkbox') {
-                  type.values.forEach(value => {
-                    if (groupOptions[value]) {
-                      const ingredient = ingredients.find(ing => ing.ingredient_name === value);
-                      if (ingredient) {
-                        totalPrice += ingredient.price;
-                        selectedIngredients.push({
-                          ingredient_id: ingredient.ingredient_id,
-                          price: ingredient.price
-                        });
-                      }
-                    }
-                  });
-                }
-              });
+      if (options && Object.keys(options).length > 0) {
+        const ingredientIds = Object.keys(options).filter(id => options[id].selected);
+        if (ingredientIds.length > 0) {
+          const placeholders = ingredientIds.map(() => '?').join(',');
+          const [ingredients] = await connection.execute(`
+            SELECT ingredient_id, ingredient_name, price
+            FROM ingredient
+            WHERE ingredient_id IN (${placeholders})
+          `, ingredientIds);
+          
+          const ingredientMap = new Map(ingredients.map(ing => [ing.ingredient_id.toString(), ing]));
+          
+          // Process selected options using session cart structure
+          for (const [optionId, option] of Object.entries(options)) {
+            if (option.selected) {
+              const ingredient = ingredientMap.get(optionId);
+              if (ingredient) {
+                totalPrice += ingredient.price;
+                selectedIngredients.push({
+                  ingredient_id: ingredient.ingredient_id,
+                  price: ingredient.price
+                });
+              }
             }
           }
-        });
+        }
       }
-      
+     
+    
       // Check if item with same options already exists in cart
       const [existingItems] = await connection.execute(`
         SELECT oi.order_item_id 
@@ -301,8 +280,8 @@ class CartService {
         // Add selected ingredients
         for (const ingredient of selectedIngredients) {
           await connection.execute(`
-            INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price, created_at)
-            VALUES (?, ?, ?, NOW())
+            INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price)
+            VALUES (?, ?, ?)
           `, [result.insertId, ingredient.ingredient_id, ingredient.price]);
         }
       }
@@ -311,8 +290,14 @@ class CartService {
       await updateCartTotal(connection, cartOrder.order_id);
       await connection.commit();
       
-      // Get updated cart items
-      return await getCartItems(connection, cartOrder.order_id);
+      // Get updated cart items and return in correct format
+      const cartItems = await getCartItems(connection, cartOrder.order_id);
+      console.log('Final cart items:', cartItems);
+      
+      return {
+        items: cartItems,
+        orderType: cartOrder.order_type
+      };
       
     } catch (error) {
       if (connection) await connection.rollback();
@@ -322,15 +307,14 @@ class CartService {
   
   async updateUserCartQuantity(userId, itemId, quantity, options) {
     let connection;
-    
     try {
       connection = await dbSingleton.getConnection();
       await connection.beginTransaction();
-      
+
       const cartOrder = await this.getOrCreateUserCart(userId);
 
       // Get current item price and ingredient prices
-      const [itemDetails] = await connection.execute(
+      const [itemDetails] = await connection.query(
         'SELECT price FROM dish WHERE item_id = ?',
         [itemId]
       );
@@ -343,26 +327,32 @@ class CartService {
       let totalPrice = itemDetails[0].price;
       const selectedIngredients = [];
 
-      if (options) {
-        const [ingredients] = await connection.execute(`
-          SELECT i.ingredient_id, i.ingredient_name, i.price
-          FROM ingredient i
-          JOIN ingredients_in_item ii ON i.ingredient_id = ii.ingredient_id
-          WHERE ii.item_id = ?
-        `, [itemId]);
-
-        Object.entries(options).forEach(([key, value]) => {
-          if (value) {
-            const ingredient = ingredients.find(ing => ing.ingredient_name === value);
-            if (ingredient) {
-              totalPrice += ingredient.price;
-              selectedIngredients.push({
-                ingredient_id: ingredient.ingredient_id,
-                price: ingredient.price
-              });
+      if (options && Object.keys(options).length > 0) {
+        const ingredientIds = Object.keys(options).filter(id => options[id].selected);
+        if (ingredientIds.length > 0) {
+          const placeholders = ingredientIds.map(() => '?').join(',');
+          const [ingredients] = await connection.execute(`
+            SELECT ingredient_id, ingredient_name, price
+            FROM ingredient
+            WHERE ingredient_id IN (${placeholders})
+          `, ingredientIds);
+          
+          const ingredientMap = new Map(ingredients.map(ing => [ing.ingredient_id.toString(), ing]));
+          
+          // Process selected options using session cart structure
+          for (const [optionId, option] of Object.entries(options)) {
+            if (option.selected) {
+              const ingredient = ingredientMap.get(optionId);
+              if (ingredient) {
+                totalPrice += ingredient.price;
+                selectedIngredients.push({
+                  ingredient_id: ingredient.ingredient_id,
+                  price: ingredient.price
+                });
+              }
             }
           }
-        });
+        }
       }
       
       // Find matching order item
@@ -373,7 +363,7 @@ class CartService {
         WHERE oi.order_id = ? AND oi.item_id = ?
         GROUP BY oi.order_item_id
         HAVING COUNT(DISTINCT oii.ingredient_id) = ?
-      `, [cartOrder.order_id, itemId, selectedIngredients.length]);
+      `, [cartOrder.order_id, itemId, options ? Object.keys(options).filter(id => options[id].selected).length : 0]);
 
       if (orderItems.length === 0) {
         throw new Error('Item not found in cart');
@@ -405,8 +395,8 @@ class CartService {
 
         for (const ingredient of selectedIngredients) {
           await connection.execute(`
-            INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price, created_at)
-            VALUES (?, ?, ?, NOW())
+            INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price)
+            VALUES (?, ?, ?)
           `, [orderItemId, ingredient.ingredient_id, ingredient.price]);
         }
       }
@@ -444,7 +434,7 @@ class CartService {
         WHERE oi.order_id = ? AND oi.item_id = ?
         GROUP BY oi.order_item_id
         HAVING COUNT(DISTINCT oii.ingredient_id) = ?
-      `, [cartOrder.order_id, itemId, options ? Object.keys(options).length : 0]);
+      `, [cartOrder.order_id, itemId, options ? Object.keys(options).filter(id => options[id].selected).length : 0]);
 
       if (orderItems.length === 0) {
         throw new Error('Item not found in cart');
@@ -500,76 +490,66 @@ class CartService {
   
   // Session Cart Methods (Guest)
   
-  addToSessionCart(sessionCart, item, quantity, options) {
-  
+  async addToSessionCart(sessionCart, item, quantity, options) {
+    try {
+      // Initialize cart if it doesn't exist
+      if (!sessionCart) {
+        sessionCart = {
+          items: [],
+          orderType: 'Dine In'
+        };
+      }
 
-    // Initialize cart if it doesn't exist
-    const cart = {
-      items: Array.isArray(sessionCart?.items) ? [...sessionCart.items] : [],
-      orderType: sessionCart?.orderType || 'Dine In'
-    };
-    console.log("Initialized cart:", cart);
+      // Ensure items array exists
+      if (!sessionCart.items) {
+        sessionCart.items = [];
+      }
 
-    // Calculate total price including ingredient prices
-    let totalPrice = item.price;
-    const selectedIngredients = [];
-
-    if (options && item.options) {
-      Object.entries(options).forEach(([key, value]) => {
-        if (value) {
-          const option = item.options[key];
-          if (option) {
-            if (option.type === "select") {
-              const ingredient = option.ingredients.find(ing => ing.name === value);
+      // Calculate total price based on selected ingredients
+      let totalPrice = parseFloat(item.price) || 0;
+      if (options) {
+        for (const [ingredientId, option] of Object.entries(options)) {
+          if (option.selected) {
+            // Convert ingredientId to number if it's a string
+            const numericIngredientId = parseInt(ingredientId);
+            if (!isNaN(numericIngredientId)) {
+              const ingredient = await this.getIngredientDetails(numericIngredientId);
               if (ingredient) {
-                totalPrice += ingredient.price;
-                selectedIngredients.push({
-                  ingredient_id: ingredient.id,
-                  name: ingredient.name,
-                  price: ingredient.price
-                });
-              }
-            } else if (option.type === "checkbox") {
-              const ingredient = option.ingredients.find(ing => ing.name === key);
-              if (ingredient) {
-                totalPrice += ingredient.price;
-                selectedIngredients.push({
-                  ingredient_id: ingredient.id,
-                  name: ingredient.name,
-                  price: ingredient.price
-                });
+                totalPrice += parseFloat(ingredient.price) || 0;
               }
             }
           }
         }
-      });
+      }
+
+      // Create cart item with validated data
+      const cartItem = {
+        item_id: item.item_id,
+        item_name: item.item_name,
+        price: totalPrice,
+        quantity: quantity,
+        options: options || {}
+      };
+      // Check if item with same options already exists in cart
+      const existingItemIndex = sessionCart.items.findIndex(
+        existingItem => existingItem.item_id === cartItem.item_id && 
+                       this.areOptionsEqual(existingItem.options, cartItem.options)
+      );
+
+      if (existingItemIndex !== -1) {
+        // Update quantity if item exists
+        sessionCart.items[existingItemIndex].quantity += quantity;
+      } else {
+        // Add new item if it doesn't exist
+        sessionCart.items.push(cartItem);
+        
+      }
+
+      return sessionCart;
+    } catch (error) {
+      console.error('Error in addToSessionCart service:', error);
+      throw error;
     }
-
-    const itemWithPrice = {
-      ...item,
-      item_price: totalPrice,
-      selectedIngredients
-    };
-    console.log("Item with price:", itemWithPrice);
-
-    // Find existing item with same options
-    const existingItemIndex = cart.items.findIndex(
-      (i) => i.item_id === item.item_id && JSON.stringify(i.options) === JSON.stringify(options)
-    );
-    console.log("Existing item index:", existingItemIndex);
-
-    if (existingItemIndex >= 0) {
-      // Update existing item quantity
-      cart.items[existingItemIndex].quantity += quantity;
-      console.log("Updated existing item:", cart.items[existingItemIndex]);
-    } else {
-      // Add new item to cart
-      cart.items.push({ ...itemWithPrice, quantity, options });
-      console.log("Added new item:", cart.items[cart.items.length - 1]);
-    }
-
-    console.log("Final cart:", cart);
-    return cart;
   }
   
   updateSessionCartQuantity(sessionCart, itemId, quantity, options) {
@@ -659,6 +639,37 @@ class CartService {
   async getAvailableIngredients(itemId) {
     return getAvailableIngredients(itemId);
   }
+
+  // Helper function to get ingredient details
+  async getIngredientDetails(ingredientId) {
+    let connection;
+    try {
+      connection = await dbSingleton.getConnection();
+      const [ingredients] = await connection.execute(
+        'SELECT ingredient_id, ingredient_name, price FROM ingredient WHERE ingredient_id = ? AND status = 1',
+        [ingredientId]
+      );
+      return ingredients.length > 0 ? ingredients[0] : null;
+    } catch (error) {
+      console.error('Error getting ingredient details:', error);
+      return null;
+    }
+  }
+
+  // Helper function to compare options
+  areOptionsEqual(options1, options2) {
+    if (!options1 || !options2) return false;
+    
+    // Simple comparison using JSON.stringify as fallback
+    try {
+      return JSON.stringify(options1) === JSON.stringify(options2);
+    } catch (error) {
+      console.error('Error comparing options:', error);
+      return false;
+    }
+  }
 }
 
-module.exports = new CartService(); 
+// Create and export a single instance
+const cartService = new CartService();
+module.exports = cartService; 

@@ -286,16 +286,33 @@ router.post('/login', async (req, res) => {
       const cartService = require('../services/cartService');
       // Get session cart items array, default to empty array if not exists
       const sessionCart = req.session.cart?.items || [];
-      console.log(sessionCart);
-      cartMigrationResult = await cartService.migrateSessionToUser(
-        user.id, 
-        sessionCart
-      );
-      // Update session cart with merged cart (for compatibility)
-      req.session.cart = {
-        items: cartMigrationResult.cartItems,
-        orderType: cartMigrationResult.orderType || 'Dine In'
-      };
+      console.log('Session cart before migration:', sessionCart);
+      
+      if (sessionCart.length > 0) {
+        cartMigrationResult = await cartService.migrateSessionToUser(
+          user.id, 
+          sessionCart
+        );
+        console.log('Cart migration result:', cartMigrationResult);
+        
+        // Update session cart with merged cart (for compatibility)
+        req.session.cart = {
+          items: cartMigrationResult.cartItems || [],
+          orderType: cartMigrationResult.orderType || 'Dine In'
+        };
+      } else {
+        // No session cart to migrate, but get existing user cart
+        const userCart = await cartService.getCart(user.id);
+        cartMigrationResult = {
+          cartItems: userCart.items || [],
+          orderType: userCart.orderType || 'Dine In',
+          migrationPerformed: false
+        };
+        req.session.cart = {
+          items: userCart.items || [],
+          orderType: userCart.orderType || 'Dine In'
+        };
+      }
     }
 
     // 6. Set session data

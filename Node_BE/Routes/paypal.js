@@ -6,10 +6,10 @@ const paypalService = require('../services/paypalService');
 router.post('/create-paypal-order', async (req, res) => {
   try {
     const userId = req.session.userId || null;
-    const sessionCart = req.session.cart || [];
+    const sessionCart = req.session.cart || { items: [] };
     
     // Check if user has items in cart (either database or session)
-    if (!userId && sessionCart.length === 0) {
+    if (!userId && (!sessionCart.items || sessionCart.items.length === 0)) {
       return res.status(400).json({ error: 'Cart is empty' });
     }
     
@@ -46,7 +46,7 @@ router.post('/complete-payment', async (req, res) => {
     const result = await paypalService.completePayment(order_id);
     
     // Clear session cart on successful payment (for both guests and users)
-    req.session.cart = [];
+    req.session.cart = { items: [], orderType: 'Dine In' };
     
     res.json(result);
     

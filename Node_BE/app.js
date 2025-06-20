@@ -15,10 +15,11 @@ app.use(cors({
     credentials: true
 }));
 
+// Session configuration - improved for development
 app.use(session({
     secret: 'salam',
-    resave: false,
-    saveUninitialized: false,  // Changed to false for better security
+    resave: false,  // Changed to false - only save if session was modified
+    saveUninitialized: false,  // Changed to false - don't save uninitialized sessions
     cookie: { 
         secure: false,         // Set to true in production with HTTPS
         maxAge: 24 * 60 * 60 * 1000,  // 24 hours
@@ -26,6 +27,13 @@ app.use(session({
         sameSite: 'lax'       // Protects against CSRF
     }
 }));
+
+// Add session debugging middleware
+app.use((req, res, next) => {
+    console.log('Session ID:', req.sessionID);
+    console.log('Session data:', req.session);
+    next();
+});
 
 app.use(dbMiddleware);
 

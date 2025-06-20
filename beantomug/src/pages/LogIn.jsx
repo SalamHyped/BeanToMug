@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoginForm from "../components/forms/LogInForm";  
 import CenteredLayout from "../components/CenteredLayout";
@@ -6,10 +6,12 @@ import axios from 'axios';
 import classes from './login.module.css';
 import { IoAlertCircleOutline } from "react-icons/io5";
 import { useUser } from '../context/UserContext/UserContext';
+import { CartContext } from '../components/CartItems/CartContext';
 
 export default function LogIn() {
   const navigate = useNavigate();
   const { setUser } = useUser();
+  const { refreshCart } = useContext(CartContext);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -45,6 +47,8 @@ export default function LogIn() {
         // Update user context with the user data
         setUser(response.data.user);
         setSuccess('Login successful!');
+        // Refresh cart after login
+        if (refreshCart) await refreshCart();
         // Redirect to home page after successful login
          const role = response.data.user.role;
         

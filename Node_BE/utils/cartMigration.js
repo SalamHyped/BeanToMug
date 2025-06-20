@@ -1,4 +1,5 @@
 const { dbSingleton } = require('../dbSingleton');
+const { validateCartItem, validatePrice, validateOptions } = require('../middleware/cartMiddleware');
 
 /**
  * Cart Migration Utilities
@@ -7,9 +8,6 @@ const { dbSingleton } = require('../dbSingleton');
 
 /**
  * Migrate session cart to user database cart on login
- * @param {number} userId - The user ID logging in
- * @param {Array} sessionCartItems - Cart items from req.session.cart
- * @returns {Object} Migration result with cart items
  */
 async function migrateSessionCartToUser(userId, sessionCartItems = []) {
   let connection;
@@ -18,31 +16,26 @@ async function migrateSessionCartToUser(userId, sessionCartItems = []) {
     connection = await dbSingleton.getConnection();
     await connection.beginTransaction();
     
-    console.log(`Migrating session cart to user ${userId}: ${sessionCartItems.length} items`);
-    
     // Find existing user cart
     const [userCart] = await connection.execute(`
-      SELECT * FROM orders 
+      SELECT order_id FROM orders 
       WHERE user_id = ? AND is_cart = TRUE
       ORDER BY updated_at DESC 
       LIMIT 1
     `, [userId]);
     
     let finalCartId = null;
-    console.log(sessionCartItems);
+    
     if (sessionCartItems.length > 0) {
       if (userCart.length > 0) {
         // User has existing cart - merge session items into it
-        console.log('Merging session items into existing user cart');
-        finalCartId = await mergeItemsIntoCart(connection, sessionCartItems, userCart[0]);
+        finalCartId = await mergeItemsIntoCart(connection, sessionCartItems, userCart[0].order_id);
       } else {
         // No user cart - create new cart with session items
-        console.log('Creating new user cart from session items');
         finalCartId = await createCartFromItems(connection, sessionCartItems, userId);
       }
     } else if (userCart.length > 0) {
       // No session items, but user has existing cart
-      console.log('No session items - using existing user cart');
       finalCartId = userCart[0].order_id;
     }
     
@@ -50,8 +43,6 @@ async function migrateSessionCartToUser(userId, sessionCartItems = []) {
     
     // Get final cart items
     const cartItems = finalCartId ? await getCartItems(connection, finalCartId) : [];
-    
-    console.log(`Cart migration completed: ${cartItems.length} items in final cart`);
     
     return {
       success: true,
@@ -70,81 +61,218 @@ async function migrateSessionCartToUser(userId, sessionCartItems = []) {
 /**
  * Merge session items into existing user cart
  */
-async function mergeItemsIntoCart(connection, sessionItems, userCart) {
+async function mergeItemsIntoCart(connection, sessionItems, cartId) {
+
+
+  // Get all items and their current prices in one query
+  const itemIds = sessionItems.map(item => item.item_id).filter(id => id != null);
+  
+  if (itemIds.length === 0) {
+    console.log('No valid item IDs found in session items');
+    return cartId;
+  }
+
+  // Use proper parameter binding for IN clause
+  const placeholders = itemIds.map(() => '?').join(',');
+  const [itemDetails] = await connection.execute(`
+    SELECT item_id, price 
+    FROM dish 
+    WHERE item_id IN (${placeholders})
+  `, itemIds);
+
+  // Create a map for quick price lookup
+  const priceMap = new Map(itemDetails.map(item => [item.item_id, item.price]));
+
+  // Get existing items with their ingredients
+  const [existingItems] = await connection.execute(`
+    SELECT oi.order_item_id, oi.item_id, oi.quantity,
+           GROUP_CONCAT(oii.ingredient_id ORDER BY oii.ingredient_id) as ingredient_ids
+    FROM order_item oi
+    LEFT JOIN order_item_ingredient oii ON oi.order_item_id = oii.order_item_id
+    WHERE oi.order_id = ?
+    GROUP BY oi.order_item_id
+  `, [cartId]);
+
+  // Create a map for quick lookup of existing items
+  const existingMap = new Map();
+  existingItems.forEach(item => {
+    const key = `${item.item_id}-${item.ingredient_ids || ''}`;
+    existingMap.set(key, item);
+  });
+
+  // Prepare bulk inserts
+  const newItems = [];
+  const updateItems = [];
 
   for (const item of sessionItems) {
-    // Validate item exists and get current price
-    const [itemDetails] = await connection.execute(
-      'SELECT item_id, price FROM dish WHERE item_id = ?',
-      [item.item_id]
-    );
-    if (itemDetails.length === 0) {
-      console.log(`Item ${item.id} no longer exists - skipping`);
-      continue;
-    }
+    if (!validateCartItem(item)) continue;
 
-    const currentPrice = itemDetails[0].price;
-    const optionsJson = JSON.stringify(item.options || {});
+    const currentPrice = priceMap.get(item.item_id);
+    if (!currentPrice || !validatePrice(currentPrice)) continue;
 
-    // Check if item with same options already exists
-    const [existingItems] = await connection.execute(`
-      SELECT * FROM order_item 
-      WHERE order_id = ? AND item_id = ? AND item_options = ?
-    `, [userCart.order_id, item.item_id, optionsJson]);
+    if (item.options && !validateOptions(item.options)) continue;
 
-    if (existingItems.length > 0) {
+    // Create key for existing item lookup
+    const selectedIngredientIds = item.options ? 
+      Object.entries(item.options)
+        .filter(([_, opt]) => opt.selected)
+        .map(([id]) => id)
+        .sort()
+        .join(',') : '';
+    
+    const key = `${item.item_id}-${selectedIngredientIds}`;
+    const existingItem = existingMap.get(key);
+
+    if (existingItem) {
       // Update quantity
+      updateItems.push([item.quantity, existingItem.order_item_id]);
+    } else {
+      // Add new item
+      newItems.push([cartId, item.item_id, item.quantity, currentPrice]);
+    }
+  }
+
+  // Execute bulk operations
+  if (updateItems.length > 0) {
+    for (const [quantity, orderItemId] of updateItems) {
       await connection.execute(`
         UPDATE order_item 
         SET quantity = quantity + ?, updated_at = NOW()
-        WHERE id = ?
-      `, [item.quantity, existingItems[0].id]);
-    } else {
-      // Add new item
-      await connection.execute(`
-        INSERT INTO order_item (order_id, item_id, quantity, price, item_options, created_at)
-        VALUES (?, ?, ?, ?, ?, NOW())
-      `, [userCart.order_id, item.item_id, item.quantity, currentPrice, optionsJson]);
+        WHERE order_item_id = ?
+      `, [quantity, orderItemId]);
+    }
+  }
+
+  if (newItems.length > 0) {
+    // Use individual inserts instead of bulk insert to avoid syntax issues
+    const insertedIds = [];
+    
+    for (const item of newItems) {
+      const [result] = await connection.execute(`
+        INSERT INTO order_item (order_id, item_id, quantity, price, created_at)
+        VALUES (?, ?, ?, ?, NOW())
+      `, item);
+      insertedIds.push(result.insertId);
+    }
+
+    // Add ingredients for new items
+    for (let i = 0; i < sessionItems.length; i++) {
+      const item = sessionItems[i];
+      const orderItemId = insertedIds[i];
+      
+      if (item.options) {
+        // Get ingredient prices from database
+        const ingredientIds = Object.keys(item.options).filter(id => item.options[id].selected);
+        if (ingredientIds.length > 0) {
+          const placeholders = ingredientIds.map(() => '?').join(',');
+          const [ingredients] = await connection.execute(`
+            SELECT ingredient_id, price
+            FROM ingredient
+            WHERE ingredient_id IN (${placeholders})
+          `, ingredientIds);
+          
+          const ingredientMap = new Map(ingredients.map(ing => [ing.ingredient_id.toString(), ing.price]));
+          
+          for (const [optionId, option] of Object.entries(item.options)) {
+            if (option.selected) {
+              const ingredientPrice = ingredientMap.get(optionId) || 0;
+              await connection.execute(`
+                INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price)
+                VALUES (?, ?, ?)
+              `, [orderItemId, optionId, ingredientPrice]);
+            }
+          }
+        }
+      }
     }
   }
 
   // Update cart total
-  await updateCartTotal(connection, userCart.order_id);
-  return userCart.order_id;
+  await updateCartTotal(connection, cartId);
+  return cartId;
 }
 
 /**
  * Create new user cart from session items
  */
 async function createCartFromItems(connection, sessionItems, userId) {
+  // Get all items and their current prices in one query
+  const itemIds = sessionItems.map(item => item.item_id);
+  const placeholders = itemIds.map(() => '?').join(',');
+  const [itemDetails] = await connection.execute(`
+    SELECT item_id, price 
+    FROM dish 
+    WHERE item_id IN (${placeholders})
+  `, itemIds);
+
+  // Create a map for quick price lookup
+  const priceMap = new Map(itemDetails.map(item => [item.item_id, item.price]));
+
   // Create new cart
   const [cartResult] = await connection.execute(`
-    INSERT INTO orders (user_id, is_cart, total_amount, created_at) 
+    INSERT INTO orders (user_id, is_cart, total_price, created_at) 
     VALUES (?, TRUE, 0.00, NOW())
   `, [userId]);
   
+  const newCartId = cartResult.insertId;
 
-    const newCartId = cartResult.insertId;
-  // Add items to cart
+  // Prepare bulk inserts
+  const newItems = [];
+
   for (const item of sessionItems) {
-    // Validate item and get current price
-    const [itemDetails] = await connection.execute(
-      'SELECT item_id, price FROM dish WHERE item_id = ?',
-      [item.id]
-    );
+    if (!validateCartItem(item)) continue;
+
+    const currentPrice = priceMap.get(item.item_id);
+    if (!currentPrice || !validatePrice(currentPrice)) continue;
+
+    if (item.options && !validateOptions(item.options)) continue;
+
+    // Add item to cart
+    newItems.push([newCartId, item.item_id, item.quantity, currentPrice]);
+  }
+
+  if (newItems.length > 0) {
+    // Use individual inserts instead of bulk insert to avoid syntax issues
+    const insertedIds = [];
     
-    if (itemDetails.length === 0) {
-      console.log(`Item ${item.id} no longer exists - skipping`);
-      continue;
+    for (const item of newItems) {
+      const [result] = await connection.execute(`
+        INSERT INTO order_item (order_id, item_id, quantity, price, created_at)
+        VALUES (?, ?, ?, ?, NOW())
+      `, item);
+      insertedIds.push(result.insertId);
     }
-    
-    const currentPrice = itemDetails[0].price;
-    const optionsJson = JSON.stringify(item.options || {});
-    
-    await connection.execute(`
-      INSERT INTO order_item (order_id, item_id, quantity, price, item_options, created_at)
-      VALUES (?, ?, ?, ?, ?, NOW())
-    `, [newCartId, item.id, item.quantity, currentPrice, optionsJson]);
+
+    // Add ingredients for new items
+    for (let i = 0; i < sessionItems.length; i++) {
+      const item = sessionItems[i];
+      const orderItemId = insertedIds[i];
+      
+      if (item.options) {
+        // Get ingredient prices from database
+        const ingredientIds = Object.keys(item.options).filter(id => item.options[id].selected);
+        if (ingredientIds.length > 0) {
+          const placeholders = ingredientIds.map(() => '?').join(',');
+          const [ingredients] = await connection.execute(`
+            SELECT ingredient_id, price
+            FROM ingredient
+            WHERE ingredient_id IN (${placeholders})
+          `, ingredientIds);
+          
+          const ingredientMap = new Map(ingredients.map(ing => [ing.ingredient_id.toString(), ing.price]));
+          
+          for (const [optionId, option] of Object.entries(item.options)) {
+            if (option.selected) {
+              const ingredientPrice = ingredientMap.get(optionId) || 0;
+              await connection.execute(`
+                INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price)
+                VALUES (?, ?, ?)
+              `, [orderItemId, optionId, ingredientPrice]);
+            }
+          }
+        }
+      }
+    }
   }
   
   // Update cart total
@@ -161,14 +289,12 @@ async function updateCartTotal(connection, cartId) {
     FROM order_item WHERE order_id = ?
   `, [cartId]);
   
-  const newTotal = totalResult[0].total;
-  
   await connection.execute(`
-    UPDATE orders SET total_price = ?, updated_at = NOW() 
+    UPDATE orders SET total_price = ?, updated_at = ? 
     WHERE order_id = ?
-  `, [newTotal, cartId]);
+  `, [totalResult[0].total, new Date().toISOString(), cartId]);
   
-  return newTotal;
+  return totalResult[0].total;
 }
 
 /**
@@ -177,8 +303,12 @@ async function updateCartTotal(connection, cartId) {
 async function getCartItems(connection, cartId) {
   const [items] = await connection.execute(`
     SELECT 
-      oi.*, 
-      d.item_name, 
+      oi.order_item_id,
+      oi.item_id,
+      oi.quantity,
+      oi.price,
+      oi.created_at,
+      d.item_name,
       d.price as current_price
     FROM order_item oi
     JOIN dish d ON oi.item_id = d.item_id
@@ -186,13 +316,44 @@ async function getCartItems(connection, cartId) {
     ORDER BY oi.created_at DESC
   `, [cartId]);
   
-  return items.map(item => ({
-    item_id: item.item_id,
-    item_name: item.item_name,
-    item_price: item.price, // Price when added to cart
-    quantity: item.quantity,
-    options: item.item_options ? JSON.parse(item.item_options) : {}
-  }));
+  const result = [];
+  
+  for (const item of items) {
+    // Get ingredients for this order item
+    const [ingredients] = await connection.execute(`
+      SELECT 
+        oii.ingredient_id,
+        oii.price,
+        i.ingredient_name,
+        it.name as type_name
+      FROM order_item_ingredient oii
+      JOIN ingredient i ON oii.ingredient_id = i.ingredient_id
+      JOIN ingredient_type it ON i.type_id = it.id
+      WHERE oii.order_item_id = ?
+    `, [item.order_item_id]);
+    
+    // Convert to session cart structure
+    const options = {};
+    ingredients.forEach(ing => {
+      options[ing.ingredient_id] = {
+        selected: true,
+        label: ing.type_name,
+        value: ing.ingredient_name,
+        price: ing.price
+      };
+    });
+    
+    result.push({
+      item_id: item.item_id,
+      item_name: item.item_name,
+      price: item.price,
+      quantity: item.quantity,
+      options: options,
+      total_price: item.price * item.quantity
+    });
+  }
+  
+  return result;
 }
 
 /**
@@ -217,3 +378,4 @@ module.exports = {
   getCartItems,
   updateCartTotal
 }; 
+

@@ -11,14 +11,14 @@ export default function Cart({ item }) {
     
     const selectedOptionsList = [];
     
-    // Handle selected ingredients
-    if (item.selectedIngredients && Array.isArray(item.selectedIngredients)) {
-      item.selectedIngredients.forEach(ingredient => {
-        selectedOptionsList.push(ingredient.name);
-      });
-    }
+    // Handle the new options structure
+    Object.entries(item.options).forEach(([key, option]) => {
+      if (option && option.selected) {
+        selectedOptionsList.push(`${option.label}: ${option.value}`);
+      }
+    });
 
-    return selectedOptionsList.join(', ');
+    return selectedOptionsList.join(' | ');
   }
 
   const handleDecreaseQuantity = async () => {
@@ -51,19 +51,19 @@ export default function Cart({ item }) {
   };
 
   const calculateItemTotal = () => {
-    const basePrice = Number(item.item_price || item.price || 0);
+    const basePrice = Number(item.price || 0);
     let totalPrice = basePrice;
 
     // Add prices from selected ingredients
     if (item.options) {
-      Object.entries(item.options).forEach(([key, value]) => {
-        if (value && item.ingredientPrices && item.ingredientPrices[key]) {
+      Object.entries(item.options).forEach(([key, option]) => {
+        if (option && option.selected && item.ingredientPrices && item.ingredientPrices[key]) {
           totalPrice += Number(item.ingredientPrices[key] || 0);
         }
       });
     }
 
-    return (totalPrice * item.quantity).toFixed(2);
+    return totalPrice * item.quantity;
   };
 
   return (
@@ -100,7 +100,7 @@ export default function Cart({ item }) {
             ${Number(item.item_price || item.price || 0).toFixed(2)} base
           </span>
           <span className={classes.totalPrice}>
-            Total: ${calculateItemTotal()}
+            Total: ${calculateItemTotal().toFixed(2)}
           </span>
         </div>
       </div>

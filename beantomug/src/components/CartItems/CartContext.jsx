@@ -32,42 +32,34 @@ console.log(cartItems)
   const calculateItemPrice = (item, options) => {
     let totalPrice = item.price;
     
-    // Add prices from selected ingredients
-    if (options) {
-      Object.entries(options).forEach(([key, value]) => {
-        if (value) {
-          const option = item.options[key];
-          if (option) {
-            if (option.type === "select") {
-              const ingredient = item.ingredients.find(ing => ing.name === value);
-              if (ingredient) totalPrice += ingredient.price? ingredient.price : 0;
-            } else if (option.type === "checkbox") {
-              const ingredient = item.ingredients.find(ing => ing.name === key);
-              if (ingredient) totalPrice += ingredient.price? ingredient.price : 0;
+    // Add prices from selected options
+    if (item?.options) {
+      Object.entries(item.options).forEach(([category, optionGroup]) => {
+        optionGroup.types.forEach(type => {
+          if (type.type === "select") {
+            const selectedValue = type.values.find(v => options[v.id]);
+            if (selectedValue) {
+              totalPrice += parseFloat(selectedValue.price || 0);
             }
+          } else if (type.type === "checkbox") {
+            type.values.forEach(value => {
+              if (options[value.id]) {
+                totalPrice += parseFloat(value.price || 0);
+              }
+            });
           }
-        }
+        });
       });
     }
 
     return totalPrice;
   };
 
-  const addToCart = async (item, quantity, options) => {
+  const addToCart = async (cartData) => {
     try {
-      
-      console.log("options",options);
-      // Calculate the total price including ingredient prices
-      const itemWithPrice = {
-        ...item,
-        price: calculateItemPrice(item, options)
-      };
-
-      await axios.post('http://localhost:8801/cart/add', {
-        item: itemWithPrice,
-        quantity,
-        options,
-      }, { withCredentials: true });
+      await axios.post('http://localhost:8801/cart/add', cartData, {
+        withCredentials: true
+      });
 
       // Fetch updated cart after adding item
       await fetchCart();
@@ -80,9 +72,10 @@ console.log(cartItems)
 
   const removeFromCart = async (itemToRemove) => {
     try {
+      console.log("itemToRemove", itemToRemove)
       await axios.delete('http://localhost:8801/cart/remove', {
         data: {
-          itemId: itemToRemove.item_id,
+          item_id: itemToRemove.item_id,
           options: itemToRemove.options
         },
         withCredentials: true
@@ -107,7 +100,7 @@ console.log(cartItems)
       }
 
       await axios.put('http://localhost:8801/cart/update-quantity', {
-        itemId,
+        item_id: itemId,
         quantity: newQuantity,
         options,
       }, { withCredentials: true });
@@ -159,7 +152,8 @@ console.log(cartItems)
       updateQuantity,
       updateOrderType,
       clearCart,
-      setCartItems
+      setCartItems,
+      refreshCart: fetchCart
     }}>
       {children}
     </CartContext.Provider>

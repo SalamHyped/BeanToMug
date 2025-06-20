@@ -111,6 +111,20 @@ CREATE TABLE `ingredient` (
   `type_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
+--
+-- Dumping data for table `ingredient`
+--
+
+INSERT INTO `ingredient` (`ingredient_id`, `ingredient_name`, `price`, `brand`, `status`, `expiration`, `unit`, `supplier_id`, `quantity_in_stock`, `low_stock_threshold`, `type_id`) VALUES
+(1, 'Extra Shot', 2.00, 'Premium Coffee', 1, '2025-12-31', 'shot', NULL, 100.00, 10.00, 1),
+(2, 'Caramel Syrup', 1.50, 'Monin', 1, '2025-12-31', 'ml', NULL, 500.00, 50.00, 2),
+(3, 'Vanilla Syrup', 1.50, 'Monin', 1, '2025-12-31', 'ml', NULL, 500.00, 50.00, 2),
+(4, 'Whipped Cream', 1.00, 'Fresh Dairy', 1, '2025-12-31', 'serving', NULL, 200.00, 20.00, 3),
+(5, 'Chocolate Sauce', 1.00, 'Hershey', 1, '2025-12-31', 'ml', NULL, 300.00, 30.00, 2),
+(6, 'Almond Milk', 2.00, 'Silk', 1, '2025-12-31', 'ml', NULL, 1000.00, 100.00, 4),
+(7, 'Soy Milk', 1.80, 'Silk', 1, '2025-12-31', 'ml', NULL, 1000.00, 100.00, 4),
+(8, 'Oat Milk', 2.20, 'Oatly', 1, '2025-12-31', 'ml', NULL, 800.00, 80.00, 4);
+
 -- --------------------------------------------------------
 
 --
@@ -127,6 +141,36 @@ CREATE TABLE `ingredients_in_item` (
   CONSTRAINT `ingredients_in_item_ibfk_2` FOREIGN KEY (`item_id`) REFERENCES `dish` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
+--
+-- Dumping data for table `ingredients_in_item`
+--
+
+INSERT INTO `ingredients_in_item` (`ingredient_id`, `item_id`, `quantity_required`) VALUES
+(1, 1, 0.00),
+(2, 1, 0.00),
+(3, 1, 0.00),
+(4, 1, 0.00),
+(5, 1, 0.00),
+(6, 1, 0.00),
+(7, 1, 0.00),
+(8, 1, 0.00),
+(1, 2, 0.00),
+(2, 2, 0.00),
+(3, 2, 0.00),
+(4, 2, 0.00),
+(5, 2, 0.00),
+(6, 2, 0.00),
+(7, 2, 0.00),
+(8, 2, 0.00),
+(1, 3, 0.00),
+(2, 3, 0.00),
+(3, 3, 0.00),
+(4, 3, 0.00),
+(5, 3, 0.00),
+(6, 3, 0.00),
+(7, 3, 0.00),
+(8, 3, 0.00);
+
 -- --------------------------------------------------------
 
 --
@@ -139,6 +183,16 @@ CREATE TABLE `ingredient_category` (
   `type_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
+--
+-- Dumping data for table `ingredient_category`
+--
+
+INSERT INTO `ingredient_category` (`id`, `name`, `type_id`) VALUES
+(1, 'Coffee Additions', 1),
+(2, 'Syrups', 2),
+(3, 'Toppings', 3),
+(4, 'Milk Alternatives', 4);
+
 -- --------------------------------------------------------
 
 --
@@ -150,6 +204,16 @@ CREATE TABLE `ingredient_type` (
   `name` text NOT NULL,
   `option_group` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `ingredient_type`
+--
+
+INSERT INTO `ingredient_type` (`id`, `name`, `option_group`) VALUES
+(1, 'Extra Shot', 'Coffee Additions'),
+(2, 'Syrup', 'Syrups'),
+(3, 'Topping', 'Toppings'),
+(4, 'Milk Alternative', 'Milk Alternatives');
 
 -- --------------------------------------------------------
 

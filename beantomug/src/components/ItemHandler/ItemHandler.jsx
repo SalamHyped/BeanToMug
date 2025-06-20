@@ -71,19 +71,24 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     return (valueId) => !!selectedOptions[valueId];
   }, [selectedOptions]);
 
+  // Initialize options when item changes
   useEffect(() => {
     if (item?.options) {
-      const defaults = {};
+      const initialOptions = {};
       Object.entries(item.options).forEach(([category, optionGroup]) => {
         optionGroup.types.forEach(type => {
-          if (type.required) {
-            if (type.type === "select" && type.values.length > 0) {
-              defaults[type.values[0].id] = true;
-            }
+          // For required options, select the first value
+          if (type.required && type.values.length > 0) {
+            const firstValue = type.values[0];
+            initialOptions[firstValue.id] = {
+              selected: true,
+              label: type.label,
+              value: firstValue.name
+            };
           }
         });
       });
-      setSelectedOptions(defaults);
+      setSelectedOptions(initialOptions);
     }
   }, [item]);
 
@@ -122,7 +127,26 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     }
 
     try {
-      await addToCart(item, quantity, selectedOptions);
+      // Debug logs
+      console.log('Item being added:', item);
+      console.log('Selected options:', selectedOptions);
+      
+      // Ensure we have a valid item_id
+      if (!item.item_id) {
+        console.error('Item object:', item);
+        throw new Error('Invalid item: missing item_id');
+      }
+      
+      // Send only necessary data
+      const cartData = {
+        item_id: parseInt(item.item_id), // Ensure item_id is a number
+        quantity: quantity,
+        options: selectedOptions
+      };
+      
+      console.log('Cart data being sent:', cartData);
+
+      await addToCart(cartData);
       setLocalError(null);
       
       if (onAddToCartComplete) {
@@ -131,6 +155,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
         onClose();
       }
     } catch (err) {
+      console.error('Error adding to cart:', err);
       setLocalError(err.message || 'Failed to add item to cart');
     }
   };
@@ -152,15 +177,27 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
       const type = item.options[category]?.types.find(t => t.label === typeLabel);
       
       if (type) {
-        // Remove any previously selected value for this type
-        type.values.forEach(v => {
-          delete newOptions[v.id];
+        // Remove all options of this type
+        Object.keys(newOptions).forEach(key => {
+          if (newOptions[key]?.label === typeLabel) {
+            delete newOptions[key];
+          }
         });
-      }
 
-      // Add the new selection if a value was selected
-      if (valueId) {
-        newOptions[valueId] = true;
+        // Add the new selection if a value was selected
+        if (valueId) {
+          // Convert valueId to number for comparison
+          const numericValueId = parseInt(valueId);
+          const selectedValue = type.values.find(v => parseInt(v.id) === numericValueId);
+          
+          if (selectedValue) {
+            newOptions[valueId] = {
+              selected: true,
+              label: typeLabel,
+              value: selectedValue.name
+            };
+          }
+        }
       }
       
       return newOptions;
@@ -172,11 +209,33 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
   const handleCheckboxChange = (valueId, e) => {
     setSelectedOptions(prev => {
       const newOptions = { ...prev };
-      if (e.target.checked) {
-        newOptions[valueId] = true;
-      } else {
-        delete newOptions[valueId];
+      
+      // Find the value and its type in the options
+      let valueInfo = null;
+      let typeLabel = '';
+      
+      Object.entries(item.options).forEach(([category, group]) => {
+        group.types.forEach(type => {
+          const value = type.values.find(v => v.id === valueId);
+          if (value) {
+            valueInfo = value;
+            typeLabel = type.label;
+          }
+        });
+      });
+
+      if (valueInfo) {
+        if (e.target.checked) {
+          newOptions[valueId] = {
+            selected: true,
+            label: typeLabel,
+            value: valueInfo.name
+          };
+        } else {
+          delete newOptions[valueId];
+        }
       }
+      
       return newOptions;
     });
     setLocalError(null);
@@ -203,7 +262,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
                     required={type.required}
                     className={classes.select}
                     placeholder={type.placeholder}
-                    value={type.values.find(v => isOptionSelected(v.id))?.id || ""}
+                    value={type.values.find(v => selectedOptions[v.id]?.selected)?.id || ""}
                   >
                     <option value="">{type.placeholder || `Select ${type.label}`}</option>
                     {type.values.map((value) => (
@@ -222,7 +281,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
                       <label key={value.id} className={classes.checkboxLabel}>
                         <input
                           type="checkbox"
-                          checked={isOptionSelected(value.id)}
+                          checked={selectedOptions[value.id]?.selected || false}
                           onChange={(e) => handleCheckboxChange(value.id, e)}
                           required={type.required}
                           disabled={!value.inStock}

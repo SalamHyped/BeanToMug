@@ -9,20 +9,97 @@ const checkoutNodeJssdk = require("@paypal/checkout-server-sdk");
 
 class PayPalService {
 
+  // Helper function to calculate total price including options
+  async calculateItemPriceWithOptions(connection, itemId, options = {}) {
+    // Validate inputs
+    if (!itemId || isNaN(itemId)) {
+      throw new Error(`Invalid item ID: ${itemId}`);
+    }
 
+    // Get base item price
+    const [dbItem] = await connection.execute(
+      "SELECT price FROM dish WHERE item_id = ?",
+      [itemId]
+    );
+    
+    if (dbItem.length === 0) {
+      throw new Error(`Item ${itemId} not found`);
+    }
+    
+    let totalPrice = parseFloat(dbItem[0].price);
+    
+    // Validate base price
+    if (isNaN(totalPrice) || totalPrice < 0) {
+      console.error('Invalid base price from database:', {
+        itemId,
+        dbPrice: dbItem[0].price,
+        parsedPrice: totalPrice
+      });
+      throw new Error(`Invalid base price for item ${itemId}`);
+    }
+    
+    // Add prices of selected options
+    if (options && typeof options === 'object' && Object.keys(options).length > 0) {
+      for (const [optionId, optionInfo] of Object.entries(options)) {
+        if (optionInfo && optionInfo.selected) {
+          console.log('Processing option:', { optionId, optionInfo });  
+          
+          const [ingredient] = await connection.execute(
+            "SELECT price FROM ingredient WHERE ingredient_id = ?",
+            [optionId]
+          ); 
+          
+          if (ingredient.length > 0) {
+            const optionPrice = parseFloat(ingredient[0].price);
+            if (!isNaN(optionPrice) && optionPrice >= 0) {
+              totalPrice += optionPrice;
+            } else {
+              console.warn('Invalid option price, skipping:', {
+                optionId,
+                price: ingredient[0].price,
+                parsedPrice: optionPrice
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    // Final validation
+    if (isNaN(totalPrice) || totalPrice < 0) {
+      console.error('Invalid total price calculated:', {
+        itemId,
+        totalPrice,
+        basePrice: parseFloat(dbItem[0].price),
+        options
+      });
+      throw new Error(`Invalid total price calculated for item ${itemId}`);
+    }
+    
+    return totalPrice;
+  }
 
   async createOrderFromCart(userId, sessionCart = []) {
     let connection;
 
     try {
+      console.log('createOrderFromCart called with:', {
+        userId,
+        sessionCartType: typeof sessionCart,
+        sessionCartItems: sessionCart?.items?.length || 0,
+        sessionCartKeys: sessionCart ? Object.keys(sessionCart) : []
+      });
+
       connection = await dbSingleton.getConnection();
       await connection.beginTransaction();
 
       let orderData;
 
       if (userId) {
+        console.log('Creating order from user cart for user:', userId);
         orderData = await this.createOrderFromUserCart(connection, userId);
       } else {
+        console.log('Creating order from session cart');
         orderData = await this.createOrderFromSessionCart(
           connection,
           sessionCart
@@ -30,15 +107,14 @@ class PayPalService {
       }
 
       await connection.commit();
+      console.log('PayPal order created successfully:', orderData);
       return orderData;
     } catch (error) {
       if (connection) await connection.rollback();
+      console.error('Error in createOrderFromCart:', error);
       throw error;
     }
   }
-
-
-
 
   async createOrderFromUserCart(connection, userId) {
     const cart = await this.findUserCart(connection, userId);
@@ -108,16 +184,17 @@ class PayPalService {
           item.item_price
         ]
       );
-
+   
       if (item.options) {
-        const optionIds = Object.values(item.options);
+        const optionIds = Object.keys(item.options).filter(optionId => 
+          item.options[optionId] && item.options[optionId].selected
+        );
         if (optionIds.length > 0) {
-          const placeholders = optionIds.map(() => '?').join(',');
-          const [ingredients] = await connection.execute(`
+          const [ingredients] = await connection.query(`
             SELECT ingredient_id, price
             FROM ingredient
-            WHERE ingredient_id IN (${placeholders})
-          `, optionIds);
+            WHERE ingredient_id IN (?)
+          `, [optionIds]);
 
           for (const ingredient of ingredients) {
             await connection.execute(`
@@ -134,7 +211,7 @@ class PayPalService {
       tempOrderId,
       "guest"
     );
-
+ 
     await connection.execute(
       `
       UPDATE orders SET paypal_order_id = ? WHERE order_id = ?
@@ -155,38 +232,83 @@ class PayPalService {
     let totalAmount = 0;
     const priceDiscrepancies = [];
 
-    for (const cartItem of sessionCart.items) {
-      const [dbItem] = await connection.execute(
-        "SELECT item_id, item_name, price FROM dish WHERE item_id = ?",
-        [cartItem.item_id]
-      );
+    // Validate sessionCart structure
+    if (!sessionCart || !Array.isArray(sessionCart.items)) {
+      throw new Error("Invalid session cart structure");
+    }
 
-      if (dbItem.length === 0) {
-        throw new Error(
-          `Item ${
-            cartItem.item_name || cartItem.item_id
-          } is no longer available`
-        );
+    for (const cartItem of sessionCart.items) {
+      // Validate cart item structure
+      if (!cartItem || typeof cartItem !== 'object') {
+        console.error('Invalid cart item:', cartItem);
+        throw new Error("Invalid cart item structure");
       }
 
-      const currentPrice = dbItem[0].price;
+      // Validate required fields
+      if (!cartItem.item_id || !cartItem.quantity || cartItem.quantity <= 0) {
+        console.error('Missing required fields in cart item:', {
+          item_id: cartItem.item_id,
+          quantity: cartItem.quantity,
+          price: cartItem.price
+        });
+        throw new Error("Cart item missing required fields (item_id, quantity)");
+      }
 
-      if (Math.abs(cartItem.item_price - currentPrice) > 0.01) {
+      // Calculate current total price including options
+      const currentTotalPrice = await this.calculateItemPriceWithOptions(
+        connection, 
+        cartItem.item_id, 
+        cartItem.options || {}
+      );
+      
+      // Validate calculated price
+      if (typeof currentTotalPrice !== 'number' || isNaN(currentTotalPrice)) {
+        console.error('Invalid calculated price:', {
+          item_id: cartItem.item_id,
+          currentTotalPrice,
+          options: cartItem.options
+        });
+        throw new Error(`Invalid price calculated for item ${cartItem.item_id}`);
+      }
+      
+      console.log('Current total price (with options):', currentTotalPrice, 'Cart item price:', cartItem.price);
+      
+      if (Math.abs(cartItem.price - currentTotalPrice) > 0.01) {
         priceDiscrepancies.push({
           item_id: cartItem.item_id,
           item_name: cartItem.item_name,
-          cart_price: cartItem.item_price,
-          current_price: currentPrice,
+          cart_price: cartItem.price,
+          current_price: currentTotalPrice,
         });
       }
 
       const validatedItem = {
         ...cartItem,
-        item_price: currentPrice,
+        item_price: currentTotalPrice,
       };
 
       validatedItems.push(validatedItem);
-      totalAmount += currentPrice * cartItem.quantity;
+      
+      // Ensure quantity is a valid number
+      const quantity = parseInt(cartItem.quantity) || 1;
+      const itemTotal = currentTotalPrice * quantity;
+      
+      if (isNaN(itemTotal)) {
+        console.error('NaN detected in calculation:', {
+          currentTotalPrice,
+          quantity,
+          itemTotal
+        });
+        throw new Error(`Invalid calculation for item ${cartItem.item_id}`);
+      }
+      
+      totalAmount += itemTotal;
+    }
+
+    // Final validation of total amount
+    if (isNaN(totalAmount) || totalAmount <= 0) {
+      console.error('Invalid total amount calculated:', totalAmount);
+      throw new Error("Invalid total amount calculated");
     }
 
     if (priceDiscrepancies.length > 0) {
@@ -199,12 +321,12 @@ class PayPalService {
       throw error;
     }
 
+    console.log('Final validated total amount:', totalAmount);
     return { validatedItems, totalAmount };
   }
 
   async completePayment(orderId) {
     let connection;
-
     try {
       connection = await dbSingleton.getConnection();
       await connection.beginTransaction();
@@ -283,9 +405,9 @@ class PayPalService {
               status = NULL,
               paypal_order_id = NULL,
               updated_at = NOW()
-          WHERE id = ?
+          WHERE order_id = ?
         `,
-          [order.id]
+          [order.order_id]
         );
       } else {
         await this.deleteGuestOrder(connection, order.order_id);
@@ -316,12 +438,12 @@ class PayPalService {
           SEPARATOR ', '
         ) as items_summary
       FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN order_item oi ON o.order_id = oi.order_id
       LEFT JOIN dish d ON oi.item_id = d.item_id
       WHERE o.is_cart = FALSE
       AND o.status IN ('completed', 'failed', 'refunded')
       AND o.user_id = ?
-      GROUP BY o.id
+      GROUP BY o.order_id
       ORDER BY o.created_at DESC
       LIMIT 20
     `,
@@ -389,7 +511,7 @@ class PayPalService {
     for (const item of items) {
       await connection.execute(
         `
-        UPDATE order_items
+        UPDATE order_item
         SET price = (SELECT price FROM dish WHERE item_id = ?)
         WHERE order_id = ? AND item_id = ?
       `,
@@ -400,7 +522,7 @@ class PayPalService {
     const [totalResult] = await connection.execute(
       `
       SELECT COALESCE(SUM(price * quantity), 0) as total
-      FROM order_items WHERE order_id = ?
+      FROM order_item WHERE order_id = ?
     `,
       [cartId]
     );
@@ -414,6 +536,23 @@ class PayPalService {
   }
 
   async createPayPalOrder(totalAmount, orderId, orderType) {
+    // Validate inputs
+    if (typeof totalAmount !== 'number' || isNaN(totalAmount) || totalAmount <= 0) {
+      console.error('Invalid totalAmount for PayPal order:', {
+        totalAmount,
+        type: typeof totalAmount,
+        orderId,
+        orderType
+      });
+      throw new Error(`Invalid total amount: ${totalAmount}`);
+    }
+
+    if (!orderId) {
+      throw new Error('Order ID is required');
+    }
+
+    console.log('Creating PayPal order with amount:', totalAmount.toFixed(2));
+
     const request = new checkoutNodeJssdk.orders.OrdersCreateRequest();
     request.prefer("return=representation");
     request.requestBody({
