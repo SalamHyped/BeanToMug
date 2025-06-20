@@ -1,3 +1,5 @@
+// Name :salam shibli 
+//Name : Razi Kaabyia
 const express = require('express');
 const app = express();
 const port = 8801;
@@ -9,6 +11,7 @@ const cartRouter = require('./Routes/cart');
 const authRouter = require('./Routes/auth');
 const paypalRouter = require('./Routes/paypal');
 const ratingsRouter = require('./Routes/ratings');
+const ordersRouter = require('./Routes/orders');
 app.use(express.json());
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174'],  // Allow both ports
@@ -43,6 +46,7 @@ app.use('/cart', cartRouter);
 app.use('/auth', authRouter);  // Auth routes mounted at root path
 app.use('/paypal', paypalRouter);
 app.use('/ratings', ratingsRouter);
+app.use('/orders', ordersRouter);
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });

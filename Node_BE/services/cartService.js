@@ -8,6 +8,10 @@ const { migrateSessionCartToUser, getCartItems, updateCartTotal } = require('../
 
 /**
  * Get available ingredients for a menu item
+ * Fetches all ingredients that can be added to a specific menu item
+ * Groups ingredients by category (syrups, toppings, etc.) for easy selection
+ * @param {number} itemId - The ID of the menu item
+ * @returns {Array} Array of ingredient groups with their details
  */
 async function getAvailableIngredients(itemId) {
   let connection;
@@ -75,6 +79,12 @@ class CartService {
   
   /**
    * Get cart for user or guest
+   * Retrieves the current cart contents based on user authentication status
+   * For logged-in users: fetches from database
+   * For guests: returns session cart data
+   * @param {number|null} userId - User ID if logged in, null for guests
+   * @param {Object} sessionCart - Session cart data for guests
+   * @returns {Object} Cart object with items and order type
    */
   async getCart(userId, sessionCart = []) {
     if (userId) {
@@ -105,6 +115,14 @@ class CartService {
   
   /**
    * Add item to cart
+   * Adds a menu item to the cart with specified quantity and customizations
+   * Handles both logged-in users (database) and guests (session)
+   * @param {number|null} userId - User ID if logged in, null for guests
+   * @param {Object} sessionCart - Current session cart for guests
+   * @param {Object} item - Menu item to add
+   * @param {number} quantity - Quantity to add
+   * @param {Object} options - Customization options (ingredients, etc.)
+   * @returns {Object} Updated cart data
    */
   async addToCart(userId, sessionCart, item, quantity, options) {
     if (userId) {
@@ -119,6 +137,14 @@ class CartService {
   
   /**
    * Update item quantity in cart
+   * Changes the quantity of an existing item in the cart
+   * Handles both logged-in users (database) and guests (session)
+   * @param {number|null} userId - User ID if logged in, null for guests
+   * @param {Object} sessionCart - Current session cart for guests
+   * @param {number} itemId - ID of the item to update
+   * @param {number} quantity - New quantity
+   * @param {Object} options - Customization options to match
+   * @returns {Object} Success status and updated cart
    */
   async updateQuantity(userId, sessionCart, itemId, quantity, options) {
     if (userId) {
@@ -143,6 +169,13 @@ class CartService {
   
   /**
    * Remove item from cart
+   * Removes a specific item from the cart based on item ID and options
+   * Handles both logged-in users (database) and guests (session)
+   * @param {number|null} userId - User ID if logged in, null for guests
+   * @param {Object} sessionCart - Current session cart for guests
+   * @param {number} itemId - ID of the item to remove
+   * @param {Object} options - Customization options to match for removal
+   * @returns {Object} Success status and updated cart
    */
   async removeFromCart(userId, sessionCart, itemId, options) {
     if (userId) {
@@ -170,6 +203,11 @@ class CartService {
   
   /**
    * Clear entire cart
+   * Removes all items from the cart
+   * For logged-in users: clears database cart
+   * For guests: session cart should be cleared by setting req.session.cart = []
+   * @param {number|null} userId - User ID if logged in, null for guests
+   * @returns {Array} Empty array representing cleared cart
    */
   async clearCart(userId) {
     if (userId) {
@@ -182,6 +220,11 @@ class CartService {
   
   /**
    * Migrate session cart to user cart on login
+   * Transfers guest cart items to user's database cart when they log in
+   * Prevents loss of cart items during authentication
+   * @param {number} userId - User ID of the logged-in user
+   * @param {Object} sessionCart - Session cart data to migrate
+   * @returns {Object} Result of migration operation
    */
   async migrateSessionToUser(userId, sessionCart) {
    
@@ -190,6 +233,13 @@ class CartService {
   
   // User Cart Methods (Database)
   
+  /**
+   * Get or create user cart in database
+   * Finds existing cart for user or creates a new one if none exists
+   * Ensures every logged-in user has a cart record in the database
+   * @param {number} userId - User ID
+   * @returns {Object|null} Cart order object or null if creation fails
+   */
   async getOrCreateUserCart(userId) {
     const connection = await dbSingleton.getConnection();
     
@@ -225,6 +275,17 @@ class CartService {
     }
   }
   
+  /**
+   * Add item to user's database cart
+   * Adds a menu item with customizations to the user's cart in the database
+   * Handles ingredient additions and price calculations
+   * Updates existing items if same item with same options already exists
+   * @param {number} userId - User ID
+   * @param {Object} item - Menu item to add
+   * @param {number} quantity - Quantity to add
+   * @param {Object} options - Customization options (ingredients, etc.)
+   * @returns {Object} Updated cart with items and order type
+   */
   async addToUserCart(userId, item, quantity, options) {
     let connection;
     
@@ -329,6 +390,16 @@ class CartService {
     }
   }
   
+  /**
+   * Update quantity of item in user's database cart
+   * Changes the quantity of an existing item in the user's cart
+   * Recalculates prices based on current item and ingredient costs
+   * @param {number} userId - User ID
+   * @param {number} itemId - ID of the item to update
+   * @param {number} quantity - New quantity
+   * @param {Object} options - Customization options to match
+   * @returns {Array} Updated cart items array
+   */
   async updateUserCartQuantity(userId, itemId, quantity, options) {
     let connection;
     try {
@@ -441,6 +512,15 @@ class CartService {
     }
   }
   
+  /**
+   * Remove item from user's database cart
+   * Removes a specific item with matching options from the user's cart
+   * Handles ingredient cleanup and cart total recalculation
+   * @param {number} userId - User ID
+   * @param {number} itemId - ID of the item to remove
+   * @param {Object} options - Customization options to match for removal
+   * @returns {Array} Updated cart items array
+   */
   async removeFromUserCart(userId, itemId, options) {
     let connection;
     
@@ -487,6 +567,11 @@ class CartService {
     }
   }
   
+  /**
+   * Clear user's database cart
+   * Removes all items from the user's cart and resets total price to zero
+   * @param {number} userId - User ID
+   */
   async clearUserCart(userId) {
     let connection;
     
@@ -514,6 +599,17 @@ class CartService {
   
   // Session Cart Methods (Guest)
   
+  /**
+   * Add item to session cart (for guest users)
+   * Adds a menu item with customizations to the session cart
+   * Calculates total price including ingredient costs
+   * Updates existing items if same item with same options already exists
+   * @param {Object} sessionCart - Current session cart object
+   * @param {Object} item - Menu item to add
+   * @param {number} quantity - Quantity to add
+   * @param {Object} options - Customization options (ingredients, etc.)
+   * @returns {Object} Updated session cart
+   */
   async addToSessionCart(sessionCart, item, quantity, options) {
     try {
       // Initialize cart if it doesn't exist
@@ -576,6 +672,16 @@ class CartService {
     }
   }
   
+  /**
+   * Update quantity of item in session cart (for guest users)
+   * Changes the quantity of an existing item in the session cart
+   * Removes item if quantity is 0 or less
+   * @param {Object} sessionCart - Current session cart object
+   * @param {number} itemId - ID of the item to update
+   * @param {number} quantity - New quantity
+   * @param {Object} options - Customization options to match
+   * @returns {Object} Success status and updated cart
+   */
   updateSessionCartQuantity(sessionCart, itemId, quantity, options) {
     console.log("Updating session cart quantity:", { itemId, quantity, options });
     const cart = {
@@ -600,6 +706,14 @@ class CartService {
     }
   }
   
+  /**
+   * Remove item from session cart (for guest users)
+   * Removes a specific item with matching options from the session cart
+   * @param {Object} sessionCart - Current session cart object
+   * @param {number} itemId - ID of the item to remove
+   * @param {Object} options - Customization options to match for removal
+   * @returns {Object} Success status and updated cart
+   */
   removeFromSessionCart(sessionCart, itemId, options) {
     const cart = {
       items: [...(sessionCart.items || [])],
@@ -619,7 +733,12 @@ class CartService {
   }
 
   /**
-   * Update order type
+   * Update order type (Dine In or Take Away)
+   * Updates the order type for both logged-in users (database) and guests (session)
+   * @param {number|null} userId - User ID if logged in, null for guests
+   * @param {string} orderType - New order type ('Dine In' or 'Take Away')
+   * @param {Object} sessionCart - Session cart for guests
+   * @returns {Object} Success status and updated order type
    */
   async updateOrderType(userId, orderType, sessionCart) {
     if (!['Dine In', 'Take Away'].includes(orderType)) {
@@ -660,11 +779,22 @@ class CartService {
     }
   }
 
+  /**
+   * Get available ingredients for a menu item
+   * Wrapper function that calls the standalone getAvailableIngredients function
+   * @param {number} itemId - The ID of the menu item
+   * @returns {Array} Array of ingredient groups with their details
+   */
   async getAvailableIngredients(itemId) {
     return getAvailableIngredients(itemId);
   }
 
-  // Helper function to get ingredient details
+  /**
+   * Get ingredient details from database
+   * Fetches ingredient information including name and price
+   * @param {number} ingredientId - The ID of the ingredient
+   * @returns {Object|null} Ingredient details or null if not found
+   */
   async getIngredientDetails(ingredientId) {
     let connection;
     try {
@@ -680,7 +810,14 @@ class CartService {
     }
   }
 
-  // Helper function to compare options
+  /**
+   * Compare two option objects for equality
+   * Helper function to determine if two customization options are the same
+   * Used to identify duplicate items in cart with same customizations
+   * @param {Object} options1 - First options object
+   * @param {Object} options2 - Second options object
+   * @returns {boolean} True if options are equal, false otherwise
+   */
   areOptionsEqual(options1, options2) {
     if (!options1 || !options2) return false;
     

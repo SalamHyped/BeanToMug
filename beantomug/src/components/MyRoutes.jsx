@@ -13,6 +13,8 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import Dashboard from '../pages/staff/DashBoard';
 import Header from '../components/header/Header'
 import Home from '../pages/home/Home'
+import OrderHistory from '../pages/OrderHistory';
+import Footer from './footer/Footer';
 
 export default function MyRoutes(){
     const location = useLocation();
@@ -38,6 +40,7 @@ export default function MyRoutes(){
             {/* Customer protected routes */}
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']} />}>
                 <Route index element={<Menu />} />
+                <Route path="orders" element={<OrderHistory />} />
             </Route>
 
             {/* Admin protected routes */}
@@ -52,6 +55,7 @@ export default function MyRoutes(){
               
             </Route>
         </Routes>
+        <Footer />
         </>
     );
 }

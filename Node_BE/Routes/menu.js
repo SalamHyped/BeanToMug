@@ -32,7 +32,7 @@ router.get("/items/:id", async (req, res) => {
 
     // Get item details with category information
     const [itemResult] = await req.db.query(
-      `SELECT d.item_id, d.item_name, d.price, d.item_photo_url, d.status, d.item_type,
+      `SELECT d.item_id, d.item_name, d.price, d.item_photo_url, d.status,
               c.category_name, c.category_photo_url
        FROM dish d
        LEFT JOIN category c ON d.category_id = c.category_id
