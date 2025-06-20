@@ -1,15 +1,40 @@
 const { dbSingleton } = require('../dbSingleton');
 const { migrateSessionCartToUser, getCartItems, updateCartTotal } = require('../utils/cartMigration');
+const { calculateItemPriceWithOptions } = require('../utils/priceCalculator');
 
 /**
  * Cart Service
- * Handles cart operations for both guests and users
+ * Comprehensive cart management system that handles both authenticated users and guest users
+ * 
+ * This service provides a unified interface for cart operations while handling the complexity
+ * of different storage mechanisms:
+ * - Authenticated users: Cart stored in database with full persistence
+ * - Guest users: Cart stored in session with temporary persistence
+ * 
+ * Key Features:
+ * - Dual storage system (database vs session)
+ * - Ingredient customization support
+ * - Price calculation including customizations
+ * - Cart migration on user login
+ * - Transaction safety for database operations
+ * - Duplicate item detection and merging
  */
 
 /**
  * Get available ingredients for a menu item
  * Fetches all ingredients that can be added to a specific menu item
  * Groups ingredients by category (syrups, toppings, etc.) for easy selection
+ * 
+ * This function queries the database to get all available ingredients for a menu item,
+ * including their prices, stock levels, and categorization. It groups ingredients
+ * by their category to make them easier to display in the frontend.
+ * 
+ * Database Tables Used:
+ * - ingredients_in_item: Links items to their available ingredients
+ * - ingredient: Basic ingredient information (name, price, stock)
+ * - ingredient_category: Categorizes ingredients (e.g., "Milk", "Syrups")
+ * - ingredient_type: Defines how ingredients are presented as options
+ * 
  * @param {number} itemId - The ID of the menu item
  * @returns {Array} Array of ingredient groups with their details
  */
@@ -19,7 +44,12 @@ async function getAvailableIngredients(itemId) {
   try {
     connection = await dbSingleton.getConnection();
     
-    // Get all ingredients for the item with their prices
+    // Complex query to get all ingredients for the item with their prices and categorization
+    // This query joins multiple tables to get complete ingredient information:
+    // - ingredients_in_item: Links items to their required ingredients
+    // - ingredient: Basic ingredient information (name, price, stock, etc.)
+    // - ingredient_category: Categorizes ingredients (e.g., "Milk", "Syrups")
+    // - ingredient_type: Defines ingredient types (e.g., "Milk Type", "Size")
     const [ingredients] = await connection.execute(`
       SELECT 
         i.ingredient_id, 
@@ -40,17 +70,18 @@ async function getAvailableIngredients(itemId) {
       ORDER BY it.option_group, it.name
     `, [itemId]);
 
-    // Group ingredients by option group
+    // Process and group ingredients by their category for frontend consumption
+    // This creates a structured format that's easier for the frontend to render
     const groupedIngredients = ingredients.reduce((acc, ing) => {
       const key = ing.category_name;
       if (!acc[key]) {
         acc[key] = {
-          group: ing.option_group,
-          label: ing.option_label,
-          required: ing.quantity_required > 0,
-          category: ing.category_name,
-          isPhysical: ing.is_physical,
-          ingredients: []
+          group: ing.option_group,        // Display text for the option group
+          label: ing.option_label,        // Option type name
+          required: ing.quantity_required > 0,  // Whether this option is mandatory
+          category: ing.category_name,    // Category name (e.g., "Milk", "Syrups")
+          isPhysical: ing.is_physical,    // Whether this ingredient has physical stock
+          ingredients: []                 // Array to hold individual ingredients
         };
       }
       acc[key].ingredients.push({
@@ -80,8 +111,20 @@ class CartService {
   /**
    * Get cart for user or guest
    * Retrieves the current cart contents based on user authentication status
-   * For logged-in users: fetches from database
-   * For guests: returns session cart data
+   * 
+   * This method provides a unified interface for getting cart data regardless
+   * of whether the user is logged in or a guest. It handles the complexity
+   * of different storage mechanisms transparently.
+   * 
+   * For logged-in users:
+   * - Fetches cart from database using getOrCreateUserCart()
+   * - Retrieves cart items with full details including customizations
+   * - Returns structured data with items and order type
+   * 
+   * For guests:
+   * - Returns session cart data directly
+   * - Ensures proper structure with default values
+   * 
    * @param {number|null} userId - User ID if logged in, null for guests
    * @param {Object} sessionCart - Session cart data for guests
    * @returns {Object} Cart object with items and order type
@@ -116,7 +159,17 @@ class CartService {
   /**
    * Add item to cart
    * Adds a menu item to the cart with specified quantity and customizations
-   * Handles both logged-in users (database) and guests (session)
+   * 
+   * This method provides a unified interface for adding items to cart,
+   * automatically routing to the appropriate storage mechanism based on
+   * user authentication status.
+   * 
+   * The method handles:
+   * - Price calculation including ingredient customizations
+   * - Duplicate item detection and quantity merging
+   * - Transaction safety for database operations
+   * - Session cart management for guests
+   * 
    * @param {number|null} userId - User ID if logged in, null for guests
    * @param {Object} sessionCart - Current session cart for guests
    * @param {Object} item - Menu item to add
@@ -138,7 +191,16 @@ class CartService {
   /**
    * Update item quantity in cart
    * Changes the quantity of an existing item in the cart
-   * Handles both logged-in users (database) and guests (session)
+   * 
+   * This method provides a unified interface for updating item quantities,
+   * handling both database and session storage transparently.
+   * 
+   * Features:
+   * - Automatic item removal if quantity is 0 or less
+   * - Price recalculation for updated quantities
+   * - Transaction safety for database operations
+   * - Session cart management for guests
+   * 
    * @param {number|null} userId - User ID if logged in, null for guests
    * @param {Object} sessionCart - Current session cart for guests
    * @param {number} itemId - ID of the item to update
@@ -170,7 +232,16 @@ class CartService {
   /**
    * Remove item from cart
    * Removes a specific item from the cart based on item ID and options
-   * Handles both logged-in users (database) and guests (session)
+   * 
+   * This method provides a unified interface for removing items from cart,
+   * handling both database and session storage transparently.
+   * 
+   * The method ensures:
+   * - Proper cleanup of associated data (ingredients, etc.)
+   * - Transaction safety for database operations
+   * - Accurate cart total recalculation
+   * - Session cart management for guests
+   * 
    * @param {number|null} userId - User ID if logged in, null for guests
    * @param {Object} sessionCart - Current session cart for guests
    * @param {number} itemId - ID of the item to remove
@@ -204,8 +275,19 @@ class CartService {
   /**
    * Clear entire cart
    * Removes all items from the cart
-   * For logged-in users: clears database cart
-   * For guests: session cart should be cleared by setting req.session.cart = []
+   * 
+   * This method provides a unified interface for clearing carts,
+   * handling both database and session storage transparently.
+   * 
+   * For logged-in users:
+   * - Removes all items from database cart
+   * - Resets cart total to zero
+   * - Uses transaction safety
+   * 
+   * For guests:
+   * - Session cart should be cleared by setting req.session.cart = []
+   * - This method returns empty array for consistency
+   * 
    * @param {number|null} userId - User ID if logged in, null for guests
    * @returns {Array} Empty array representing cleared cart
    */
@@ -221,7 +303,18 @@ class CartService {
   /**
    * Migrate session cart to user cart on login
    * Transfers guest cart items to user's database cart when they log in
-   * Prevents loss of cart items during authentication
+   * 
+   * This method is crucial for maintaining cart continuity during the
+   * authentication process. It prevents users from losing their cart
+   * items when they log in.
+   * 
+   * The migration process:
+   * - Transfers all session cart items to database
+   * - Handles ingredient customizations
+   * - Merges duplicate items appropriately
+   * - Updates cart totals
+   * - Clears session cart after successful migration
+   * 
    * @param {number} userId - User ID of the logged-in user
    * @param {Object} sessionCart - Session cart data to migrate
    * @returns {Object} Result of migration operation
@@ -236,7 +329,17 @@ class CartService {
   /**
    * Get or create user cart in database
    * Finds existing cart for user or creates a new one if none exists
-   * Ensures every logged-in user has a cart record in the database
+   * 
+   * This method ensures every logged-in user has a cart record in the database.
+   * It first attempts to find an existing cart, and if none exists, creates
+   * a new one with default values.
+   * 
+   * Database Operations:
+   * - Searches for existing cart with is_cart = TRUE
+   * - Creates new cart order if none exists
+   * - Sets default order type to 'Dine In'
+   * - Initializes total price to 0.00
+   * 
    * @param {number} userId - User ID
    * @returns {Object|null} Cart order object or null if creation fails
    */
@@ -245,6 +348,7 @@ class CartService {
     
     try {
       // Try to find existing user cart
+      // Only one cart per user should exist at a time
       const [existingCart] = await connection.execute(`
         SELECT * FROM orders 
         WHERE user_id = ? AND is_cart = TRUE
@@ -256,6 +360,7 @@ class CartService {
       }
       
       // Create new cart order for user
+      // This creates a new order record marked as a cart (is_cart = TRUE)
       const [result] = await connection.execute(`
         INSERT INTO orders (user_id, is_cart, total_price, order_type, created_at) 
         VALUES (?, TRUE, 0.00, 'Dine In', NOW())
@@ -278,8 +383,24 @@ class CartService {
   /**
    * Add item to user's database cart
    * Adds a menu item with customizations to the user's cart in the database
-   * Handles ingredient additions and price calculations
-   * Updates existing items if same item with same options already exists
+   * 
+   * This method handles the complex process of adding items to a database cart,
+   * including price calculations, ingredient management, and duplicate detection.
+   * 
+   * Key Features:
+   * - Transaction safety for all database operations
+   * - Price calculation including required and optional ingredients
+   * - Duplicate item detection and quantity merging
+   * - Ingredient customization storage (both required and optional)
+   * - Cart total recalculation
+   * 
+   * Database Tables Used:
+   * - orders: Main cart order record
+   * - order_item: Individual items in cart
+   * - order_item_ingredient: Customization ingredients
+   * - dish: Item base information
+   * - ingredient: Ingredient pricing and details
+   * 
    * @param {number} userId - User ID
    * @param {Object} item - Menu item to add
    * @param {number} quantity - Quantity to add
@@ -295,50 +416,19 @@ class CartService {
       
       const cartOrder = await this.getOrCreateUserCart(userId);
 
-      // Get current item price and validate item exists
-      const [itemDetails] = await connection.execute(
-        'SELECT price FROM dish WHERE item_id = ?',
-        [item.item_id]
+      // Calculate total price including required and optional ingredients
+      const priceCalculation = await calculateItemPriceWithOptions(
+        connection, 
+        item.item_id, 
+        options || {},
+        true // Need detailed breakdown for cart
       );
       
-      if (itemDetails.length === 0) {
-        throw new Error('Item not found');
-      }
-
-      // Calculate total price including ingredient prices
-      let totalPrice = itemDetails[0].price;
-      const selectedIngredients = [];
-
-      if (options && Object.keys(options).length > 0) {
-        const ingredientIds = Object.keys(options).filter(id => options[id].selected);
-        if (ingredientIds.length > 0) {
-          const placeholders = ingredientIds.map(() => '?').join(',');
-          const [ingredients] = await connection.execute(`
-            SELECT ingredient_id, ingredient_name, price
-            FROM ingredient
-            WHERE ingredient_id IN (${placeholders})
-          `, ingredientIds);
-          
-          const ingredientMap = new Map(ingredients.map(ing => [ing.ingredient_id.toString(), ing]));
-          
-          // Process selected options using session cart structure
-          for (const [optionId, option] of Object.entries(options)) {
-            if (option.selected) {
-              const ingredient = ingredientMap.get(optionId);
-              if (ingredient) {
-                totalPrice += ingredient.price;
-                selectedIngredients.push({
-                  ingredient_id: ingredient.ingredient_id,
-                  price: ingredient.price
-                });
-              }
-            }
-          }
-        }
-      }
+      const totalPrice = priceCalculation.totalPrice;
+      const allIngredients = priceCalculation.allIngredients;
      
-    
       // Check if item with same options already exists in cart
+      // This prevents duplicate items and merges quantities appropriately
       const [existingItems] = await connection.execute(`
         SELECT oi.order_item_id 
         FROM order_item oi
@@ -346,7 +436,7 @@ class CartService {
         WHERE oi.order_id = ? AND oi.item_id = ?
         GROUP BY oi.order_item_id
         HAVING COUNT(DISTINCT oii.ingredient_id) = ?
-      `, [cartOrder.order_id, item.item_id, selectedIngredients.length]);
+      `, [cartOrder.order_id, item.item_id, allIngredients.length]);
 
       if (existingItems.length > 0) {
         // Update existing item quantity
@@ -362,15 +452,15 @@ class CartService {
           VALUES (?, ?, ?, ?, NOW(), NOW())
         `, [cartOrder.order_id, item.item_id, quantity, totalPrice]);
 
-        // Add selected ingredients
-        for (const ingredient of selectedIngredients) {
+        // Add all ingredients (both required and optional)
+        for (const ingredient of allIngredients) {
           await connection.execute(`
             INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price)
             VALUES (?, ?, ?)
           `, [result.insertId, ingredient.ingredient_id, ingredient.price]);
         }
       }
-      
+       
       // Update cart total
       await updateCartTotal(connection, cartOrder.order_id);
       await connection.commit();
@@ -393,7 +483,17 @@ class CartService {
   /**
    * Update quantity of item in user's database cart
    * Changes the quantity of an existing item in the user's cart
-   * Recalculates prices based on current item and ingredient costs
+   * 
+   * This method handles quantity updates for database cart items, including
+   * price recalculation and automatic removal if quantity is 0 or less.
+   * 
+   * Key Features:
+   * - Transaction safety for all operations
+   * - Price recalculation based on current ingredient costs
+   * - Automatic item removal for zero quantities
+   * - Ingredient customization updates
+   * - Cart total recalculation
+   * 
    * @param {number} userId - User ID
    * @param {number} itemId - ID of the item to update
    * @param {number} quantity - New quantity
@@ -515,7 +615,16 @@ class CartService {
   /**
    * Remove item from user's database cart
    * Removes a specific item with matching options from the user's cart
-   * Handles ingredient cleanup and cart total recalculation
+   * 
+   * This method handles item removal from database cart, including proper
+   * cleanup of associated data and cart total recalculation.
+   * 
+   * Key Features:
+   * - Transaction safety for all operations
+   * - Proper cleanup of ingredient customizations
+   * - Cart total recalculation
+   * - Error handling for missing items
+   * 
    * @param {number} userId - User ID
    * @param {number} itemId - ID of the item to remove
    * @param {Object} options - Customization options to match for removal
@@ -546,7 +655,7 @@ class CartService {
 
       const orderItemId = orderItems[0].order_item_id;
       
-      // Remove ingredients first
+      // Remove ingredients first (foreign key constraint)
       await connection.execute(`
         DELETE FROM order_item_ingredient WHERE order_item_id = ?
       `, [orderItemId]);
@@ -570,6 +679,15 @@ class CartService {
   /**
    * Clear user's database cart
    * Removes all items from the user's cart and resets total price to zero
+   * 
+   * This method provides a clean slate for the user's cart by removing
+   * all items and resetting the cart total to zero.
+   * 
+   * Database Operations:
+   * - Removes all order_item records for the cart
+   * - Resets cart total price to 0.00
+   * - Uses transaction safety
+   * 
    * @param {number} userId - User ID
    */
   async clearUserCart(userId) {
@@ -602,8 +720,16 @@ class CartService {
   /**
    * Add item to session cart (for guest users)
    * Adds a menu item with customizations to the session cart
-   * Calculates total price including ingredient costs
-   * Updates existing items if same item with same options already exists
+   * 
+   * This method handles cart operations for guest users who don't have
+   * database persistence. It manages cart data in the session object.
+   * 
+   * Key Features:
+   * - Price calculation including required and optional ingredients
+   * - Duplicate item detection and quantity merging
+   * - Session cart initialization if needed
+   * - Ingredient customization storage (both required and optional)
+   * 
    * @param {Object} sessionCart - Current session cart object
    * @param {Object} item - Menu item to add
    * @param {number} quantity - Quantity to add
@@ -625,22 +751,17 @@ class CartService {
         sessionCart.items = [];
       }
 
-      // Calculate total price based on selected ingredients
-      let totalPrice = parseFloat(item.price) || 0;
-      if (options) {
-        for (const [ingredientId, option] of Object.entries(options)) {
-          if (option.selected) {
-            // Convert ingredientId to number if it's a string
-            const numericIngredientId = parseInt(ingredientId);
-            if (!isNaN(numericIngredientId)) {
-              const ingredient = await this.getIngredientDetails(numericIngredientId);
-              if (ingredient) {
-                totalPrice += parseFloat(ingredient.price) || 0;
-              }
-            }
-          }
-        }
-      }
+      // Calculate total price including required and optional ingredients
+      const connection = await dbSingleton.getConnection();
+      const priceCalculation = await calculateItemPriceWithOptions(
+        connection, 
+        item.item_id, 
+        options || {},
+        true // Need detailed breakdown for cart
+      );
+      
+      const totalPrice = priceCalculation.totalPrice;
+      const allIngredients = priceCalculation.allIngredients;
 
       // Create cart item with validated data
       const cartItem = {
@@ -648,8 +769,17 @@ class CartService {
         item_name: item.item_name,
         price: totalPrice,
         quantity: quantity,
-        options: options || {}
+        options: options || {},
+        // Store ingredient information for reference
+        ingredients: allIngredients.map(ing => ({
+          id: ing.ingredient_id,
+          name: ing.ingredient_name,
+          price: ing.price,
+          is_required: ing.is_required,
+          category: ing.category
+        }))
       };
+      
       // Check if item with same options already exists in cart
       const existingItemIndex = sessionCart.items.findIndex(
         existingItem => existingItem.item_id === cartItem.item_id && 
@@ -662,7 +792,6 @@ class CartService {
       } else {
         // Add new item if it doesn't exist
         sessionCart.items.push(cartItem);
-        
       }
 
       return sessionCart;
@@ -675,7 +804,16 @@ class CartService {
   /**
    * Update quantity of item in session cart (for guest users)
    * Changes the quantity of an existing item in the session cart
-   * Removes item if quantity is 0 or less
+   * 
+   * This method handles quantity updates for guest users' session carts.
+   * It automatically removes items if the quantity is 0 or less.
+   * 
+   * Key Features:
+   * - Quantity validation and automatic removal
+   * - Option matching for item identification
+   * - Session cart management
+   * - Error handling for missing items
+   * 
    * @param {Object} sessionCart - Current session cart object
    * @param {number} itemId - ID of the item to update
    * @param {number} quantity - New quantity
@@ -709,6 +847,16 @@ class CartService {
   /**
    * Remove item from session cart (for guest users)
    * Removes a specific item with matching options from the session cart
+   * 
+   * This method handles item removal for guest users' session carts.
+   * It uses option matching to identify the specific item to remove.
+   * 
+   * Key Features:
+   * - Option matching for precise item identification
+   * - Session cart management
+   * - Error handling for missing items
+   * - Success/failure status reporting
+   * 
    * @param {Object} sessionCart - Current session cart object
    * @param {number} itemId - ID of the item to remove
    * @param {Object} options - Customization options to match for removal
@@ -735,6 +883,14 @@ class CartService {
   /**
    * Update order type (Dine In or Take Away)
    * Updates the order type for both logged-in users (database) and guests (session)
+   * 
+   * This method provides a unified interface for updating order types,
+   * handling both database and session storage transparently.
+   * 
+   * Order Types:
+   * - 'Dine In': Customer will eat at the restaurant
+   * - 'Take Away': Customer will take food to go
+   * 
    * @param {number|null} userId - User ID if logged in, null for guests
    * @param {string} orderType - New order type ('Dine In' or 'Take Away')
    * @param {Object} sessionCart - Session cart for guests
@@ -782,6 +938,10 @@ class CartService {
   /**
    * Get available ingredients for a menu item
    * Wrapper function that calls the standalone getAvailableIngredients function
+   * 
+   * This method provides access to ingredient information for menu items,
+   * which is used for customization options in the cart.
+   * 
    * @param {number} itemId - The ID of the menu item
    * @returns {Array} Array of ingredient groups with their details
    */
@@ -792,6 +952,10 @@ class CartService {
   /**
    * Get ingredient details from database
    * Fetches ingredient information including name and price
+   * 
+   * This method is used by session cart operations to get ingredient
+   * pricing information for accurate price calculations.
+   * 
    * @param {number} ingredientId - The ID of the ingredient
    * @returns {Object|null} Ingredient details or null if not found
    */
@@ -813,7 +977,11 @@ class CartService {
   /**
    * Compare two option objects for equality
    * Helper function to determine if two customization options are the same
-   * Used to identify duplicate items in cart with same customizations
+   * 
+   * This method is used to identify duplicate items in cart with the same
+   * customizations. It uses JSON.stringify for comparison as a fallback
+   * method for complex object comparison.
+   * 
    * @param {Object} options1 - First options object
    * @param {Object} options2 - Second options object
    * @returns {boolean} True if options are equal, false otherwise
