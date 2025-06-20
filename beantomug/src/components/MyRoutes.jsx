@@ -12,6 +12,7 @@ import PaymentCancel from '../pages/PaymentCancel';
 import ProtectedRoute from './auth/ProtectedRoute';
 import Dashboard from '../pages/staff/DashBoard';
 import Header from '../components/header/Header'
+import Home from '../pages/home/Home'
 
 export default function MyRoutes(){
     const location = useLocation();
@@ -23,7 +24,7 @@ export default function MyRoutes(){
         <Routes>
        
             {/* Public routes */}
-            <Route path="/" element={<Menu />} />
+            <Route path="/" element={<Home />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/menu/:category" element={<Menu />} />
             <Route path="/login" element={<LogIn/>} />
