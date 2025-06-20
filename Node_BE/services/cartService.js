@@ -109,11 +109,10 @@ class CartService {
   async addToCart(userId, sessionCart, item, quantity, options) {
     if (userId) {
       // User is logged in - add to database cart
-      console.log('Adding item to database cart for user:', userId);
+     
       return await this.addToUserCart(userId, item, quantity, options);
     } else {
       // Guest user - add to session cart
-      console.log('Adding item to session cart for guest');
       return await this.addToSessionCart(sessionCart, item, quantity, options);
     }
   }
@@ -124,7 +123,18 @@ class CartService {
   async updateQuantity(userId, sessionCart, itemId, quantity, options) {
     if (userId) {
       // User is logged in - update in database
-      return await this.updateUserCartQuantity(userId, itemId, quantity, options);
+      try {
+        const updatedCart = await this.updateUserCartQuantity(userId, itemId, quantity, options);
+        return {
+          success: true,
+          cart: updatedCart
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
     } else {
       // Guest user - update in session
       return this.updateSessionCartQuantity(sessionCart, itemId, quantity, options);
@@ -137,7 +147,21 @@ class CartService {
   async removeFromCart(userId, sessionCart, itemId, options) {
     if (userId) {
       // User is logged in - remove from database
-      return await this.removeFromUserCart(userId, itemId, options);
+      try {
+        const updatedCart = await this.removeFromUserCart(userId, itemId, options);
+        return {
+          success: true,
+          cart: {
+            items: updatedCart,
+            orderType: 'Dine In'
+          }
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
     } else {
       // Guest user - remove from session
       return this.removeFromSessionCart(sessionCart, itemId, options);

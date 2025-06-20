@@ -147,7 +147,7 @@ const addToSessionCart = async (req, res) => {
         return res.status(500).json({ error: 'Failed to save cart' });
       }
       
-      console.log('Session saved after adding to cart:', req.session.cart);
+
       res.json({ 
         message: 'Item added to cart successfully',
         cart: updatedCart
