@@ -34,6 +34,7 @@ const { calculateItemPriceWithOptions } = require('../utils/priceCalculator');
  * - ingredient: Basic ingredient information (name, price, stock)
  * - ingredient_category: Categorizes ingredients (e.g., "Milk", "Syrups")
  * - ingredient_type: Defines how ingredients are presented as options
+ * - item_option_type: Defines how ingredients are presented as options for this specific item
  * 
  * @param {number} itemId - The ID of the menu item
  * @returns {Array} Array of ingredient groups with their details
@@ -50,6 +51,7 @@ async function getAvailableIngredients(itemId) {
     // - ingredient: Basic ingredient information (name, price, stock, etc.)
     // - ingredient_category: Categorizes ingredients (e.g., "Milk", "Syrups")
     // - ingredient_type: Defines ingredient types (e.g., "Milk Type", "Size")
+    // - item_option_type: Defines how ingredients are presented as options for this specific item
     const [ingredients] = await connection.execute(`
       SELECT 
         i.ingredient_id, 
@@ -61,14 +63,17 @@ async function getAvailableIngredients(itemId) {
         iii.quantity_required,
         it.option_group,
         it.name as option_label,
-        it.is_physical
+        it.is_physical,
+        iot.is_required,
+        iot.is_multiple
       FROM ingredients_in_item iii
       JOIN ingredient i ON iii.ingredient_id = i.ingredient_id
       JOIN ingredient_category ic ON i.type_id = ic.type_id
       JOIN ingredient_type it ON i.type_id = it.id
+      JOIN item_option_type iot ON iot.type_id = it.id AND iot.item_id = ?
       WHERE iii.item_id = ? AND i.status = 1
       ORDER BY it.option_group, it.name
-    `, [itemId]);
+    `, [itemId, itemId]);
 
     // Process and group ingredients by their category for frontend consumption
     // This creates a structured format that's easier for the frontend to render
@@ -78,9 +83,10 @@ async function getAvailableIngredients(itemId) {
         acc[key] = {
           group: ing.option_group,        // Display text for the option group
           label: ing.option_label,        // Option type name
-          required: ing.quantity_required > 0,  // Whether this option is mandatory
+          required: ing.is_required,      // Whether this option is mandatory (from item_option_type)
           category: ing.category_name,    // Category name (e.g., "Milk", "Syrups")
           isPhysical: ing.is_physical,    // Whether this ingredient has physical stock
+          isMultiple: ing.is_multiple,    // Whether multiple selections are allowed
           ingredients: []                 // Array to hold individual ingredients
         };
       }

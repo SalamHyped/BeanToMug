@@ -105,6 +105,18 @@ const addToSessionCart = async (req, res) => {
     try {
       validateIngredientSelection(options, availableIngredients);
     } catch (error) {
+      if (error.code === 'MISSING_REQUIRED_TYPES') {
+        return res.status(400).json({ 
+          error: 'Required types are missing',
+          missingTypes: error.missingTypes
+        });
+      }
+      if (error.code === 'MISSING_REQUIRED_CATEGORIES') {
+        return res.status(400).json({ 
+          error: 'Required categories are missing',
+          missingCategories: error.missingCategories
+        });
+      }
       if (error.code === 'MISSING_REQUIRED_INGREDIENTS') {
         return res.status(400).json({ 
           error: 'Required ingredients are missing',

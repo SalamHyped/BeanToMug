@@ -36,7 +36,7 @@ const validateOptions = (options) => {
   // Check each option
   for (const [optionId, optionInfo] of Object.entries(options)) {
     // Check if optionId is valid
-    if (!/^[a-zA-Z0-9_-]+$/.test(optionId)) {
+    if (!/^\d+$/.test(optionId)) {
       return false;
     }
 
@@ -116,87 +116,126 @@ const validatePrice = (price) => {
 const validateIngredientSelection = (options, availableIngredients) => {
   if (!options || !availableIngredients) return true;
   
-  // Convert availableIngredients to a map for faster lookup
-  const availableIngredientsMap = availableIngredients.reduce((acc, group) => {
+  // Build lookup maps in a single pass
+  const ingredientMap = new Map(); // ingredientId -> ingredient data
+  const requiredTypes = new Set(); // type label -> true if required
+  const typeRules = new Map(); // type label -> {isMultiple, group, label}
+  
+  // Single pass to build all necessary data structures
+  for (const group of availableIngredients) {
+
     if (group.ingredients && Array.isArray(group.ingredients)) {
-      group.ingredients.forEach(ing => {
-        acc[ing.id] = {
+      for (const ing of group.ingredients) {
+        ingredientMap.set(ing.id, {
           id: ing.id,
           name: ing.name,
           category: group.category,
           label: group.label,
-          inStock: ing.stock > 0 && ing.status,
-          required: group.required,
-          isPhysical: group.isPhysical // Add isPhysical flag
-        };
+          inStock: group.isPhysical ? (ing.stock > 0 && ing.status) : true,
+          isPhysical: group.isPhysical
+        });
+      }
+      
+      // Store type rules
+      typeRules.set(group.label, {
+        isMultiple: group.isMultiple,
+        group: group.group,
+        label: group.label
       });
+      
+      // Mark type as required if this group is required
+      if (group.required) {
+        requiredTypes.add(group.label);
+        console.log(`Added required type: ${group.label}`);
+      }
     }
-    return acc;
-  }, {});
+  }
 
-  // Check for missing required ingredients
-  const missingRequired = availableIngredients.filter(group => {
-    if (!group.required) return false;
+
+  // Validate selections in a single pass
+  const selectedIngredients = new Set();
+  const selectionsByType = new Map(); // type label -> selected ingredients
+  
+  for (const [optionId, optionInfo] of Object.entries(options)) {
+    if (!optionInfo.selected) {
+      continue;
+    }
     
-    // Check if any required ingredient from this group is selected
-    const hasSelectedRequired = Object.entries(options).some(([optionId, optionInfo]) => {
-      const ingredient = availableIngredientsMap[optionId];
-      return ingredient && 
-             ingredient.category === group.category && 
-             optionInfo.selected;
-    });
+    const ingredient = ingredientMap.get(parseInt(optionId));
+    console.log(`Found ingredient for ${optionId}:`, ingredient);
     
-    return !hasSelectedRequired;
-  });
+    // Validate ingredient exists
+    if (!ingredient) {
+      console.error(`Ingredient ${optionId} not found in ingredientMap`);
+      throw new Error('Selected ingredient is not available');
+    }
+
+    // Validate stock for physical ingredients
+    if (ingredient.isPhysical && !ingredient.inStock) {
+      throw new Error('Selected ingredient is out of stock');
+    }
+
+    // Validate label and value match
+    if (ingredient.label !== optionInfo.label || ingredient.name !== optionInfo.value) {
+      console.error('Label/value mismatch:', {
+        ingredientLabel: ingredient.label,
+        optionLabel: optionInfo.label,
+        ingredientName: ingredient.name,
+        optionValue: optionInfo.value
+      });
+      throw new Error('Invalid option data');
+    }
+    
+    // Track selections
+    selectedIngredients.add(ingredient.id);
+
+    
+    if (!selectionsByType.has(ingredient.label)) {
+      selectionsByType.set(ingredient.label, []);
+    }
+    selectionsByType.get(ingredient.label).push(ingredient);
+  }
+
+  console.log('Selected ingredients:', Array.from(selectedIngredients));
+
+  // Check missing required types (only one selection per type is needed)
+  const missingRequired = [];
+  for (const requiredType of requiredTypes) {
+    const selections = selectionsByType.get(requiredType) || [];
+    if (selections.length === 0) {
+      // Get the first ingredient from this type for error reporting
+      const firstIngredient = Array.from(ingredientMap.values()).find(ing => ing.label === requiredType);
+      missingRequired.push({
+        category: firstIngredient ? firstIngredient.category : requiredType,
+        type: requiredType,
+        label: requiredType,
+        ingredientName: firstIngredient ? firstIngredient.name : 'Any option'
+      });
+      console.log(`Missing required type: ${requiredType}`);
+    }
+  }
 
   if (missingRequired.length > 0) {
-    const error = new Error('Required ingredients are missing');
-    error.code = 'MISSING_REQUIRED_INGREDIENTS';
-    error.missingIngredients = missingRequired.map(group => ({
-      category: group.category,
-      type: group.type,
-      label: group.label
-    }));
+    console.error('Missing required types:', missingRequired);
+    const error = new Error('Required types are missing');
+    error.code = 'MISSING_REQUIRED_TYPES';
+    error.missingTypes = missingRequired;
     throw error;
   }
 
-  // Validate each selected option
-  for (const [optionId, optionInfo] of Object.entries(options)) {
-    if (optionInfo.selected) {
-      const ingredient = availableIngredientsMap[optionId];
-      
-      // Check if ingredient exists
-      if (!ingredient) {
-        const error = new Error('Selected ingredient is not available');
-        error.code = 'INGREDIENT_NOT_AVAILABLE';
-        error.ingredientId = optionId;
-        error.ingredientLabel = optionInfo.label;
-        error.ingredientValue = optionInfo.value;
-        throw error;
-      }
-
-      // Only check stock for physical ingredients
-      if (ingredient.isPhysical && !ingredient.inStock) {
-        const error = new Error('Selected ingredient is out of stock');
-        error.code = 'INGREDIENT_OUT_OF_STOCK';
-        error.ingredientId = optionId;
-        error.ingredientLabel = optionInfo.label;
-        error.ingredientValue = optionInfo.value;
-        throw error;
-      }
-
-      // Validate that the label and value match what's in the database
-      if (ingredient.label !== optionInfo.label || ingredient.name !== optionInfo.value) {
-        const error = new Error('Invalid option data');
-        error.code = 'INVALID_OPTION_DATA';
-        error.ingredientId = optionId;
-        error.expected = { label: ingredient.label, value: ingredient.name };
-        error.received = { label: optionInfo.label, value: optionInfo.value };
-        throw error;
-      }
+  // Check multiple selection rules
+  for (const [type, selections] of selectionsByType) {
+    const typeRule = typeRules.get(type);
+    if (typeRule && !typeRule.isMultiple && selections.length > 1) {
+      const error = new Error('Multiple selections not allowed for this option');
+      error.code = 'MULTIPLE_SELECTIONS_NOT_ALLOWED';
+      error.type = type;
+      error.selections = selections.map(s => s.name);
+      throw error;
     }
   }
 
+  console.log('Validation passed successfully');
   return true;
 };
 

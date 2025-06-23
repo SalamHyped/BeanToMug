@@ -136,14 +136,25 @@ router.get("/items/:id", async (req, res) => {
     Object.entries(typeMap).forEach(([typeId, typeInfo]) => {
       const isPhysical = typeInfo.is_physical;
       
-      // Filter ingredients based on availability
+      // Filter ingredients based on availability for options (customization controls)
       // For physical ingredients: check stock and status
       // For non-physical ingredients (like "No ice"): always available
       const availableIngredients = typeInfo.ingredients.filter(ing => 
         isPhysical ? (ing.quantity_in_stock > 0 && ing.status) : true
       );
 
-      // Only add options if there are available ingredients
+      // Add ALL ingredients to the ingredients list (including unavailable ones)
+      // This allows proper availability checking and shows complete ingredient information
+      ingredients.push(...typeInfo.ingredients.map(ing => ({
+        id: ing.id,
+        name: ing.name,
+        quantity: ing.quantity_required,
+        category: ing.category,
+        inStock: isPhysical ? (ing.quantity_in_stock > 0 && ing.status) : true,
+        isRequired: typeInfo.is_required  // Add required flag for availability checking
+      })));
+
+      // Only add options if there are available ingredients for customization
       if (availableIngredients.length > 0) {
         // Group options by ingredient category (e.g., "Milk", "Syrups")
         if (!options[availableIngredients[0].category]) {
@@ -156,7 +167,8 @@ router.get("/items/:id", async (req, res) => {
         options[availableIngredients[0].category].types.push({
           placeholder: typeInfo.option_group,  // Display text for the option group
           label: typeInfo.name,                // Option type name
-          type: typeInfo.is_multiple ? 'select' : 'checkbox', // UI control type
+          type: typeInfo.name.toLowerCase().includes('size') ? 'radio' : 
+                (typeInfo.is_multiple ? 'checkbox' : 'select'), // UI control type
           required: typeInfo.is_required,      // Whether selection is mandatory
           values: availableIngredients.map(ing => ({
             id: ing.id,
@@ -165,21 +177,15 @@ router.get("/items/:id", async (req, res) => {
             inStock: isPhysical ? (ing.quantity_in_stock > 0 && ing.status) : true
           }))
         });
-
-        // Add ingredients to the ingredients list for display
-        ingredients.push(...availableIngredients.map(ing => ({
-          id: ing.id,
-          name: ing.name,
-          quantity: ing.quantity_required,
-          category: ing.category,
-          inStock: isPhysical ? (ing.quantity_in_stock > 0 && ing.status) : true
-        })));
       }
     });
 
     // Determine overall item availability
-    // Item is available only if ALL required ingredients are in stock
-    const isAvailable = ingredients.every(ing => ing.inStock);
+    // Item is available only if ALL REQUIRED ingredients are in stock
+    // Optional ingredients being out of stock should not make the item unavailable
+    const isAvailable = ingredients
+      .filter(ing => ing.isRequired)  // Only check required ingredients
+      .every(ing => ing.inStock);
 
     // Combine all data into the final response
     const response = {
