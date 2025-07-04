@@ -1,58 +1,9 @@
-:root {
-  --sidebar-width: 15rem;
-  --sidebar-collapsed-width: 4rem;
-}
-
-.layout {
+/* ProtectedRoute component styles - minimal styling for loading state */
+.loading {
   display: flex;
-  min-height: calc(100vh - var(--header-height, 120px));
-  background-color: #f8f9fa;
-}
-
-.content {
-  flex: 1;
-  padding: 2rem;
-  background-color: #ffffff;
-  border-radius: 0.5rem;
-  margin: 1rem;
-  margin-left: calc(var(--sidebar-width) + 1rem);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-  transition: margin-left 0.5s ease;
-}
-
-/* When sidebar is collapsed */
-.layout.sidebarCollapsed .content {
-  margin-left: calc(var(--sidebar-collapsed-width) + 1rem);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .layout {
-    flex-direction: column;
-    min-height: calc(100vh - var(--header-height, 80px));
-  }
-
-  .content {
-    padding: 1rem;
-    margin: 0.5rem;
-    margin-left: 0.5rem;
-    border-radius: 0.25rem;
-  }
-
-  .layout.sidebarCollapsed .content {
-    margin-left: 0.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .content {
-    padding: 0.75rem;
-    margin: 0.25rem;
-    margin-left: 0.25rem;
-  }
-
-  .layout.sidebarCollapsed .content {
-    margin-left: 0.25rem;
-  }
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 1.2rem;
+  color: #666;
 } 

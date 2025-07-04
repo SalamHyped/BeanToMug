@@ -1,6 +1,6 @@
 const { dbSingleton } = require('../dbSingleton');
 const { migrateSessionCartToUser, getCartItems, updateCartTotal } = require('../utils/cartMigration');
-const { calculateItemPriceWithOptions } = require('../utils/priceCalculator');
+const { processIngredientSelections, getIngredientsForStorage, createOptionsForDisplay } = require('../utils/ingredientProcessor');
 
 /**
  * Cart Service
@@ -422,19 +422,19 @@ class CartService {
       
       const cartOrder = await this.getOrCreateUserCart(userId);
 
-      // Calculate total price including required and optional ingredients
-      const priceCalculation = await calculateItemPriceWithOptions(
-        connection, 
-        item.item_id, 
-        options || {},
-        true // Need detailed breakdown for cart
-      );
+      // Get available ingredients using the existing function
+      const availableIngredients = await getAvailableIngredients(item.item_id);
       
-      const totalPrice = priceCalculation.totalPrice;
-      const allIngredients = priceCalculation.allIngredients;
-     
+      // Process ingredient selections with validation, price calculation, and auto-addition
+      const processedResult = processIngredientSelections(options, availableIngredients, item.price);
+      
+      console.log('=== ADD TO USER CART DEBUG ===');
+      console.log('Item ID:', item.item_id);
+      console.log('Options:', options);
+      console.log('Processed result:', processedResult);
+      console.log('==============================');
+      
       // Check if item with same options already exists in cart
-      // This prevents duplicate items and merges quantities appropriately
       const [existingItems] = await connection.execute(`
         SELECT oi.order_item_id 
         FROM order_item oi
@@ -442,7 +442,7 @@ class CartService {
         WHERE oi.order_id = ? AND oi.item_id = ?
         GROUP BY oi.order_item_id
         HAVING COUNT(DISTINCT oii.ingredient_id) = ?
-      `, [cartOrder.order_id, item.item_id, allIngredients.length]);
+      `, [cartOrder.order_id, item.item_id, processedResult.ingredients.all.length]);
 
       if (existingItems.length > 0) {
         // Update existing item quantity
@@ -456,10 +456,11 @@ class CartService {
         const [result] = await connection.execute(`
           INSERT INTO order_item (order_id, item_id, quantity, price, created_at, updated_at)
           VALUES (?, ?, ?, ?, NOW(), NOW())
-        `, [cartOrder.order_id, item.item_id, quantity, totalPrice]);
+        `, [cartOrder.order_id, item.item_id, quantity, processedResult.pricing.totalPrice]);
 
-        // Add all ingredients (both required and optional)
-        for (const ingredient of allIngredients) {
+        // Add all ingredients (user selected + auto-added required)
+        const ingredientsForStorage = getIngredientsForStorage(processedResult);
+        for (const ingredient of ingredientsForStorage) {
           await connection.execute(`
             INSERT INTO order_item_ingredient (order_item_id, ingredient_id, price)
             VALUES (?, ?, ?)
@@ -757,32 +758,29 @@ class CartService {
         sessionCart.items = [];
       }
 
-      // Calculate total price including required and optional ingredients
-      const connection = await dbSingleton.getConnection();
-      const priceCalculation = await calculateItemPriceWithOptions(
-        connection, 
-        item.item_id, 
-        options || {},
-        true // Need detailed breakdown for cart
-      );
+      // Get available ingredients using the existing function
+      const availableIngredients = await getAvailableIngredients(item.item_id);
       
-      const totalPrice = priceCalculation.totalPrice;
-      const allIngredients = priceCalculation.allIngredients;
+      // Process ingredient selections with validation, price calculation, and auto-addition
+      const processedResult = processIngredientSelections(options, availableIngredients, item.price);
+      
+      // Create options for display (only user-selected ingredients)
+      const displayOptions = createOptionsForDisplay(processedResult);
 
       // Create cart item with validated data
       const cartItem = {
         item_id: item.item_id,
         item_name: item.item_name,
-        price: totalPrice,
+        price: processedResult.pricing.totalPrice,
         quantity: quantity,
-        options: options || {},
-        // Store ingredient information for reference
-        ingredients: allIngredients.map(ing => ({
+        options: displayOptions,
+        // Store all ingredient information for security and data integrity
+        ingredients: processedResult.ingredients.all.map(ing => ({
           id: ing.ingredient_id,
-          name: ing.ingredient_name,
+          name: ing.name,
           price: ing.price,
-          is_required: ing.is_required,
-          category: ing.category
+          is_required: ing.autoAdded,
+          category: ing.label
         }))
       };
       
@@ -939,20 +937,6 @@ class CartService {
         orderType
       };
     }
-  }
-
-  /**
-   * Get available ingredients for a menu item
-   * Wrapper function that calls the standalone getAvailableIngredients function
-   * 
-   * This method provides access to ingredient information for menu items,
-   * which is used for customization options in the cart.
-   * 
-   * @param {number} itemId - The ID of the menu item
-   * @returns {Array} Array of ingredient groups with their details
-   */
-  async getAvailableIngredients(itemId) {
-    return getAvailableIngredients(itemId);
   }
 
   /**

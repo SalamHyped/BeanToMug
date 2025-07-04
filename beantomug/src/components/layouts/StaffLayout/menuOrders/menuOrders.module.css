@@ -5,85 +5,501 @@
   flex-direction: column;
 }
 
-.instructionText {
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 1rem;
-  font-size: 0.875rem;
-  color: #6b7280;
+  gap: 1rem;
 }
 
-.orderItem {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  padding: 1em;
+.headerControls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.toggleSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f9f5f1;
   border-radius: 0.5rem;
+  border: 1px solid #f3d9ca;
+}
+
+.refreshButton {
+  background: #896651;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.refreshButton:hover:not(:disabled) {
+  background: #6b4f3f;
+  transform: translateY(-1px);
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.lastUpdate {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.instructionText {
+  font-size: 0.875rem;
+  color: #6b7280;
+  flex: 1;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #896651;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading p {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Error State */
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  color: #dc2626;
+}
+
+.error p {
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.retryButton {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.retryButton:hover {
+  background: #b91c1c;
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.emptyState h3 {
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 1.125rem;
+}
+
+.emptyState p {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Grid Layout */
+.ordersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+/* Order Card */
+.orderCard {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
   cursor: grab;
   position: relative;
   overflow: hidden;
-  transition: all 0.2s ease;
-  background: white;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  transform-origin: center;
 }
 
-.orderItem:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+.orderCard:hover {
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
 }
 
-.orderItem:active {
+.orderCard:active {
   cursor: grabbing;
 }
 
-.orderItem.dragging {
+.orderCard.dragging {
   transform: scale(1.05) rotate(2deg);
   z-index: 10;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
 }
 
-.orderContent {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* Drag progress animations */
+.orderCard.dragging[data-progress="low"] {
+  background: linear-gradient(135deg, #fff 0%, #f0fdf4 100%);
+  border-color: #10b981;
+  box-shadow: 0 8px 25px -3px rgba(16, 185, 129, 0.2);
 }
 
-.orderLeft {
+.orderCard.dragging[data-progress="medium"] {
+  background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
+  border-color: #f59e0b;
+  box-shadow: 0 8px 25px -3px rgba(245, 158, 11, 0.2);
+}
+
+.orderCard.dragging[data-progress="high"] {
+  background: linear-gradient(135deg, #fff 0%, #fef2f2 100%);
+  border-color: #ef4444;
+  box-shadow: 0 8px 25px -3px rgba(239, 68, 68, 0.2);
+}
+
+/* Animated border glow effect */
+.orderCard.dragging::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 1rem;
+  padding: 2px;
+  background: linear-gradient(45deg, 
+    rgba(16, 185, 129, 0.3), 
+    rgba(245, 158, 11, 0.3), 
+    rgba(239, 68, 68, 0.3)
+  );
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: borderGlow 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes borderGlow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* Status-specific styling */
+.orderCard.highPriority {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(135deg, #fff 0%, #fef2f2 100%);
+}
+
+.orderCard.mediumPriority {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #fff 0%, #fffbeb 100%);
+}
+
+.orderCard.lowPriority {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, #fff 0%, #f0fdf4 100%);
+}
+
+/* Order Header */
+.orderHeader {
   display: flex;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.orderTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.orderNumber {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.orderStatus {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #f3f4f6;
+  color: #6b7280;
+  align-self: flex-start;
+  letter-spacing: 0.05em;
+}
+
+/* Status-specific status styling */
+.highPriority .orderStatus {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.mediumPriority .orderStatus {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.lowPriority .orderStatus {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.orderMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  text-align: right;
+}
+
+.orderType {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #896651;
+  background: #fef3c7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.orderTime {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Order Content */
+.orderContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
+  position: relative;
 }
 
 .dragHandle {
+  position: absolute;
+  top: 0;
+  right: 0;
   color: #9ca3af;
   font-size: 1rem;
+  cursor: grab;
 }
 
-.orderInfo {
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+/* Items List */
+.itemsList {
   display: flex;
   flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
-.orderText {
-  font-weight: 500;
-  color: #1f2937;
-  font-size: 1rem;
+.orderItemDetail {
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  border-left: 3px solid #e9ecef;
+  transition: all 0.2s ease;
 }
 
-.priorityText {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: capitalize;
+.orderItemDetail:hover {
+  background: #f1f3f4;
+  border-left-color: #896651;
 }
 
-.orderRight {
-  color: #9ca3af;
+.itemMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.itemName {
+  font-weight: 600;
+  color: #374151;
   font-size: 0.875rem;
 }
 
+.itemQuantity {
+  background: #896651;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.itemIngredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.ingredientTag {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
+}
+
+/* Order Footer */
+.orderFooter {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dragIndicator {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+/* Drag Progress Bar */
 .dragProgressBar {
   position: absolute;
   bottom: 0;
   left: 0;
   height: 0.25rem;
-  background-color: #10b981;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
   border-radius: 0.125rem;
+  transition: all 0.2s ease;
 }
 
+/* Animated progress bar for high progress */
+.orderCard.dragging[data-progress="high"] .dragProgressBar {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+  animation: progressPulse 0.8s ease-in-out infinite;
+}
+
+.orderCard.dragging[data-progress="medium"] .dragProgressBar {
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+  animation: progressPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Drag indicator with progress-based styling */
+.dragIndicator {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+/* Progress-based visual feedback */
+.orderCard.dragging .dragIndicator {
+  color: #059669;
+  font-weight: 600;
+  animation: textPulse 1s ease-in-out infinite;
+}
+
+/* Drag progress visual feedback */
+.orderCard.dragging[data-progress="high"] .dragIndicator {
+  color: #dc2626;
+  font-weight: 700;
+  animation: textPulse 0.6s ease-in-out infinite;
+}
+
+.orderCard.dragging[data-progress="medium"] .dragIndicator {
+  color: #d97706;
+  font-weight: 600;
+  animation: textPulse 0.8s ease-in-out infinite;
+}
+
+.orderCard.dragging[data-progress="low"] .dragIndicator {
+  color: #059669;
+  font-weight: 500;
+  animation: textPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes textPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Drop Zone */
 .dropZone {
   border: 2px dashed #86efac;
   border-radius: 0.5rem;
@@ -92,6 +508,7 @@
   color: #16a34a;
   background-color: #f0fdf4;
   transition: all 0.2s ease;
+  grid-column: 1 / -1;
 }
 
 .dropZone.visible {
@@ -104,55 +521,169 @@
   transform: scale(0.95);
 }
 
-/* Priority Color Classes */
-.highPriority {
-  background-color: #fef2f2;
-  border-left: 4px solid #ef4444;
-}
-
-.mediumPriority {
-  background-color: #fffbeb;
-  border-left: 4px solid #f59e0b;
-}
-
-.lowPriority {
-  background-color: #f0fdf4;
-  border-left: 4px solid #10b981;
-}
-
 /* Responsive Design */
+@media (max-width: 1200px) {
+  .ordersGrid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 0.75rem;
+  }
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0.5rem;
   }
   
-  .orderItem {
-    padding: 0.75em;
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
   }
   
-  .orderText {
+  .headerControls {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .toggleSection {
+    padding: 0.375rem;
+  }
+  
+  .refreshButton {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .ordersGrid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .orderCard {
+    padding: 1rem;
+  }
+  
+  .orderHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .orderNumber {
+    font-size: 1rem;
+  }
+  
+  .orderStatus {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .orderType {
+    font-size: 0.75rem;
+  }
+  
+  .orderTime {
+    font-size: 0.75rem;
+  }
+  
+  .itemsList {
+    gap: 0.5rem;
+  }
+  
+  .orderItemDetail {
+    padding: 0.5rem;
+  }
+  
+  .itemName {
     font-size: 0.875rem;
   }
   
-  .priorityText {
-    font-size: 0.625rem;
+  .itemQuantity {
+    font-size: 0.75rem;
   }
   
-  .instructionText {
-    font-size: 0.75rem;
+  .ingredientTag {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+  }
+  
+  .emptyState {
+    padding: 2rem;
+  }
+  
+  .emptyIcon {
+    font-size: 2.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .orderLeft {
+  .ordersGrid {
+    grid-template-columns: 1fr;
     gap: 0.5rem;
   }
   
-  .dragHandle {
+  .headerControls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .toggleSection {
+    justify-content: center;
+    padding: 0.25rem;
+  }
+  
+  .refreshButton {
+    width: 100%;
+    justify-content: center;
+    padding: 0.5rem;
+  }
+  
+  .orderCard {
+    padding: 0.75rem;
+    min-height: 160px;
+  }
+  
+  .orderHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.375rem;
+  }
+  
+  .orderMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .orderNumber {
     font-size: 0.875rem;
   }
   
-  .orderRight {
-    font-size: 0.75rem;
+  .orderStatus {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+  }
+  
+  .orderType {
+    font-size: 0.625rem;
+  }
+  
+  .orderTime {
+    font-size: 0.625rem;
+  }
+  
+  .itemsList {
+    gap: 0.375rem;
+  }
+  
+  .orderItemDetail {
+    padding: 0.375rem;
+  }
+  
+  .itemIngredients {
+    flex-wrap: wrap;
+    gap: 0.25rem;
   }
 } 

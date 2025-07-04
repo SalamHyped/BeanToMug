@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import styles from './styles.module.css';
@@ -7,9 +7,17 @@ const EmailVerification = () => {
   const [searchParams] = useSearchParams();
   const [verificationStatus, setVerificationStatus] = useState('verifying');
   const [message, setMessage] = useState('');
+  const hasAttemptedVerification = useRef(false);
 
   useEffect(() => {
     const verifyEmail = async () => {
+      // Prevent multiple verification attempts
+      if (hasAttemptedVerification.current) {
+        return;
+      }
+      
+      hasAttemptedVerification.current = true;
+      
       try {
         const token = searchParams.get('token');
         const email = searchParams.get('email');
@@ -84,8 +92,8 @@ const EmailVerification = () => {
             <div className={styles.successIcon}>✓</div>
             <h2>Email Verified!</h2>
             <p>{message}</p>
-            <Link to="/login" className={styles.loginButton}>
-              Go to Login
+            <Link to="/profile-completion" className={styles.loginButton}>
+              Complete Your Profile
             </Link>
           </div>
         );

@@ -1,12 +1,9 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useState } from 'react';
 import { useUser } from '../../../context/UserContext/UserContext';
-import Sidebar from '../../layouts/Sidebar';
-import styles from './protectedRoute.module.css';
+import classes from './protectedRoute.module.css';
 
 const ProtectedRoute = ({ allowedRoles }) => {
   const { user, loading } = useUser();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const location = useLocation();
   
   // Check if the current route is a customer route
@@ -14,7 +11,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
   // Wait for auth check
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className={classes.loading}>Loading...</div>;
   }
 
   // If user is not authenticated, redirect to login
@@ -27,24 +24,8 @@ const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to="/" replace />;
   }
 
-  // For customer routes, render without sidebar (same as guest layout)
-  if (isCustomerRoute) {
-    return <Outlet />;
-  }
-
-  // Render protected content with sidebar for admin/staff routes
-  return (
-    <div className={`${styles.layout} ${isSidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
-      <Sidebar 
-        user={user} 
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      />
-      <main className={styles.content}>
-        <Outlet />
-      </main>
-    </div>
-  );
+  // Render the protected content (layout components will handle sidebar)
+  return <Outlet />;
 };
 
 export default ProtectedRoute; 

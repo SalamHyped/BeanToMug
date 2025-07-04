@@ -9,9 +9,12 @@ const { dbMiddleware } = require('./dbSingleton');
 const menuRouter = require('./Routes/menu');
 const cartRouter = require('./Routes/cart');
 const authRouter = require('./Routes/auth');
+const userRouter = require('./Routes/user');
 const paypalRouter = require('./Routes/paypal');
 const ratingsRouter = require('./Routes/ratings');
 const ordersRouter = require('./Routes/orders');
+const tasksRouter = require('./Routes/tasks');
+
 app.use(express.json());
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174'],  // Allow both ports
@@ -44,9 +47,12 @@ app.use(dbMiddleware);
 app.use('/menu', menuRouter);
 app.use('/cart', cartRouter);
 app.use('/auth', authRouter);  // Auth routes mounted at root path
+app.use('/user', userRouter);  // User routes for profile management
 app.use('/paypal', paypalRouter);
 app.use('/ratings', ratingsRouter);
 app.use('/orders', ordersRouter);
+app.use('/tasks', tasksRouter);  // Task management routes
+
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });

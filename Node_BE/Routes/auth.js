@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const { generateVerificationToken, verifyToken } = require('../utils/tokenUtil');
 const { sendVerificationEmail } = require('../utils/mailer');
+const vonageService = require('../utils/vonageService');
 
 /**
  * Signup Endpoint
@@ -180,7 +181,12 @@ router.get('/verify-email', async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: 'customer'
+        email: user.email,
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        phoneNumber: user.phone_number || '',
+        role: 'customer',
+        emailVerified: true
       }
     });
     
@@ -390,7 +396,12 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role
+        email: user.email,
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
+        phoneNumber: user.phone_number || '',
+        role: user.role,
+        emailVerified: user.email_verified === 1
       }
     };
 
@@ -456,27 +467,222 @@ router.post('/logout', (req, res) => {
  * 
  * Flow:
  * 1. Check if session contains userId
- * 2. Return user data if authenticated
- * 3. Return false if not authenticated
+ * 2. Query database for full user information
+ * 3. Return user data if authenticated
+ * 4. Return false if not authenticated
  * 
  * @route GET /auth/status
  * @returns {Object} Authentication status and user data
  */
-router.get('/status', (req, res) => {
-  if (req.session.userId) {
-    // User is authenticated, return their session data
-    return res.json({ 
-      authenticated: true,
-      user: {
-        id: req.session.userId,
-        username: req.session.username,
-        role: req.session.role
+router.get('/status', async (req, res) => {
+  try {
+    if (req.session.userId) {
+      // User is authenticated, get full user data from database
+      const [users] = await req.db.query(
+        'SELECT id, username, email, first_name, last_name, phone_number, role, email_verified FROM users WHERE id = ?',
+        [req.session.userId]
+      );
+      
+      if (users.length > 0) {
+        const user = users[0];
+        return res.json({ 
+          authenticated: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            firstName: user.first_name || '',
+            lastName: user.last_name || '',
+            phoneNumber: user.phone_number || '',
+            role: user.role,
+            emailVerified: user.email_verified === 1
+          }
+        });
       }
+    }
+    
+    // User is not authenticated
+    res.json({ authenticated: false });
+  } catch (error) {
+    console.error('Auth status check error:', error);
+    res.status(500).json({ 
+      authenticated: false, 
+      error: 'Failed to check authentication status' 
     });
   }
-  
-  // User is not authenticated
-  res.json({ authenticated: false });
+});
+
+/**
+ * Enhanced Signup with SMS Verification
+ * ------------------------------------
+ * Registration endpoint that includes SMS verification for phone numbers.
+ * 
+ * NOTE: This endpoint has been removed since SMS verification is now handled
+ * in the Profile Completion flow after basic signup. This provides a better
+ * user experience by separating account creation from profile completion.
+ * 
+ * The flow is now:
+ * 1. User signs up with /auth/signup (username, password, email)
+ * 2. User completes profile with /user/profile (including SMS verification)
+ * 
+ * This approach is cleaner and more user-friendly.
+ */
+
+/**
+ * Send SMS Verification Code
+ * -------------------------
+ * Sends a verification code via SMS to the provided phone number.
+ * Used during registration or for phone number verification.
+ * 
+ * Flow:
+ * 1. Validate phone number
+ * 2. Generate verification code
+ * 3. Store code in session with expiration
+ * 4. Send SMS with code
+ * 
+ * @route POST /auth/send-sms-verification
+ * @param {string} phoneNumber - User's phone number
+ * @returns {Object} Success/error response
+ */
+router.post('/send-sms-verification', async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+    
+    // Validate phone number
+    if (!phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required'
+      });
+    }
+    
+    if (!vonageService.validatePhoneNumber(phoneNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format'
+      });
+    }
+
+    // Check if Vonage is properly configured
+    if (!vonageService.isConfigured()) {
+      console.error('Vonage configuration error:', vonageService.testConfiguration());
+      return res.status(500).json({
+        success: false,
+        message: 'SMS service is not properly configured. Please contact support.'
+      });
+    }
+    
+    // Generate verification code
+    const verificationCode = vonageService.generateVerificationCode();
+    
+    // Store verification code in session with 10-minute expiration
+    req.session.smsVerification = {
+      phoneNumber: phoneNumber,
+      code: verificationCode,
+      expiresAt: Date.now() + (10 * 60 * 1000) // 10 minutes
+    };
+    
+    // Send SMS with verification code
+    try {
+      await vonageService.sendVerificationCode(phoneNumber, verificationCode);
+    } catch (smsError) {
+      console.error('SMS sending failed:', smsError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification code. Please try again later.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Verification code sent successfully',
+      expiresIn: '10 minutes'
+    });
+    
+  } catch (error) {
+    console.error('SMS verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during SMS verification'
+    });
+  }
+});
+
+/**
+ * Verify SMS Code
+ * --------------
+ * Verifies the SMS code sent to the user's phone number.
+ * Used during registration or for phone number verification.
+ * 
+ * Flow:
+ * 1. Validate verification code
+ * 2. Check if code matches and is not expired
+ * 3. Mark phone number as verified
+ * 4. Clear verification session
+ * 
+ * @route POST /auth/verify-sms
+ * @param {string} code - Verification code from SMS
+ * @returns {Object} Success/error response
+ */
+router.post('/verify-sms', async (req, res) => {
+  try {
+    const { code } = req.body;
+    
+    // Validate code
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code is required'
+      });
+    }
+    
+    // Check if verification session exists
+    if (!req.session.smsVerification) {
+      return res.status(400).json({
+        success: false,
+        message: 'No verification code requested. Please request a new code.'
+      });
+    }
+    
+    const { phoneNumber, code: storedCode, expiresAt } = req.session.smsVerification;
+    
+    // Check if code is expired
+    if (Date.now() > expiresAt) {
+      delete req.session.smsVerification;
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new code.'
+      });
+    }
+    
+    // Check if code matches
+    if (code !== storedCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code'
+      });
+    }
+    
+    // Code is valid - mark phone number as verified
+    req.session.phoneVerified = true;
+    req.session.verifiedPhoneNumber = phoneNumber;
+    
+    // Clear verification session
+    delete req.session.smsVerification;
+    
+    res.json({
+      success: true,
+      message: 'Phone number verified successfully',
+      phoneNumber: phoneNumber
+    });
+    
+  } catch (error) {
+    console.error('SMS verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify code'
+    });
+  }
 });
 
 module.exports = router; 

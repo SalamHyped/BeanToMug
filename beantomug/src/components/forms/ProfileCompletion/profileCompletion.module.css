@@ -1,0 +1,431 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f9f5f1 0%, #f3d9ca 100%);
+  padding: 2rem;
+}
+
+.card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 100%;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.header h2 {
+  color: #896651;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formGroup label {
+  color: #896651;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.input {
+  padding: 0.75rem 1rem;
+  border: 2px solid #f3d9ca;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #896651;
+  box-shadow: 0 0 0 3px rgba(137, 102, 81, 0.1);
+}
+
+.input::placeholder {
+  color: #999;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.submitButton {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: #896651;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #6b4f3f;
+  transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.skipButton {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  color: #896651;
+  border: 2px solid #896651;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.skipButton:hover:not(:disabled) {
+  background: #f3d9ca;
+  transform: translateY(-1px);
+}
+
+.skipButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #f3d9ca;
+}
+
+.footer p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Error Styles */
+.error {
+  border-color: #e74c3c !important;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1) !important;
+}
+
+.errorText {
+  color: #e74c3c;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.helpText {
+  color: #666;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.generalError {
+  background: #fde8e8;
+  border: 1px solid #f8b4b4;
+  color: #c81e1e;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* SMS Verification Styles */
+.sendCodeButton {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #896651;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+}
+
+.sendCodeButton:hover:not(:disabled) {
+  background: #6b4f3f;
+  transform: translateY(-1px);
+}
+
+.sendCodeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.verificationSection {
+  margin-top: 1rem;
+}
+
+.codeInputGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.codeInput {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid #f3d9ca;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+  text-align: center;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.codeInput:focus {
+  outline: none;
+  border-color: #896651;
+  box-shadow: 0 0 0 3px rgba(137, 102, 81, 0.1);
+}
+
+.codeInput::placeholder {
+  color: #999;
+  font-weight: normal;
+  letter-spacing: normal;
+}
+
+.resendButton {
+  background: transparent;
+  color: #896651;
+  border: 1px solid #896651;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+}
+
+.resendButton:hover:not(:disabled) {
+  background: #f3d9ca;
+  transform: translateY(-1px);
+}
+
+.resendButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.countdown {
+  color: #666;
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .card {
+    padding: 2rem;
+  }
+  
+  .header h2 {
+    font-size: 1.75rem;
+  }
+  
+  .buttonGroup {
+    flex-direction: column;
+  }
+  
+  .submitButton,
+  .skipButton {
+    width: 100%;
+  }
+  
+  .codeInputGroup {
+    flex-direction: column;
+  }
+  
+  .codeInput {
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 1.5rem;
+  }
+  
+  .header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .input {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.9rem;
+  }
+}
+
+.verificationRequired {
+  color: #e74c3c;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.verificationNote {
+  color: #e67e22;
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.verifiedMessage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #d4edda;
+  color: #155724;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+  border: 1px solid #c3e6cb;
+  font-weight: 500;
+}
+
+.verifiedIcon {
+  font-size: 1.2rem;
+}
+
+.smsVerification {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.smsVerification h4 {
+  color: #896651;
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.smsVerification p {
+  color: #666;
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+}
+
+.verificationInput {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.verificationInput input {
+  flex: 1;
+  max-width: 200px;
+}
+
+.verifyCodeButton {
+  padding: 0.75rem 1rem;
+  background: #896651;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.verifyCodeButton:hover:not(:disabled) {
+  background: #6b4f3f;
+  transform: translateY(-1px);
+}
+
+.verifyCodeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.phoneInputGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.phoneInputGroup input {
+  flex: 1;
+}
+
+.verifyButton {
+  padding: 0.75rem 1rem;
+  background: #896651;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.verifyButton:hover:not(:disabled) {
+  background: #6b4f3f;
+  transform: translateY(-1px);
+}
+
+.verifyButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+} 

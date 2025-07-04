@@ -8,10 +8,12 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [orderType, setOrderType] = useState('Dine In');
   const [error, setError] = useState(null);
+  console.log("cartItems", cartItems)
 console.log(cartItems)
   useEffect(() => {
     fetchCart();
   }, []);
+
 
   const fetchCart = async () => {
     try {

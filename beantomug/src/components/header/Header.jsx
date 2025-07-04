@@ -77,7 +77,12 @@ export default function Header() {
             <div className={classes.userMenu}>
               <button className={classes.userButton}>
                 <FaUser />
-                <span>{user.name}</span>
+                <span>
+                  {user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}`
+                    : user.username
+                  }
+                </span>
               </button>
               <div className={classes.dropdownMenu}>
                 <Link to="/customer/profile">Profile</Link>

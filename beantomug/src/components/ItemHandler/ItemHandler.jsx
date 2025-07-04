@@ -1,5 +1,5 @@
 import classes from "./itemHandler.module.css";
-import { useState, useContext, useEffect, useMemo, useCallback } from "react";
+import { useState, useContext, useEffect, useMemo, useCallback, useRef } from "react";
 import { CartContext } from "../CartItems/CartContext";
 import Modal from "../modal/Modal";
 
@@ -17,41 +17,72 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
   const [localError, setLocalError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(true);
 
-  // Create lookup maps for efficient option finding
+  // Use ref to avoid unnecessary re-renders for stable values
+  const itemRef = useRef(item);
+  const addToCartRef = useRef(addToCart);
+  const onCloseRef = useRef(onClose);
+  const onAddToCartCompleteRef = useRef(onAddToCartComplete);
+
+  // Update refs when props change
+  useEffect(() => {
+    itemRef.current = item;
+    addToCartRef.current = addToCart;
+    onCloseRef.current = onClose;
+    onAddToCartCompleteRef.current = onAddToCartComplete;
+  });
+
+  // Create lookup maps for efficient option finding - optimized with Set for faster lookups
   const optionLookups = useMemo(() => {
-    if (!item?.options) return { valueToType: new Map(), categoryTypes: new Map() };
+    if (!item?.options) return { 
+      valueToType: new Map(), 
+      categoryTypes: new Map(),
+      selectedValueIds: new Set(),
+      requiredTypes: new Set()
+    };
     
     const valueToType = new Map(); // valueId -> { category, type, value }
     const categoryTypes = new Map(); // category -> types array
+    const selectedValueIds = new Set(); // Set for O(1) lookups
+    const requiredTypes = new Set(); // Track required types
     
     Object.entries(item.options).forEach(([category, optionGroup]) => {
       categoryTypes.set(category, optionGroup.types);
       
       optionGroup.types.forEach(type => {
+        if (type.required) {
+          requiredTypes.add(type.label);
+        }
         type.values.forEach(value => {
           valueToType.set(value.id, { category, type, value });
         });
       });
     });
     
-    return { valueToType, categoryTypes };
+    return { valueToType, categoryTypes, selectedValueIds, requiredTypes };
   }, [item?.options]);
 
-  // Memoize option extra price calculation
+  // Optimized price calculation with early returns and reduced iterations
   const optionExtraPrice = useMemo(() => {
-    let extra = 0;
-    if (!item?.options) return 0;
+    if (!item?.options || !selectedOptions) return 0;
 
+    let extra = 0;
+    const selectedKeys = Object.keys(selectedOptions);
+    
+    // Use Set for O(1) lookups instead of nested loops
+    const selectedSet = new Set(selectedKeys);
+    
     Object.entries(item.options).forEach(([category, optionGroup]) => {
       optionGroup.types.forEach(type => {
         if (type.type === "select" || type.type === "radio") {
-          const selectedValue = type.values.find(v => selectedOptions[v.id]);
+          // Find selected value more efficiently
+          const selectedValue = type.values.find(v => selectedSet.has(v.id.toString()));
           if (selectedValue) {
             extra += parseFloat(selectedValue.price || 0);
           }
         } else if (type.type === "checkbox") {
+          // Only iterate through values that are actually selected
           type.values.forEach(value => {
-            if (selectedOptions[value.id]) {
+            if (selectedSet.has(value.id.toString())) {
               extra += parseFloat(value.price || 0);
             }
           });
@@ -61,21 +92,20 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     return extra;
   }, [item?.options, selectedOptions]);
 
-  // Memoize total price
+  // Memoize total price calculation
   const totalPrice = useMemo(() => {
     return parseFloat(price || 0) + optionExtraPrice;
   }, [price, optionExtraPrice]);
 
-  // Initialize options when item changes
+  // Optimized initialization with better data structure
   useEffect(() => {
     if (item?.options) {
       const initialOptions = {};
       
       Object.entries(item.options).forEach(([category, optionGroup]) => {
         optionGroup.types.forEach(type => {
-          // For required options, select the first available value
           if (type.required && type.values.length > 0) {
-            // Find first available value (in stock)
+            // Find first available value more efficiently
             const firstAvailableValue = type.values.find(v => v.inStock) || type.values[0];
             
             if (firstAvailableValue) {
@@ -93,24 +123,23 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     }
   }, [item]);
 
+  // Optimized close handler
   const handleClose = useCallback(() => {
     setIsModalOpen(false);
-    if (onClose) onClose();
-  }, [onClose]);
+    if (onCloseRef.current) onCloseRef.current();
+  }, []);
 
-  // Optimized option change handlers
+  // Optimized option change handlers with better state updates
   const handleSelectChange = useCallback((category, typeLabel, e) => {
     const valueId = e.target.value;
     
     setSelectedOptions(prev => {
       const newOptions = { ...prev };
       
-      // Remove all options of this type
-      Object.keys(newOptions).forEach(key => {
-        if (newOptions[key]?.label === typeLabel) {
-          delete newOptions[key];
-        }
-      });
+      // More efficient removal using filter
+      const filteredOptions = Object.fromEntries(
+        Object.entries(newOptions).filter(([key, option]) => option.label !== typeLabel)
+      );
 
       // Add the new selection if a value was selected
       if (valueId) {
@@ -118,7 +147,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
         const selectedValue = type?.values.find(v => v.id === parseInt(valueId));
         
         if (selectedValue) {
-          newOptions[valueId] = {
+          filteredOptions[valueId] = {
             selected: true,
             label: typeLabel,
             value: selectedValue.name
@@ -126,7 +155,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
         }
       }
       
-      return newOptions;
+      return filteredOptions;
     });
     setLocalError(null);
   }, [optionLookups.categoryTypes]);
@@ -157,79 +186,68 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     setSelectedOptions(prev => {
       const newOptions = { ...prev };
       
-      // Remove all options of this type (radio buttons are mutually exclusive)
-      Object.keys(newOptions).forEach(key => {
-        if (newOptions[key]?.label === typeLabel) {
-          delete newOptions[key];
-        }
-      });
+      // More efficient removal using filter
+      const filteredOptions = Object.fromEntries(
+        Object.entries(newOptions).filter(([key, option]) => option.label !== typeLabel)
+      );
 
       // Add the new selection
       const valueInfo = optionLookups.valueToType.get(valueId);
       if (valueInfo && valueInfo.type.label === typeLabel) {
-        newOptions[valueId] = {
+        filteredOptions[valueId] = {
           selected: true,
           label: typeLabel,
           value: valueInfo.value.name
         };
       }
       
-      return newOptions;
+      return filteredOptions;
     });
     setLocalError(null);
   }, [optionLookups.valueToType]);
 
+  // Optimized add to cart with better validation
   const handleAddToCart = useCallback(async () => {
-    console.log('=== Add to Cart Debug ===');
-    console.log('Current selected options:', selectedOptions);
-    console.log('Item options:', item.options);
-    
     // Safety check: Ensure required options are selected
     let updatedOptions = { ...selectedOptions };
     let optionsChanged = false;
     
-    Object.entries(item.options || {}).forEach(([category, optionGroup]) => {
-      optionGroup.types.forEach(type => {
-        if (type.required) {
-          const hasSelection = type.values.some(value => updatedOptions[value.id]);
-          if (!hasSelection && type.values.length > 0) {
-            // Auto-select first available option
-            const firstAvailable = type.values.find(v => v.inStock) || type.values[0];
-            if (firstAvailable) {
-              updatedOptions[firstAvailable.id] = {
-                selected: true,
-                label: type.label,
-                value: firstAvailable.name
-              };
-              optionsChanged = true;
-              console.log(`Auto-selected required option: ${firstAvailable.name} for ${type.label}`);
-            }
-          }
+    // Use the pre-computed required types for faster validation
+    const missingRequired = optionLookups.requiredTypes.size > 0 && 
+      Array.from(optionLookups.requiredTypes).some(requiredType => {
+        const hasSelection = Object.values(updatedOptions).some(option => 
+          option.selected && option.label === requiredType
+        );
+        
+        if (!hasSelection) {
+          // Auto-select first available option for missing required type
+          Object.entries(itemRef.current.options || {}).forEach(([category, optionGroup]) => {
+            optionGroup.types.forEach(type => {
+              if (type.label === requiredType && type.values.length > 0) {
+                const firstAvailable = type.values.find(v => v.inStock) || type.values[0];
+                if (firstAvailable) {
+                  updatedOptions[firstAvailable.id] = {
+                    selected: true,
+                    label: requiredType,
+                    value: firstAvailable.name
+                  };
+                  optionsChanged = true;
+                }
+              }
+            });
+          });
         }
+        return !hasSelection;
       });
-    });
-    
+
+    if (missingRequired) {
+      setLocalError("Please select all required options");
+      return;
+    }
+
     // Update state if we made changes
     if (optionsChanged) {
       setSelectedOptions(updatedOptions);
-      console.log('Updated options due to missing required selections:', updatedOptions);
-    }
-    
-    // Optimized validation
-    const missingRequired = Object.entries(item.options || {}).some(([category, optionGroup]) => {
-      return optionGroup.types.some(type => {
-        if (!type.required) return false;
-        
-        const hasSelection = type.values.some(value => updatedOptions[value.id]);
-        console.log(`Required type "${type.label}": ${hasSelection ? 'SELECTED' : 'MISSING'}`);
-        return !hasSelection;
-      });
-    });
-
-    if (missingRequired) {
-      console.error('Missing required options detected');
-      setLocalError("Please select all required options");
-      return;
     }
 
     if (!isAvailable) {
@@ -238,107 +256,128 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     }
 
     try {
-      if (!item.item_id) {
+      if (!itemRef.current.item_id) {
         throw new Error('Invalid item: missing item_id');
       }
       
       const cartData = {
-        item_id: parseInt(item.item_id),
+        item_id: parseInt(itemRef.current.item_id),
         quantity: quantity,
         options: updatedOptions
       };
 
-      console.log('Sending cart data:', cartData);
-      await addToCart(cartData);
+      await addToCartRef.current(cartData);
       setLocalError(null);
       
-      if (onAddToCartComplete) {
-        onAddToCartComplete();
+      if (onAddToCartCompleteRef.current) {
+        onAddToCartCompleteRef.current();
       } else {
-        onClose();
+        onCloseRef.current();
       }
     } catch (err) {
-      console.error('Error adding to cart:', err);
       setLocalError(err.message || 'Failed to add item to cart');
     }
-  }, [item, selectedOptions, isAvailable, quantity, addToCart, onAddToCartComplete, onClose]);
+  }, [selectedOptions, isAvailable, quantity, optionLookups.requiredTypes]);
 
   // Optimized quantity controls
   const incrementQuantity = useCallback(() => setQuantity(prev => prev + 1), []);
   const decrementQuantity = useCallback(() => setQuantity(prev => prev > 1 ? prev - 1 : prev), []);
 
-  // Memoized option rendering
+  // Memoized option rendering with better key strategy
   const renderOptions = useMemo(() => {
     if (!item?.options) return null;
     
-    return Object.entries(item.options).map(([category, optionGroup]) => (
-      <div key={category} className={classes.optionGroup}>
-        <fieldset className={classes.fieldset}>
-          <legend className={classes.legend}>{category}</legend>
-          {optionGroup.types.map((type, index) => (
-            <div key={`${category}-${index}`} className={classes.optionType}>
-              <fieldset className={classes.typeFieldset}>
-                <legend className={classes.typeLegend}>
-                  {type.label}
-                  {type.required && <span className={classes.required}>*</span>}
-                </legend>
-                {type.type === 'select' ? (
-                  <select
-                    onChange={(e) => handleSelectChange(category, type.label, e)}
-                    required={type.required}
-                    className={classes.select}
-                    placeholder={type.placeholder}
-                    value={type.values.find(v => selectedOptions[v.id]?.selected)?.id || ""}
-                  >
-                    <option value="">{type.placeholder || `Select ${type.label}`}</option>
-                    {type.values.map((value) => (
-                      <option 
-                        key={value.id} 
-                        value={value.id}
-                        disabled={!value.inStock}
-                      >
-                        {value.name} {value.inStock ? `(+$${value.price})` : '(Out of Stock)'}
-                      </option>
-                    ))}
-                  </select>
-                ) : type.type === 'checkbox' ? (
-                  <div className={classes.checkboxGroup}>
-                    {type.values.map((value) => (
-                      <label key={value.id} className={classes.checkboxLabel}>
-                        <input
-                          type="checkbox"
-                          checked={selectedOptions[value.id]?.selected || false}
-                          onChange={(e) => handleCheckboxChange(value.id, e)}
-                          required={type.required}
+    return Object.entries(item.options).map(([category, optionGroup]) => {
+      // Check if there's only one type in this category
+      const hasMultipleTypes = optionGroup.types.length > 1;
+      
+      return (
+        <div key={category} className={classes.optionGroup}>
+          <fieldset className={classes.fieldset}>
+            {/* Only show category legend if there are multiple types */}
+            {hasMultipleTypes && <legend className={classes.legend}>{category}</legend>}
+            {optionGroup.types.map((type) => (
+              <div key={`${category}-${type.label}`} className={classes.optionType}>
+                <fieldset className={classes.typeFieldset}>
+                  <legend className={classes.typeLegend}>
+                    {type.label}
+                    {type.required && <span className={classes.required}>*</span>}
+                  </legend>
+                  {type.type === 'select' ? (
+                    <select
+                      onChange={(e) => handleSelectChange(category, type.label, e)}
+                      required={type.required}
+                      className={classes.select}
+                      placeholder={type.placeholder}
+                      value={type.values.find(v => selectedOptions[v.id]?.selected)?.id || ""}
+                    >
+                      <option value="">{type.placeholder || `Select ${type.label}`}</option>
+                      {type.values.map((value) => (
+                        <option 
+                          key={value.id} 
+                          value={value.id}
                           disabled={!value.inStock}
-                        />
-                        {value.name} {value.inStock ? `(+$${value.price})` : '(Out of Stock)'}
-                      </label>
-                    ))}
-                  </div>
-                ) : type.type === 'radio' ? (
-                  <div className={classes.radioGroup}>
-                    {type.values.map((value) => (
-                      <label key={value.id} className={classes.radioLabel}>
-                        <input
-                          type="radio"
-                          checked={selectedOptions[value.id]?.selected || false}
-                          onChange={(e) => handleRadioChange(category, type.label, value.id, e)}
-                          required={type.required}
-                          disabled={!value.inStock}
-                        />
-                        {value.name} {value.inStock ? `(+$${value.price})` : '(Out of Stock)'}
-                      </label>
-                    ))}
-                  </div>
-                ) : null}
-              </fieldset>
-            </div>
-          ))}
-        </fieldset>
-      </div>
-    ));
+                        >
+                          {value.name} {value.inStock ? `(+$${value.price})` : '(Out of Stock)'}
+                        </option>
+                      ))}
+                    </select>
+                  ) : type.type === 'checkbox' ? (
+                    <div className={classes.checkboxGroup}>
+                      {type.values.map((value) => (
+                        <label key={value.id} className={classes.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            checked={selectedOptions[value.id]?.selected || false}
+                            onChange={(e) => handleCheckboxChange(value.id, e)}
+                            required={type.required}
+                            disabled={!value.inStock}
+                          />
+                          {value.name} {value.inStock ? `(+$${value.price})` : '(Out of Stock)'}
+                        </label>
+                      ))}
+                    </div>
+                  ) : type.type === 'radio' ? (
+                    <div className={classes.radioGroup}>
+                      {type.values.map((value) => (
+                        <label key={value.id} className={classes.radioLabel}>
+                          <input
+                            type="radio"
+                            checked={selectedOptions[value.id]?.selected || false}
+                            onChange={(e) => handleRadioChange(category, type.label, value.id, e)}
+                            required={type.required}
+                            disabled={!value.inStock}
+                          />
+                          {value.name} {value.inStock ? `(+$${value.price})` : '(Out of Stock)'}
+                        </label>
+                      ))}
+                    </div>
+                  ) : null}
+                </fieldset>
+              </div>
+            ))}
+          </fieldset>
+        </div>
+      );
+    });
   }, [item?.options, selectedOptions, handleSelectChange, handleCheckboxChange, handleRadioChange]);
+
+  // Memoized error display
+  const errorDisplay = useMemo(() => {
+    if (!error && !localError) return null;
+    
+    return (
+      <div className={classes.errorMessage}>
+        <p>{error || localError}</p>
+        <button 
+          className={classes.closeError}
+          onClick={() => setLocalError(null)}
+        >
+          ×
+        </button>
+      </div>
+    );
+  }, [error, localError]);
 
   return (
     <Modal 
@@ -362,20 +401,12 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
           <p className={classes.itemPrice}>${Number(price || 0).toFixed(2)}</p>
           
           {/* Error Messages */}
-          {(error || localError) && (
-            <div className={classes.errorMessage}>
-              <p>{error || localError}</p>
-              <button 
-                className={classes.closeError}
-                onClick={() => setLocalError(null)}
-              >
-                ×
-              </button>
-            </div>
-          )}
+          {errorDisplay}
           
           {/* Options */}
-          {renderOptions}
+          <div className={classes.optionsContainer}>
+            {renderOptions}
+          </div>
           
           {/* Quantity Controls */}
           <div className={classes.quantityControls}>

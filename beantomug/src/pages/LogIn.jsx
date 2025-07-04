@@ -70,11 +70,11 @@ export default function LogIn() {
     }
   };
   
-  const handleSignupSuccess = (user) => {
-    setSuccess('Account created successfully! Please check your email for verification.');
-    // Redirect to verification pending page after short delay
+  const handleSignupSuccess = (userData) => {
+    setSuccess('Account created successfully! Please check your email to verify your account.');
+    // Redirect to email verification pending page after short delay
     setTimeout(() => navigate('/verify-email/pending', { 
-      state: { email: user.email }
+      state: { email: userData.email }
     }), 2000);
   };
 

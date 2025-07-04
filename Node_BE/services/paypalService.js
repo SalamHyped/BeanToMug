@@ -759,9 +759,10 @@ class PayPalService {
   }
 
   /**
-   * Mark order as completed
+   * Mark order as processing (ready for staff preparation)
    * 
-   * This method updates an order's status to 'completed' after successful payment.
+   * This method updates an order's status to 'processing' after successful payment.
+   * This makes the order appear in the staff queue for preparation.
    * 
    * @param {Object} connection - Database connection
    * @param {number} orderId - Database order ID
@@ -770,7 +771,7 @@ class PayPalService {
     await connection.execute(
       `
       UPDATE orders
-      SET status = 'completed', updated_at = NOW()
+      SET status = 'processing', updated_at = NOW()
       WHERE order_id = ?
     `,
       [orderId]

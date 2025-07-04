@@ -109,7 +109,7 @@ export default function LoginForm({ onLoginSuccess, onSignupSuccess }) {
         
         console.log("Signup attempt with:", signupFormData);
         
-        // Handle signup submission
+        // Handle signup submission - using the basic signup endpoint
         setIsSubmitting(true);
         
         axios.post('http://localhost:8801/auth/signup', {
@@ -121,12 +121,6 @@ export default function LoginForm({ onLoginSuccess, onSignupSuccess }) {
         })
         .then(response => {
             console.log("Signup successful:", response.data);
-            if (onSignupSuccess) {
-                onSignupSuccess({
-                    ...response.data.user,
-                    email: signupFormData.email
-                });
-            }
             
             // Reset form
             setSignupFormData({
@@ -144,10 +138,13 @@ export default function LoginForm({ onLoginSuccess, onSignupSuccess }) {
                 general: ""
             });
             
-            // Switch to login view after a brief delay
-            setTimeout(() => {
-                toggle(true);
-            }, 1500);
+            // Redirect to email verification pending page
+            if (onSignupSuccess) {
+                onSignupSuccess({
+                    email: signupFormData.email,
+                    requiresVerification: true
+                });
+            }
         })
         .catch(error => {
             console.error("Signup error:", error);

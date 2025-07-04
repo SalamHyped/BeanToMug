@@ -1,4 +1,5 @@
 const cartService = require('../services/cartService');
+const { dbSingleton } = require('../dbSingleton');
 const {
   validateItem,
   validateQuantity,
@@ -6,7 +7,6 @@ const {
   validateOrderType,
   validateCartItem,
   validatePrice,
-  validateIngredientSelection,
   validateCartTotal,
   validateCartDataFlexible
 } = require('../middleware/cartMiddleware');
@@ -72,7 +72,7 @@ const updateOrderType = async (req, res) => {
 const addToSessionCart = async (req, res) => {
   try {
     const cartData = req.body;
-    console.log('cartData', cartData);
+    console.log("cartData", cartData)
 
     // Use flexible validation - quantity required for add operation
     if (!validateCartDataFlexible(cartData, true)) {
@@ -80,57 +80,19 @@ const addToSessionCart = async (req, res) => {
     }
 
     const { item_id, quantity, options } = cartData;
-
+    
     // Get item details from database
-    const [itemResult] = await req.db.query(
-      `SELECT d.item_id, d.item_name, d.price, d.status
-       FROM dish d
-       WHERE d.item_id = ?`,
+    const connection = await dbSingleton.getConnection();
+    const [items] = await connection.execute(
+      'SELECT item_id, item_name, price FROM dish WHERE item_id = ?',
       [item_id]
     );
-
-    if (itemResult.length === 0) {
+    
+    if (items.length === 0) {
       return res.status(404).json({ error: 'Item not found' });
     }
-
-    const item = itemResult[0];
-
-    if (!item.status) {
-      return res.status(400).json({ error: 'Item is not available' });
-    }
     
-    // Get available ingredients for validation
-    const availableIngredients = await cartService.getAvailableIngredients(item_id);
-    
-    try {
-      validateIngredientSelection(options, availableIngredients);
-    } catch (error) {
-      if (error.code === 'MISSING_REQUIRED_TYPES') {
-        return res.status(400).json({ 
-          error: 'Required types are missing',
-          missingTypes: error.missingTypes
-        });
-      }
-      if (error.code === 'MISSING_REQUIRED_CATEGORIES') {
-        return res.status(400).json({ 
-          error: 'Required categories are missing',
-          missingCategories: error.missingCategories
-        });
-      }
-      if (error.code === 'MISSING_REQUIRED_INGREDIENTS') {
-        return res.status(400).json({ 
-          error: 'Required ingredients are missing',
-          missingIngredients: error.missingIngredients
-        });
-      }
-      if (error.code === 'INGREDIENT_NOT_AVAILABLE') {
-        return res.status(400).json({ 
-          error: 'Selected ingredient is not available',
-          ingredientId: error.ingredientId
-        });
-      }
-      throw error;
-    }
+    const item = items[0];
     
     // Initialize session cart if it doesn't exist
     if (!req.session.cart) {
@@ -140,7 +102,7 @@ const addToSessionCart = async (req, res) => {
       };
     }
     
-    // Add item to cart (handles both session and database)
+    // Add item to cart (handles validation, price calculation, and auto-addition internally)
     const updatedCart = await cartService.addToCart(
       req.session.userId, 
       req.session.cart, 
@@ -167,6 +129,40 @@ const addToSessionCart = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding to session cart:', error);
+    
+    // Handle specific validation errors
+    if (error.code === 'MISSING_REQUIRED_TYPES') {
+      return res.status(400).json({ 
+        error: 'Required types are missing',
+        missingTypes: error.missingTypes
+      });
+    }
+    if (error.code === 'MISSING_REQUIRED_CATEGORIES') {
+      return res.status(400).json({ 
+        error: 'Required categories are missing',
+        missingCategories: error.missingCategories
+      });
+    }
+    if (error.code === 'MISSING_REQUIRED_INGREDIENTS') {
+      return res.status(400).json({ 
+        error: 'Required ingredients are missing',
+        missingIngredients: error.missingIngredients
+      });
+    }
+    if (error.code === 'INGREDIENT_NOT_AVAILABLE') {
+      return res.status(400).json({ 
+        error: 'Selected ingredient is not available',
+        ingredientId: error.ingredientId
+      });
+    }
+    if (error.code === 'MULTIPLE_SELECTIONS_NOT_ALLOWED') {
+      return res.status(400).json({ 
+        error: 'Multiple selections not allowed for this option',
+        type: error.type,
+        selections: error.selections
+      });
+    }
+    
     res.status(500).json({ error: 'Failed to add item to cart' });
   }
 };

@@ -442,9 +442,20 @@ CREATE TABLE `supplier` (
 --
 
 CREATE TABLE `tasks` (
-  `task_id` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
-  `publish_date` date DEFAULT NULL
+  `status` enum('pending','in_progress','completed','cancelled') DEFAULT 'pending',
+  `priority` enum('low','medium','high','urgent') DEFAULT 'medium',
+  `due_date` datetime DEFAULT NULL,
+  `assigned_by` int(11) NOT NULL,
+  `estimated_hours` decimal(5,2) DEFAULT NULL,
+  `actual_hours` decimal(5,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`task_id`),
+  KEY `assigned_by` (`assigned_by`),
+  CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 -- --------------------------------------------------------
@@ -454,8 +465,38 @@ CREATE TABLE `tasks` (
 --
 
 CREATE TABLE `task_assignments` (
+  `assignment_id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
-  `task_id` int(11) NOT NULL
+  `assigned_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `assigned_by` int(11) NOT NULL,
+  PRIMARY KEY (`assignment_id`),
+  UNIQUE KEY `unique_task_user` (`task_id`, `user_id`),
+  KEY `task_id` (`task_id`),
+  KEY `user_id` (`user_id`),
+  KEY `assigned_by` (`assigned_by`),
+  CONSTRAINT `task_assignments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`task_id`) ON DELETE CASCADE,
+  CONSTRAINT `task_assignments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `task_assignments_ibfk_3` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `task_comments`
+--
+
+CREATE TABLE `task_comments` (
+  `comment_id` int(11) NOT NULL AUTO_INCREMENT,
+  `task_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `comment` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`comment_id`),
+  KEY `task_id` (`task_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `task_comments_ibfk_1` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`task_id`) ON DELETE CASCADE,
+  CONSTRAINT `task_comments_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 -- --------------------------------------------------------
@@ -466,8 +507,8 @@ CREATE TABLE `task_assignments` (
 
 CREATE TABLE `users` (
   `id` int(11) NOT NULL,
-  `first name` varchar(255) NOT NULL,
-  `last name` varchar(255) NOT NULL,
+  `first_name` varchar(255) NOT NULL,
+  `last_name` varchar(255) NOT NULL,
   `phone_number` int(10) NOT NULL,
   `username` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
@@ -480,7 +521,7 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `first name`, `last name`, `phone_number`, `username`, `email`, `password`, `role`, `email_verified`) VALUES
+INSERT INTO `users` (`id`, `first_name`, `last_name`, `phone_number`, `username`, `email`, `password`, `role`, `email_verified`) VALUES
 (11, '', '', 0, 'fdgdfgdf', 'bewhouaremate@outlook.com', '$2b$10$JsuAqfwSsg3cvHaLl6dsVuGNlNl5DGNj9up5oRD.BzMYKsXPR56Ju', 'customer', 1),
 (16, '', '', 0, 'salam', 'shibli.salam30@gmail.com', '$2b$10$BBjbjNXqKz5m5DTaquK./.XZA11GQpdLe30Hw09EmfCVgizna3TES', 'staff', 1),
 (17, '', '', 0, 'tyroneHype', 'shiblislam@gmail.com', '$2b$10$fcLbh3IqsOFNhX4UClHoYuvKzXh/vcx5G9kRcTPv3zDvjBMxiv7Ri', 'customer', 1);

@@ -5,7 +5,7 @@ import axios from 'axios';
 
 export function UserProvider({ children }) {
   const [state, dispatch] = useReducer(userReducer, initialState);
-
+console.log(state)
   // Add initial authentication check
   useEffect(() => {
     const checkAuthStatus = async () => {
