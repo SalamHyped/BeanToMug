@@ -169,13 +169,35 @@
   color: #28a745;
 }
 
+.paypalVATBreakdown {
+  background: #f8f9fa;
+  border-radius: 0.5em;
+  padding: 1em;
+  margin-top: 1em;
+}
+
+.vatRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3em 0;
+  font-size: 0.95rem;
+  color: #495057;
+}
+
+.vatRow:not(:last-child) {
+  border-bottom: 1px solid #dee2e6;
+}
+
 .paypalTotal {
   text-align: center;
   font-size: 1.2rem;
-  padding: 1em;
+  padding: 0.5em;
   background: #e9ecef;
-  border-radius: 0.5em;
+  border-radius: 0.3em;
   color: #2c3e50;
+  margin-top: 0.5em;
+  font-weight: 600;
 }
 
 /* PayPal Button Container */

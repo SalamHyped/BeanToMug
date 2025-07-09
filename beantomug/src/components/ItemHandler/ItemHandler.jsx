@@ -94,8 +94,9 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
 
   // Memoize total price calculation
   const totalPrice = useMemo(() => {
-    return parseFloat(price || 0) + optionExtraPrice;
-  }, [price, optionExtraPrice]);
+    const perItemPrice = parseFloat(price || 0) + optionExtraPrice;
+    return perItemPrice * quantity;
+  }, [price, optionExtraPrice, quantity]);
 
   // Optimized initialization with better data structure
   useEffect(() => {

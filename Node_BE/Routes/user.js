@@ -25,17 +25,21 @@ router.get('/me', async (req, res) => {
     
     const user = users[0];
     
+    // Check what statuses exist for this user
+
+    
+    const[ordersInfo] = await connection.execute(
+      'SELECT COUNT(*) as total_orders FROM orders WHERE user_id= ? AND status = "processing"',
+      [req.session.userId]
+    );
+
+    console.log('Orders info:', ordersInfo);
+    console.log('User ID:', req.session.userId);
+
     res.json({
       success: true,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
-        phoneNumber: user.phone_number || '',
-        role: user.role,
-        emailVerified: user.email_verified === 1
+      userStats: {
+        totalCompletedOrders: ordersInfo && ordersInfo.length > 0 ? ordersInfo[0].total_orders : 0
       }
     });
     

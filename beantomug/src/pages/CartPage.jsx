@@ -7,7 +7,7 @@ import classes from "../components/CartItems/Cart.module.css";
 import OrderTypeSelector from "../components/CartItems/OrderTypeSelector/OrderTypeSelector";
 
 export default function CartPage() {
-  const { cartItems, orderType, updateOrderType, error } = useContext(CartContext);
+  const { cartItems, orderType, updateOrderType, error, cartTotals } = useContext(CartContext);
   const [orderStatus, setOrderStatus] = useState(null);
 
   const handlePaymentSuccess = (details) => {
@@ -87,6 +87,22 @@ export default function CartPage() {
         {cartItems.map((item, index) => (
           <Cart key={index} item={item} />
         ))}
+      </div>
+      
+      {/* Cart Summary */}
+      <div className={classes.cartSummary}>
+        <div className={classes.summaryRow}>
+          <span>Subtotal:</span>
+          <span>${cartTotals.subtotal.toFixed(2)}</span>
+        </div>
+        <div className={classes.summaryRow}>
+          <span>VAT ({cartTotals.vatRate}%):</span>
+          <span>${cartTotals.vatAmount.toFixed(2)}</span>
+        </div>
+        <div className={classes.summaryTotal}>
+          <span>Total:</span>
+          <span>${cartTotals.totalWithVAT.toFixed(2)}</span>
+        </div>
       </div>
       
       {/* PayPal Checkout */}

@@ -1,7 +1,11 @@
 const { paypalClient } = require("../paypalClient");
 const { dbSingleton } = require("../dbSingleton");
 const checkoutNodeJssdk = require("@paypal/checkout-server-sdk");
-const { calculateItemPriceWithOptions } = require('../utils/priceCalculator');
+const { 
+  calculateItemPriceWithOptions, 
+  calculateOrderVAT, 
+  calculateMultipleItemsPrices 
+} = require('../utils/priceCalculator');
 
 /**
  * PayPal Service
@@ -108,7 +112,7 @@ class PayPalService {
     }
 
     // Validate cart items and check for price changes
-    const { items, totalAmount } = await this.validateCartItems(
+    const { items, totalAmount, priceUpdated } = await this.validateCartItems(
       connection,
       cart.order_id
     );
@@ -163,19 +167,19 @@ class PayPalService {
       throw new Error("Cart is empty");
     }
 
-    // Validate session cart items and calculate total
-    const { validatedItems, totalAmount } = await this.validateSessionCartItems(
+    // Validate session cart items and calculate total with VAT
+    const { validatedItems, totalAmount, vatBreakdown } = await this.validateSessionCartItems(
       connection,
       sessionCart
     );
 
-    // Create temporary order for guest
+    // Create temporary order for guest with VAT breakdown
     const [orderResult] = await connection.execute(
       `
-      INSERT INTO orders (user_id, is_cart, total_price, status, created_at)
-      VALUES (NULL, FALSE, ?, 'pending', NOW())
+      INSERT INTO orders (user_id, is_cart, total_price, subtotal, vat_amount, status, created_at)
+      VALUES (NULL, FALSE, ?, ?, ?, 'pending', NOW())
     `,
-      [totalAmount]
+      [totalAmount, vatBreakdown.subtotal, vatBreakdown.vatAmount]
     );
 
     const tempOrderId = orderResult.insertId;
@@ -263,7 +267,7 @@ class PayPalService {
    */
   async validateSessionCartItems(connection, sessionCart) {
     const validatedItems = [];
-    let totalAmount = 0;
+    let orderSubtotal = 0;
     const priceDiscrepancies = [];
 
     // Validate sessionCart structure
@@ -289,58 +293,63 @@ class PayPalService {
         throw new Error("Cart item missing required fields (item_id, quantity)");
       }
 
-      // Calculate current total price including required and optional ingredients
-      const currentTotalPrice = await calculateItemPriceWithOptions(
+      // Calculate current subtotal price (without VAT) including required and optional ingredients
+      const currentSubtotal = await calculateItemPriceWithOptions(
         connection, 
         cartItem.item_id, 
         cartItem.options || {},
-        false // Only need the price, not details
+        false, // Only need the price, not details
+        false  // Don't include VAT here, we'll calculate it at order level
       );
       
       // Validate calculated price
-      if (typeof currentTotalPrice !== 'number' || isNaN(currentTotalPrice)) {
-        console.error('Invalid calculated price:', {
+      if (typeof currentSubtotal !== 'number' || isNaN(currentSubtotal)) {
+        console.error('Invalid calculated subtotal:', {
           item_id: cartItem.item_id,
-          currentTotalPrice,
+          currentSubtotal,
           options: cartItem.options
         });
-        throw new Error(`Invalid price calculated for item ${cartItem.item_id}`);
+        throw new Error(`Invalid subtotal calculated for item ${cartItem.item_id}`);
       }
       
-      console.log('Current total price (with required + optional ingredients):', currentTotalPrice, 'Cart item price:', cartItem.price);
+      console.log('Current subtotal (without VAT):', currentSubtotal, 'Cart item price:', cartItem.price);
       
       // Check for price discrepancies (tolerance of $0.01 for floating point precision)
-      if (Math.abs(cartItem.price - currentTotalPrice) > 0.01) {
+      if (Math.abs(cartItem.price - currentSubtotal) > 0.01) {
         priceDiscrepancies.push({
           item_id: cartItem.item_id,
           item_name: cartItem.item_name,
           cart_price: cartItem.price,
-          current_price: currentTotalPrice,
+          current_price: currentSubtotal,
         });
       }
 
       const validatedItem = {
         ...cartItem,
-        item_price: currentTotalPrice,
+        item_price: currentSubtotal, // Store subtotal (without VAT)
       };
 
       validatedItems.push(validatedItem);
       
-      // Calculate item total and add to order total
+      // Calculate item total and add to order subtotal
       const quantity = parseInt(cartItem.quantity) || 1;
-      const itemTotal = currentTotalPrice * quantity;
+      const itemTotal = currentSubtotal * quantity;
       
       if (isNaN(itemTotal)) {
         console.error('NaN detected in calculation:', {
-          currentTotalPrice,
+          currentSubtotal,
           quantity,
           itemTotal
         });
         throw new Error(`Invalid calculation for item ${cartItem.item_id}`);
       }
       
-      totalAmount += itemTotal;
+      orderSubtotal += itemTotal;
     }
+
+    // Calculate VAT for the entire order
+    const vatBreakdown = await calculateOrderVAT(connection, orderSubtotal);
+    const totalAmount = vatBreakdown.totalWithVAT;
 
     // Final validation of total amount
     if (isNaN(totalAmount) || totalAmount <= 0) {
@@ -348,19 +357,39 @@ class PayPalService {
       throw new Error("Invalid total amount calculated");
     }
 
-    // If prices have changed, throw special error with details
+    // If prices have changed, update the session cart with new prices (efficiently)
     if (priceDiscrepancies.length > 0) {
-      const error = new Error(
-        "Prices have changed since items were added to cart"
+      console.log('Price changes detected, updating session cart prices:', priceDiscrepancies);
+      
+      // Create a Map for O(1) lookups instead of O(n) searches
+      const priceUpdateMap = new Map(
+        priceDiscrepancies.map(d => [d.item_id, d.current_price])
       );
-      error.code = "PRICE_CHANGED";
-      error.priceChanges = priceDiscrepancies;
-      error.newTotal = totalAmount;
-      throw error;
+      
+      // Update prices in single pass - O(n) instead of O(n²)
+      sessionCart.items.forEach(cartItem => {
+        const newPrice = priceUpdateMap.get(cartItem.item_id);
+        if (newPrice !== undefined) {
+          const oldPrice = cartItem.price;
+          cartItem.price = newPrice;
+          console.log(`Updated item ${cartItem.item_id} price from ${oldPrice} to ${newPrice}`);
+        }
+      });
+      
+      console.log('Session cart prices updated efficiently, proceeding with checkout');
     }
 
-    console.log('Final validated total amount:', totalAmount);
-    return { validatedItems, totalAmount };
+    console.log('Final validated amounts:', {
+      subtotal: orderSubtotal,
+      vatAmount: vatBreakdown.vatAmount,
+      totalWithVAT: totalAmount
+    });
+
+    return { 
+      validatedItems, 
+      totalAmount,
+      vatBreakdown 
+    };
   }
 
   /**
@@ -590,8 +619,9 @@ class PayPalService {
 
     let totalAmount = 0;
     const priceDiscrepancies = [];
+    const itemsToUpdate = [];
 
-    // Check each item for price changes
+    // Check each item for price changes and prepare updates
     for (const item of items) {
       if (Math.abs(item.price - item.current_price) > 0.01) {
         priceDiscrepancies.push({
@@ -599,65 +629,86 @@ class PayPalService {
           cart_price: item.price,
           current_price: item.current_price,
         });
+        itemsToUpdate.push(item);
       }
       totalAmount += item.current_price * item.quantity;
     }
 
-    // If prices have changed, update cart and throw error
+    // If prices have changed, update cart efficiently
     if (priceDiscrepancies.length > 0) {
-      await this.updateCartPrices(connection, cartId, items);
-
-      const error = new Error(
-        "Prices have changed since items were added to cart"
-      );
-      error.code = "PRICE_CHANGED";
-      error.priceChanges = priceDiscrepancies;
-      error.newTotal = totalAmount;
-      throw error;
+      console.log('Price changes detected, updating cart prices:', priceDiscrepancies);
+      await this.updateCartPricesEfficiently(connection, cartId, itemsToUpdate);
+      
+      // Update the items array with new prices instead of re-querying
+      for (const item of items) {
+        if (Math.abs(item.price - item.current_price) > 0.01) {
+          item.price = item.current_price; // Update to current price
+        }
+      }
+      
+      // Recalculate total with updated prices (no need to re-query)
+      totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      return { items, totalAmount, priceUpdated: true };
     }
 
-    return { items, totalAmount };
+    return { items, totalAmount, priceUpdated: false };
   }
 
   /**
-   * Update cart prices to current database prices
+   * Efficiently update cart prices using batch operations
    * 
-   * This method updates all items in a cart to their current database prices
-   * and recalculates the cart total. This is called when price changes are detected.
+   * This optimized version reduces database queries by:
+   * 1. Using parallel UPDATE operations instead of sequential
+   * 2. Avoiding redundant data fetching
+   * 3. Simple and reliable total recalculation
    * 
    * @param {Object} connection - Database connection
    * @param {number} cartId - Cart order ID
-   * @param {Array} items - Cart items to update
+   * @param {Array} itemsToUpdate - Only items that need price updates
    */
-  async updateCartPrices(connection, cartId, items) {
-    // Update each item's price to current database price
-    for (const item of items) {
-      await connection.execute(
-        `
-        UPDATE order_item
-        SET price = (SELECT price FROM dish WHERE item_id = ?)
-        WHERE order_id = ? AND item_id = ?
-      `,
-        [item.item_id, cartId, item.item_id]
-      );
-    }
+  async updateCartPricesEfficiently(connection, cartId, itemsToUpdate) {
+    if (itemsToUpdate.length === 0) return;
 
-    // Recalculate cart total
+    const startTime = Date.now();
+
+    // Batch update all items that need price changes in parallel
+    const updatePromises = itemsToUpdate.map(item => 
+      connection.execute(
+        `UPDATE order_item SET price = ? WHERE order_id = ? AND item_id = ?`,
+        [item.current_price, cartId, item.item_id]
+      )
+    );
+
+    // Execute all updates in parallel
+    await Promise.all(updatePromises);
+
+    // Recalculate cart total in a single query
     const [totalResult] = await connection.execute(
-      `
-      SELECT COALESCE(SUM(price * quantity), 0) as total
-      FROM order_item WHERE order_id = ?
-    `,
+      `SELECT COALESCE(SUM(price * quantity), 0) as total FROM order_item WHERE order_id = ?`,
       [cartId]
     );
 
     // Update cart total
     await connection.execute(
-      `
-      UPDATE orders SET total_price = ? WHERE order_id = ?
-    `,
+      `UPDATE orders SET total_price = ? WHERE order_id = ?`,
       [totalResult[0].total, cartId]
     );
+
+    const endTime = Date.now();
+    console.log(`Price update completed in ${endTime - startTime}ms for ${itemsToUpdate.length} items`);
+  }
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use updateCartPricesEfficiently instead
+   */
+  async updateCartPrices(connection, cartId, items) {
+    console.warn('updateCartPrices is deprecated, use updateCartPricesEfficiently instead');
+    const itemsToUpdate = items.filter(item => 
+      Math.abs(item.price - item.current_price) > 0.01
+    );
+    return this.updateCartPricesEfficiently(connection, cartId, itemsToUpdate);
   }
 
   /**
@@ -722,20 +773,40 @@ class PayPalService {
    * @param {number} orderId - Database order ID
    * @param {string} paypalOrderId - PayPal order ID
    * @param {number} totalAmount - Order total amount
+   * @param {Object} vatBreakdown - Optional VAT breakdown
    */
-  async convertCartToOrder(connection, orderId, paypalOrderId, totalAmount) {
-    await connection.execute(
-      `
-      UPDATE orders
-      SET is_cart = FALSE,
-          status = 'pending',
-          paypal_order_id = ?,
-          total_price = ?,
-          updated_at = NOW()
-      WHERE order_id = ?
-    `,
-      [paypalOrderId, totalAmount, orderId]
-    );
+  async convertCartToOrder(connection, orderId, paypalOrderId, totalAmount, vatBreakdown = null) {
+    if (vatBreakdown) {
+      // Update with VAT breakdown
+      await connection.execute(
+        `
+        UPDATE orders
+        SET is_cart = FALSE,
+            status = 'pending',
+            paypal_order_id = ?,
+            total_price = ?,
+            subtotal = ?,
+            vat_amount = ?,
+            updated_at = NOW()
+        WHERE order_id = ?
+      `,
+        [paypalOrderId, totalAmount, vatBreakdown.subtotal, vatBreakdown.vatAmount, orderId]
+      );
+    } else {
+      // Update without VAT breakdown (backward compatibility)
+      await connection.execute(
+        `
+        UPDATE orders
+        SET is_cart = FALSE,
+            status = 'pending',
+            paypal_order_id = ?,
+            total_price = ?,
+            updated_at = NOW()
+        WHERE order_id = ?
+      `,
+        [paypalOrderId, totalAmount, orderId]
+      );
+    }
   }
 
   /**

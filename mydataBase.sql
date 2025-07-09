@@ -239,6 +239,8 @@ CREATE TABLE `orders` (
   `paypal_order_id` varchar(255) DEFAULT NULL,
   `user_id` int(11) DEFAULT NULL,
   `total_price` decimal(10,2) NOT NULL,
+  `subtotal` decimal(10,2) DEFAULT 0.00,
+  `vat_amount` decimal(10,2) DEFAULT 0.00,
   `order_date` timestamp NOT NULL DEFAULT current_timestamp(),
   `status` enum('pending','completed','failed','refunded') NOT NULL,
   `rating` int(11) DEFAULT 0,
@@ -438,6 +440,26 @@ CREATE TABLE `supplier` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `vat_config`
+--
+
+CREATE TABLE `vat_config` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `vat_rate` decimal(5,2) NOT NULL DEFAULT 15.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+--
+-- Dumping data for table `vat_config`
+--
+
+INSERT INTO `vat_config` (`id`, `vat_rate`, `created_at`) VALUES
+(1, 15.00, '2025-01-01 00:00:00');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `tasks`
 --
 
@@ -545,6 +567,20 @@ CREATE TABLE `workschedule` (
 --
 ALTER TABLE `category`
   ADD PRIMARY KEY (`category_id`);
+
+--
+-- Indexes for table `vat_config`
+--
+ALTER TABLE `vat_config`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Update existing orders to include VAT breakdown
+-- Set subtotal = current total_price, vat_amount = 0 (since they were pre-VAT)
+--
+UPDATE `orders` SET 
+    `subtotal` = `total_price`,
+    `vat_amount` = 0.00;
 
 --
 -- Indexes for table `dish`

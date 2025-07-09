@@ -10,7 +10,7 @@ import axios from 'axios';
  */
 export default function PayPal({ onSuccess, onError, onCancel }) {
   const navigate = useNavigate();
-  const { cartItems, setCartItems } = useContext(CartContext);
+  const { cartItems, setCartItems, cartTotals } = useContext(CartContext);
   const { user } = useUser(); // Get authentication status (optional for guests)
   const paypalRef = useRef();
   const paypalInstanceRef = useRef(null); // Track PayPal instance
@@ -53,13 +53,17 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
   };
 
   /**
-   * Calculate total price for display
+   * Calculate total price with VAT breakdown for display
    */
   const calculateTotal = () => {
-    return cartItems.reduce((total, item) => {
-      const itemTotal = (item.item_price || item.price) * item.quantity;
-      return total + itemTotal;
-    }, 0).toFixed(2);
+    return cartTotals.totalWithVAT.toFixed(2);
+  };
+
+  /**
+   * Get VAT breakdown for display
+   */
+  const getVATBreakdown = () => {
+    return cartTotals;
   };
 
   /**
@@ -425,10 +429,25 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
           ))}
         </div>
         
-        {/* Total */}
-        <div className={classes.paypalTotal}>
-          <strong>Total: ${calculateTotal()}</strong>
-        </div>
+        {/* VAT Breakdown */}
+        {(() => {
+          const vatBreakdown = getVATBreakdown();
+          return (
+            <div className={classes.paypalVATBreakdown}>
+              <div className={classes.vatRow}>
+                <span>Subtotal:</span>
+                <span>${vatBreakdown.subtotal.toFixed(2)}</span>
+              </div>
+              <div className={classes.vatRow}>
+                <span>VAT ({vatBreakdown.vatRate}%):</span>
+                <span>${vatBreakdown.vatAmount.toFixed(2)}</span>
+              </div>
+              <div className={classes.paypalTotal}>
+                <strong>Total: ${calculateTotal()}</strong>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       
       {/* Processing Overlay */}

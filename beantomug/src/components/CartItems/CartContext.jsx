@@ -1,5 +1,5 @@
 // CartContext.js
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 
 export const CartContext = createContext();
@@ -32,29 +32,62 @@ console.log(cartItems)
   };
 
   const calculateItemPrice = (item, options) => {
-    let totalPrice = item.price;
+    // Use item_price if available (from backend), otherwise calculate from base price
+    if (item.item_price !== undefined && item.item_price !== null) {
+      return parseFloat(item.item_price);
+    }
     
-    // Add prices from selected options
-    if (item?.options) {
-      Object.entries(item.options).forEach(([category, optionGroup]) => {
-        optionGroup.types.forEach(type => {
-          if (type.type === "select") {
-            const selectedValue = type.values.find(v => options[v.id]);
-            if (selectedValue) {
-              totalPrice += parseFloat(selectedValue.price || 0);
-            }
-          } else if (type.type === "checkbox") {
-            type.values.forEach(value => {
-              if (options[value.id]) {
-                totalPrice += parseFloat(value.price || 0);
-              }
-            });
-          }
-        });
+    let totalPrice = parseFloat(item.price || 0);
+    
+    // Add prices from selected options if they exist
+    if (options && typeof options === 'object') {
+      Object.entries(options).forEach(([key, option]) => {
+        if (option && option.selected && option.price) {
+          totalPrice += parseFloat(option.price || 0);
+        }
       });
     }
 
     return totalPrice;
+  };
+
+  // VAT calculation functions
+  const VAT_RATE = 15.00; // 15% VAT - should match backend
+
+  const calculateVATAmount = (subtotal) => {
+    return (subtotal * VAT_RATE) / 100;
+  };
+
+  // Memoized cart totals calculation - only recalculates when cartItems change
+  const cartTotals = useMemo(() => {
+    let subtotal = 0;
+
+    // Calculate subtotal for all items
+    if (cartItems && Array.isArray(cartItems)) {
+      cartItems.forEach(item => {
+        if (item && typeof item === 'object') {
+          const itemPrice = calculateItemPrice(item, item.options || {});
+          const quantity = parseInt(item.quantity) || 1;
+          subtotal += itemPrice * quantity;
+        }
+      });
+    }
+
+    // Calculate VAT
+    const vatAmount = calculateVATAmount(subtotal);
+    const totalWithVAT = subtotal + vatAmount;
+
+    return {
+      subtotal: subtotal,
+      vatAmount: vatAmount,
+      vatRate: VAT_RATE,
+      totalWithVAT: totalWithVAT
+    };
+  }, [cartItems]); // Only recalculate when cartItems change
+
+  // Legacy function for backward compatibility
+  const calculateCartTotals = () => {
+    return cartTotals;
   };
 
   const addToCart = async (cartData) => {
@@ -155,7 +188,11 @@ console.log(cartItems)
       updateOrderType,
       clearCart,
       setCartItems,
-      refreshCart: fetchCart
+      refreshCart: fetchCart,
+      calculateCartTotals,
+      calculateVATAmount,
+      VAT_RATE,
+      cartTotals // Memoized totals for direct access
     }}>
       {children}
     </CartContext.Provider>

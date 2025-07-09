@@ -51,19 +51,25 @@ export default function Cart({ item }) {
   };
 
   const calculateItemTotal = () => {
-    const basePrice = Number(item.price || 0);
-    let totalPrice = basePrice;
-
-    // Add prices from selected ingredients
-    if (item.options) {
-      Object.entries(item.options).forEach(([key, option]) => {
-        if (option && option.selected && item.ingredientPrices && item.ingredientPrices[key]) {
-          totalPrice += Number(item.ingredientPrices[key] || 0);
-        }
-      });
+    // Use item_price if available (from backend), otherwise calculate from base price
+    let itemPrice;
+    if (item.item_price !== undefined && item.item_price !== null) {
+      itemPrice = parseFloat(item.item_price);
+    } else {
+      let totalPrice = parseFloat(item.price || 0);
+      
+      // Add prices from selected options if they exist
+      if (item.options && typeof item.options === 'object') {
+        Object.entries(item.options).forEach(([key, option]) => {
+          if (option && option.selected && option.price) {
+            totalPrice += parseFloat(option.price || 0);
+          }
+        });
+      }
+      itemPrice = totalPrice;
     }
 
-    return totalPrice * item.quantity;
+    return itemPrice * item.quantity;
   };
 
   return (

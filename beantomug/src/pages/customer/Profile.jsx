@@ -15,6 +15,9 @@ export default function Profile() {
     phoneNumber: '',
     email: '',
     username: ''
+  });  
+  const [userStats, setUserStats] = useState({
+    totalCompletedOrders: 0
   });
 
   // Validation state
@@ -85,6 +88,29 @@ export default function Profile() {
     };
   }, []);
 
+  // Fetch user statistics including order count
+
+
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      try {
+        const response = await axios.get('http://localhost:8801/user/me', {
+          withCredentials: true
+        });
+        
+        if (response.data.success) {
+          setUserStats(response.data.userStats);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user stats:', error);
+      }
+    };
+
+    if (user) {
+      fetchUserStats();
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       setFormData({
@@ -92,7 +118,7 @@ export default function Profile() {
         lastName: user.lastName || '',
         phoneNumber: user.phoneNumber || '',
         email: user.email || '',
-        username: user.username || ''
+        username: user.username || '',
       });
     }
   }, [user]);
@@ -652,17 +678,14 @@ export default function Profile() {
           <h3>Account Overview</h3>
           <div className={classes.statsGrid}>
             <div className={classes.statCard}>
-              <div className={classes.statNumber}>0</div>
+              <div className={classes.statNumber}>{userStats.totalCompletedOrders}</div>
               <div className={classes.statLabel}>Total Orders</div>
             </div>
             <div className={classes.statCard}>
               <div className={classes.statNumber}>$0.00</div>
               <div className={classes.statLabel}>Total Spent</div>
             </div>
-            <div className={classes.statCard}>
-              <div className={classes.statNumber}>0</div>
-              <div className={classes.statLabel}>Favorite Items</div>
-            </div>
+          
           </div>
         </div>
       </div>

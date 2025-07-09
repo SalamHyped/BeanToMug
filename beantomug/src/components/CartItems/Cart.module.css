@@ -313,4 +313,57 @@
         font-size: 1.25rem;
     }
 }
+
+/* Cart Summary Styles */
+.cartSummary {
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    width: 100%;
+    max-width: 500px;
+    align-self: center;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 1rem;
+    color: #495057;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.summaryRow:last-of-type {
+    border-bottom: none;
+}
+
+.summaryTotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2d3436;
+    border-top: 2px solid #e9ecef;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .cartSummary {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .summaryRow {
+        font-size: 0.9rem;
+    }
+    
+    .summaryTotal {
+        font-size: 1.1rem;
+    }
+}
   
