@@ -162,6 +162,21 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
       });
     }
     
+*    // Get order details before updating for notification
+    const [orderRows] = await req.db.execute(
+      'SELECT user_id, order_type FROM orders WHERE order_id = ? AND is_cart = 0',
+      [orderId]
+    );
+    
+    if (orderRows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+    
+    const orderData = orderRows[0];
+    
     // Update the order status
     const [result] = await req.db.execute(
       'UPDATE orders SET status = ?, updated_at = NOW() WHERE order_id = ? AND is_cart = 0',
@@ -174,6 +189,22 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
         message: 'Order not found'
       });
     }
+    
+    // Emit real-time notification for order update
+    req.socketService.emitOrderUpdate({
+      orderId,
+      status,
+      customerId: orderData.user_id,
+      orderType: orderData.order_type,
+      updatedAt: new Date().toISOString()
+    });
+    
+    // Emit notification to staff
+    req.socketService.emitNotification({
+      targetRole: 'staff',
+      message: `Order #${orderId} status updated to ${status}`,
+      type: 'order_update'
+    });
     
     // Return success response
     res.json({

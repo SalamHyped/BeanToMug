@@ -135,6 +135,23 @@ router.post('/upload', requireStaffOrAdmin, upload.single('image'), async (req, 
             VALUES (?, ?, ?, CURRENT_DATE, ?)
         `, [filePath, description || '', req.file.mimetype, req.session.userId || null]);
 
+        // Emit real-time notification for gallery update
+        req.socketService.emitGalleryUpdate({
+            postId: result.insertId,
+            photoUrl: filePath,
+            description: description || '',
+            fileType: req.file.mimetype,
+            uploadedBy: req.session.userId,
+            publishDate: new Date().toISOString().split('T')[0]
+        });
+
+        // Emit notification to admin and staff
+        req.socketService.emitNotification({
+            targetRole: 'admin',
+            message: `New ${isImage ? 'image' : 'video'} uploaded to gallery`,
+            type: 'gallery_update'
+        });
+
         res.json({
             success: true,
             message: 'File uploaded successfully',

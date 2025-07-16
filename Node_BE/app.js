@@ -2,11 +2,18 @@
 //Name : Razi Kaabyia
 const express = require('express');
 const path = require('path');
+const http = require('http');
 const app = express();
+const server = http.createServer(app);
 const port = 8801;
 const cors = require('cors');
 const session = require('express-session');
 const { dbMiddleware } = require('./dbSingleton');
+const socketService = require('./services/socketService');
+
+// Initialize Socket.IO
+socketService.initialize(server);
+
 const menuRouter = require('./Routes/menu');
 const cartRouter = require('./Routes/cart');
 const authRouter = require('./Routes/auth');
@@ -59,6 +66,13 @@ app.use('/gallery', galleryRouter);  // Gallery routes
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.listen(port, () => {
+// Add socket service to request object for use in routes
+app.use((req, res, next) => {
+    req.socketService = socketService;
+    next();
+});
+
+server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
+    console.log(`WebSocket server is ready for real-time connections`);
 });

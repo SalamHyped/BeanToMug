@@ -160,6 +160,25 @@ router.post('/', authenticateToken, canCreateTask, async (req, res) => {
       
       await req.db.commit();
       
+      // Emit real-time notification for new task
+      req.socketService.emitNewTask({
+        taskId,
+        title,
+        description,
+        priority: priority || 'medium',
+        dueDate: due_date,
+        assignedBy: req.user.username,
+        assignments,
+        createdAt: new Date().toISOString()
+      });
+      
+      // Emit notification to staff
+      req.socketService.emitNotification({
+        targetRole: 'staff',
+        message: `New task "${title}" assigned to you`,
+        type: 'new_task'
+      });
+      
       res.status(201).json({ 
         message: 'Task created successfully',
         task_id: taskId 
@@ -191,6 +210,23 @@ router.put('/:taskId', authenticateToken, canAccessTask, async (req, res) => {
       title, description, status, priority, due_date, 
       estimated_hours, actual_hours, taskId
     ]);
+    
+    // Emit real-time notification for task update
+    req.socketService.emitTaskUpdate({
+      taskId,
+      title,
+      status,
+      priority,
+      updatedBy: req.user.username,
+      updatedAt: new Date().toISOString()
+    });
+    
+    // Emit notification to staff
+    req.socketService.emitNotification({
+      targetRole: 'staff',
+      message: `Task "${title}" updated to ${status}`,
+      type: 'task_update'
+    });
     
     res.json({ message: 'Task updated successfully' });
   } catch (error) {

@@ -434,6 +434,23 @@ class PayPalService {
           await this.markOrderCompleted(connection, order.order_id);
           await connection.commit();
           
+          // Emit real-time notification for new order
+          const socketService = require('../services/socketService');
+          socketService.emitNewOrder({
+            orderId: order.order_id,
+            customerId: order.user_id,
+            orderType: order.order_type || 'Dine In',
+            status: 'completed',
+            createdAt: new Date().toISOString()
+          });
+          
+          // Emit notification to staff
+          socketService.emitNotification({
+            targetRole: 'staff',
+            message: `New order #${order.order_id} completed!`,
+            type: 'new_order'
+          });
+          
           return {
             success: true,
             paypal_order_id: orderId,
