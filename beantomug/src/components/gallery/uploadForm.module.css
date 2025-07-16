@@ -1,0 +1,224 @@
+.uploadSection {
+    background: white;
+    border-radius: 1rem;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+}
+
+.uploadTitle {
+    font-size: 1.8rem;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.uploadForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.dropZone {
+    border: 2px dashed #bdc3c7;
+    border-radius: 0.8rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.dropZone:hover {
+    border-color: #3498db;
+    background: #ecf0f1;
+}
+
+.dragActive {
+    border-color: #3498db;
+    background: #e3f2fd;
+    transform: scale(1.02);
+}
+
+.fileInput {
+    display: none;
+}
+
+.dropContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.uploadIcon {
+    font-size: 3rem;
+    color: #7f8c8d;
+}
+
+.dropText {
+    font-size: 1.2rem;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.dropSubtext {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    margin: 0;
+}
+
+.fileSelected {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.preview {
+    max-width: 15rem;
+    max-height: 15rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.fileName {
+    font-size: 0.9rem;
+    color: #2c3e50;
+    margin: 0;
+    word-break: break-all;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    font-size: 1rem;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.textarea {
+    padding: 0.8rem;
+    border: 1px solid #bdc3c7;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 6rem;
+    transition: border-color 0.3s ease;
+}
+
+.textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.2);
+}
+
+.error {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    padding: 0.8rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.success {
+    background: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+    padding: 0.8rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.uploadButton {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+.uploadButton:hover:not(:disabled) {
+    transform: translateY(-0.1rem);
+    box-shadow: 0 0.5rem 1rem rgba(52, 152, 219, 0.3);
+}
+
+.uploadButton:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.accessDenied {
+    text-align: center;
+    padding: 2rem;
+}
+
+.accessDeniedTitle {
+    font-size: 1.5rem;
+    color: #e74c3c;
+    margin-bottom: 1rem;
+}
+
+.accessDeniedText {
+    color: #7f8c8d;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .uploadSection {
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .uploadTitle {
+        font-size: 1.5rem;
+    }
+    
+    .dropZone {
+        padding: 1.5rem;
+    }
+    
+    .uploadIcon {
+        font-size: 2.5rem;
+    }
+    
+    .dropText {
+        font-size: 1rem;
+    }
+    
+    .preview {
+        max-width: 12rem;
+        max-height: 12rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .uploadSection {
+        padding: 1rem;
+    }
+    
+    .dropZone {
+        padding: 1rem;
+    }
+    
+    .uploadButton {
+        padding: 0.8rem 1.5rem;
+        font-size: 0.9rem;
+    }
+} 

@@ -15,6 +15,7 @@ import Header from '../components/header/Header'
 import Home from '../pages/home/Home'
 import OrderHistory from '../pages/OrderHistory';
 import Profile from '../pages/customer/Profile';
+import Gallery from '../pages/Gallery';
 import Footer from './footer/Footer';
 
 // Layouts load immediately (no lazy loading for better UX)
@@ -25,6 +26,8 @@ import StaffLayout from './layouts/StaffLayout';
 const Dashboard = lazy(() => import('../pages/staff/DashBoard'));
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 const TaskDashboard = lazy(() => import('../pages/staff/TaskDashboard'));
+const PublicGallery = lazy(() => import('../pages/Gallery'));
+const StaffGallery = lazy(() => import('../pages/staff/StaffGallery'));
 
 // Loading component for page content only
 const PageLoader = () => (
@@ -59,6 +62,7 @@ export default function MyRoutes(){
             <Route path="/resend-verification" element={<ResendVerification/>} />
             <Route path="/profile-completion" element={<ProfileCompletion/>} />
             <Route path="/cart" element={<CartPage/>} />
+            <Route path="/gallery" element={<PublicGallery/>} />
             <Route path="/payment-success" element={<PaymentSuccess/>} />
             <Route path="/payment-cancel" element={<PaymentCancel/>} />
             
@@ -85,6 +89,11 @@ export default function MyRoutes(){
                     <Route path="orders" element={<div>Admin Orders</div>} />
                     <Route path="users" element={<div>Admin Users</div>} />
                     <Route path="menu" element={<div>Admin Menu Management</div>} />
+                    <Route path="gallery" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <StaffGallery />
+                      </Suspense>
+                    } />
                 </Route>
             </Route>
 
@@ -109,6 +118,11 @@ export default function MyRoutes(){
                     <Route path="inventory" element={
                       <Suspense fallback={<PageLoader />}>
                         <Dashboard />
+                      </Suspense>
+                    } />
+                    <Route path="gallery" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <StaffGallery />
                       </Suspense>
                     } />
                 </Route>

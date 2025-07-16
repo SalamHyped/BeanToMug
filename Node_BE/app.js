@@ -1,6 +1,7 @@
 // Name :salam shibli 
 //Name : Razi Kaabyia
 const express = require('express');
+const path = require('path');
 const app = express();
 const port = 8801;
 const cors = require('cors');
@@ -14,6 +15,7 @@ const paypalRouter = require('./Routes/paypal');
 const ratingsRouter = require('./Routes/ratings');
 const ordersRouter = require('./Routes/orders');
 const tasksRouter = require('./Routes/tasks');
+const galleryRouter = require('./Routes/gallery');
 
 app.use(express.json());
 app.use(cors({
@@ -52,6 +54,10 @@ app.use('/paypal', paypalRouter);
 app.use('/ratings', ratingsRouter);
 app.use('/orders', ordersRouter);
 app.use('/tasks', tasksRouter);  // Task management routes
+app.use('/gallery', galleryRouter);  // Gallery routes
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);

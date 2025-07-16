@@ -43,7 +43,7 @@ export default function Header() {
             </li>
             <li>
               <NavLink
-                to="/contact"
+                to="/gallery"
                 className={({ isActive }) =>
                   isActive
                     ? `${classes.menuItem} ${classes.active}`

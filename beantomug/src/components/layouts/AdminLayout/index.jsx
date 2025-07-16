@@ -9,7 +9,8 @@ const ADMIN_NAV_ITEMS = [
   { to: "/admin/tasks", label: "Task Management", icon: "✅" },
   { to: "/admin/orders", label: "Orders", icon: "📋" },
   { to: "/admin/users", label: "Users", icon: "👥" },
-  { to: "/admin/menu", label: "Menu Management", icon: "📝" }
+  { to: "/admin/menu", label: "Menu Management", icon: "📝" },
+  { to: "/admin/gallery", label: "Gallery", icon: "📷" }
 ];
 
 const AdminLayout = () => {
