@@ -4,16 +4,32 @@ const path = require('path');
 const fs = require('fs');
 const router = express.Router();
 
-// Ensure uploads directory exists
+// Ensure uploads directory and subdirectories exist
 const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const galleryDir = path.join(uploadsDir, 'gallery');
+const photosDir = path.join(galleryDir, 'photos');
+const videosDir = path.join(galleryDir, 'videos');
 
-// Configure multer for image uploads
+// Create directories if they don't exist
+[uploadsDir, galleryDir, photosDir, videosDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+});
+
+// Configure multer for image and video uploads
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, uploadsDir);
+        // Determine if file is image or video and set appropriate directory
+        const allowedImageTypes = /jpeg|jpg|png|gif|webp/;
+        const extname = path.extname(file.originalname).toLowerCase();
+        const isImage = allowedImageTypes.test(extname) && allowedImageTypes.test(file.mimetype);
+        
+        if (isImage) {
+            cb(null, photosDir);
+        } else {
+            cb(null, videosDir);
+        }
     },
     filename: function (req, file, cb) {
         // Generate unique filename with timestamp
@@ -92,31 +108,39 @@ const requireStaffOrAdmin = (req, res, next) => {
     next();
 };
 
-// Upload new image to gallery (staff/admin only)
+// Upload new image or video to gallery (staff/admin only)
 router.post('/upload', requireStaffOrAdmin, upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({
                 success: false,
-                message: 'No image file provided'
+                message: 'No file provided'
             });
         }
 
         const db = req.db;
         const {description } = req.body;
-        const imagePath = `/uploads/${req.file.filename}`;
+        
+        // Determine the correct path based on file type
+        const allowedImageTypes = /jpeg|jpg|png|gif|webp/;
+        const extname = path.extname(req.file.originalname).toLowerCase();
+        const isImage = allowedImageTypes.test(extname) && allowedImageTypes.test(req.file.mimetype);
+        
+        const filePath = isImage 
+            ? `/uploads/gallery/photos/${req.file.filename}`
+            : `/uploads/gallery/videos/${req.file.filename}`;
 
         const [result] = await db.execute(`
             INSERT INTO gallery (\`photo-url\`, description, file_type, publish_date, user_id)
             VALUES (?, ?, ?, CURRENT_DATE, ?)
-        `, [imagePath, description || '', req.file.mimetype, req.session.userId || null]);
+        `, [filePath, description || '', req.file.mimetype, req.session.userId || null]);
 
         res.json({
             success: true,
-            message: 'Image uploaded successfully',
+            message: 'File uploaded successfully',
             data: {
                 post_id: result.insertId,
-                'photo-url': imagePath,
+                'photo-url': filePath,
                 description: description || '',
                 file_type: req.file.mimetype,
                 publish_date: new Date().toISOString().split('T')[0],
@@ -124,87 +148,98 @@ router.post('/upload', requireStaffOrAdmin, upload.single('image'), async (req, 
             }
         });
     } catch (error) {
-        console.error('Error uploading image:', error);
+        console.error('Error uploading file:', error);
         res.status(500).json({
             success: false,
-            message: 'Error uploading image'
+            message: 'Error uploading file'
         });
     }
 });
 
-// Delete image from gallery (staff/admin only)
+// Delete file from gallery (staff/admin only)
 router.delete('/:id', requireStaffOrAdmin, async (req, res) => {
     try {
         const db = req.db;
-        const imageId = req.params.id;
+        const fileId = req.params.id;
 
-        // Get image info before deleting
-        const [imageRows] = await db.execute(`
+        // Get file info before deleting
+        const [fileRows] = await db.execute(`
             SELECT \`photo-url\` FROM gallery WHERE post_id = ?
-        `, [imageId]);
+        `, [fileId]);
 
-        if (imageRows.length === 0) {
+        if (fileRows.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Image not found'
+                message: 'File not found'
             });
         }
 
         // Delete from database
         await db.execute(`
             DELETE FROM gallery WHERE post_id = ?
-        `, [imageId]);
+        `, [fileId]);
 
         // Delete file from filesystem
-        const photoUrl = imageRows[0]['photo-url'];
-        const filename = photoUrl.split('/').pop();
-        const filePath = path.join(uploadsDir, filename);
+        const fileUrl = fileRows[0]['photo-url'];
+        const filename = fileUrl.split('/').pop();
+        
+        // Determine the correct directory based on the file path
+        let filePath;
+        if (fileUrl.includes('/photos/')) {
+            filePath = path.join(photosDir, filename);
+        } else if (fileUrl.includes('/videos/')) {
+            filePath = path.join(videosDir, filename);
+        } else {
+            // Fallback to old structure
+            filePath = path.join(uploadsDir, filename);
+        }
+        
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
         }
 
         res.json({
             success: true,
-            message: 'Image deleted successfully'
+            message: 'File deleted successfully'
         });
     } catch (error) {
-        console.error('Error deleting image:', error);
+        console.error('Error deleting file:', error);
         res.status(500).json({
             success: false,
-            message: 'Error deleting image'
+            message: 'Error deleting file'
         });
     }
 });
 
-// Update image details (staff/admin only)
+// Update file details (staff/admin only)
 router.put('/:id', requireStaffOrAdmin, async (req, res) => {
     try {
         const db = req.db;
-        const imageId = req.params.id;
+        const fileId = req.params.id;
         const { title, description } = req.body;
 
         const [result] = await db.execute(`
             UPDATE gallery 
             SET description = ?
             WHERE post_id = ?
-        `, [description, imageId]);
+        `, [description, fileId]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Image not found'
+                message: 'File not found'
             });
         }
 
         res.json({
             success: true,
-            message: 'Image updated successfully'
+            message: 'File updated successfully'
         });
     } catch (error) {
-        console.error('Error updating image:', error);
+        console.error('Error updating file:', error);
         res.status(500).json({
             success: false,
-            message: 'Error updating image'
+            message: 'Error updating file'
         });
     }
 });
