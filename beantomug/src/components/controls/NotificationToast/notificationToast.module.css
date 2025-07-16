@@ -1,0 +1,192 @@
+.notificationContainer {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 25rem;
+}
+
+.notification {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    background: white;
+    border-left: 0.25rem solid;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.notification.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.content {
+    flex: 1;
+    min-width: 0;
+}
+
+.message {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
+.timestamp {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.closeButton:hover {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Notification type styles */
+.newOrder {
+    border-left-color: #10b981;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+}
+
+.newOrder .icon {
+    color: #10b981;
+}
+
+.orderUpdate {
+    border-left-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.orderUpdate .icon {
+    color: #3b82f6;
+}
+
+.newTask {
+    border-left-color: #f59e0b;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.newTask .icon {
+    color: #f59e0b;
+}
+
+.taskUpdate {
+    border-left-color: #8b5cf6;
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+}
+
+.taskUpdate .icon {
+    color: #8b5cf6;
+}
+
+.galleryUpdate {
+    border-left-color: #ec4899;
+    background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
+}
+
+.galleryUpdate .icon {
+    color: #ec4899;
+}
+
+.default {
+    border-left-color: #6b7280;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+}
+
+.default .icon {
+    color: #6b7280;
+}
+
+/* Responsive design */
+@media (max-width: 48rem) {
+    .notificationContainer {
+        top: 0.5rem;
+        right: 0.5rem;
+        left: 0.5rem;
+        max-width: none;
+    }
+    
+    .notification {
+        padding: 0.75rem;
+    }
+    
+    .message {
+        font-size: 0.8125rem;
+    }
+    
+    .timestamp {
+        font-size: 0.6875rem;
+    }
+}
+
+/* Animation keyframes */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Hover effects */
+.notification:hover {
+    transform: translateX(-0.25rem);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.notification:hover.visible {
+    transform: translateX(-0.25rem);
+} 
