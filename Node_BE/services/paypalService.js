@@ -440,14 +440,14 @@ class PayPalService {
             orderId: order.order_id,
             customerId: order.user_id,
             orderType: order.order_type || 'Dine In',
-            status: 'completed',
+            status: 'processing',
             createdAt: new Date().toISOString()
           });
           
           // Emit notification to staff
           socketService.emitNotification({
             targetRole: 'staff',
-            message: `New order #${order.order_id} completed!`,
+            message: `New order #${order.order_id} received!`,
             type: 'new_order'
           });
           

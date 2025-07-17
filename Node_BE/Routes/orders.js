@@ -162,7 +162,7 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
       });
     }
     
-*    // Get order details before updating for notification
+   // Get order details before updating for notification
     const [orderRows] = await req.db.execute(
       'SELECT user_id, order_type FROM orders WHERE order_id = ? AND is_cart = 0',
       [orderId]

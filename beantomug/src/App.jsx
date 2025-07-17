@@ -24,7 +24,7 @@ const WebSocketInitializer = () => {
         userId: user.id,
         userRole: user.role || 'customer'
       });
-    }
+    } 
 
     // Cleanup on unmount
     return () => {

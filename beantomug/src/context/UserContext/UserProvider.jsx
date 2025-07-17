@@ -3,6 +3,9 @@ import { UserContext } from './UserContext';
 import { userReducer, initialState } from './UserReducer';
 import axios from 'axios';
 
+// Re-export UserContext for convenience
+export { UserContext };
+
 export function UserProvider({ children }) {
   const [state, dispatch] = useReducer(userReducer, initialState);
 console.log(state)
