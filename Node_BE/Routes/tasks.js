@@ -161,23 +161,25 @@ router.post('/', authenticateToken, canCreateTask, async (req, res) => {
       await req.db.commit();
       
       // Emit real-time notification for new task
-      req.socketService.emitNewTask({
-        taskId,
-        title,
-        description,
-        priority: priority || 'medium',
-        dueDate: due_date,
-        assignedBy: req.user.username,
-        assignments,
-        createdAt: new Date().toISOString()
-      });
-      
-      // Emit notification to staff
-      req.socketService.emitNotification({
-        targetRole: 'staff',
-        message: `New task "${title}" assigned to you`,
-        type: 'new_task'
-      });
+      if (req.socketService) {
+        req.socketService.emitNewTask({
+          taskId,
+          title,
+          description,
+          priority: priority || 'medium',
+          dueDate: due_date,
+          assignedBy: req.user.username,
+          assignments,
+          createdAt: new Date().toISOString()
+        });
+        
+        // Emit notification to staff
+        req.socketService.emitNotification({
+          targetRole: 'staff',
+          message: `New task "${title}" assigned to you`,
+          type: 'new_task'
+        });
+      }
       
       res.status(201).json({ 
         message: 'Task created successfully',

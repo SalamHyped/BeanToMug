@@ -26,8 +26,10 @@ const galleryRouter = require('./Routes/gallery');
 
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],  // Allow both ports
-    credentials: true
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:8080'],  // Allow more ports
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Session configuration - improved for development
@@ -52,6 +54,21 @@ app.use((req, res, next) => {
 
 app.use(dbMiddleware);
 
+// Add socket service to request object for use in routes (MOVE THIS BEFORE ROUTES)
+app.use((req, res, next) => {
+    req.socketService = socketService;
+    next();
+});
+
+// Test route to verify server is running
+app.get('/test', (req, res) => {
+    res.json({ 
+        message: 'Server is running!', 
+        timestamp: new Date().toISOString(),
+        socketConnections: socketService.getConnectedUsersCount()
+    });
+});
+
 // Routes
 app.use('/menu', menuRouter);
 app.use('/cart', cartRouter);
@@ -66,13 +83,8 @@ app.use('/gallery', galleryRouter);  // Gallery routes
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Add socket service to request object for use in routes
-app.use((req, res, next) => {
-    req.socketService = socketService;
-    next();
-});
-
 server.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
     console.log(`WebSocket server is ready for real-time connections`);
+    console.log(`Test the server at: http://localhost:${port}/test`);
 });

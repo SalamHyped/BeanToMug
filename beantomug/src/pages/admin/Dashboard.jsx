@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import styles from './Dashboard.module.css';
-
+import RealTimeDashboard from "../../components/RealTimeDashboard";
 const AdminDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
@@ -312,6 +312,12 @@ const AdminDashboard = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Real-Time Dashboard */}
+      <div className={styles.realTimeSection}>
+        <h2>Real-Time Monitoring</h2>
+        <RealTimeDashboard />
       </div>
     </div>
   );

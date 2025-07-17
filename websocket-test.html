@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .error { background-color: #fff3cd; color: #856404; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    
+    <div id="status" class="status disconnected">
+        Status: Disconnected
+    </div>
+    
+    <div>
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        <button id="testBtn" onclick="sendTest()" disabled>Send Test Message</button>
+    </div>
+    
+    <div>
+        <h3>Connection Details:</h3>
+        <p><strong>Socket ID:</strong> <span id="socketId">Not connected</span></p>
+        <p><strong>Connection URL:</strong> http://localhost:8801</p>
+    </div>
+    
+    <div>
+        <h3>Log:</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(status, className) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = `Status: ${status}`;
+            statusDiv.className = `status ${className}`;
+        }
+
+        function updateButtons() {
+            document.getElementById('connectBtn').disabled = isConnected;
+            document.getElementById('disconnectBtn').disabled = !isConnected;
+            document.getElementById('testBtn').disabled = !isConnected;
+        }
+
+        function connect() {
+            log('Attempting to connect to WebSocket...');
+            
+            try {
+                socket = io('http://localhost:8801', {
+                    transports: ['websocket', 'polling'],
+                    autoConnect: true,
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    timeout: 20000
+                });
+
+                socket.on('connect', () => {
+                    log('Connected successfully!');
+                    isConnected = true;
+                    updateStatus('Connected', 'connected');
+                    updateButtons();
+                    document.getElementById('socketId').textContent = socket.id;
+                });
+
+                socket.on('disconnect', (reason) => {
+                    log(`Disconnected: ${reason}`);
+                    isConnected = false;
+                    updateStatus('Disconnected', 'disconnected');
+                    updateButtons();
+                    document.getElementById('socketId').textContent = 'Not connected';
+                });
+
+                socket.on('connect_error', (error) => {
+                    log(`Connection error: ${error.message}`);
+                    updateStatus('Connection Error', 'error');
+                });
+
+                socket.on('test', (data) => {
+                    log(`Test response received: ${JSON.stringify(data)}`);
+                });
+
+                log('Socket.IO connection setup complete');
+            } catch (error) {
+                log(`Error creating socket: ${error.message}`);
+                updateStatus('Error', 'error');
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                isConnected = false;
+                updateStatus('Disconnected', 'disconnected');
+                updateButtons();
+                document.getElementById('socketId').textContent = 'Not connected';
+                log('Disconnected manually');
+            }
+        }
+
+        function sendTest() {
+            if (socket && isConnected) {
+                const testData = {
+                    message: 'Hello from browser test!',
+                    timestamp: new Date().toISOString()
+                };
+                socket.emit('test', testData);
+                log(`Test message sent: ${JSON.stringify(testData)}`);
+            } else {
+                log('Cannot send test - not connected');
+            }
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            log('Page loaded, auto-connecting...');
+            connect();
+        };
+    </script>
+</body>
+</html> 

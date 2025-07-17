@@ -320,9 +320,37 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 50vh;
-  font-size: 1.2rem;
-  color: #666;
+  height: 50vh;
+  font-size: 1.5rem;
+  color: #896651;
+}
+
+/* Real-Time Dashboard Section */
+.realTimeSection {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e9ecef;
+}
+
+.realTimeSection h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #896651;
+  margin-bottom: 1.5rem;
+}
+
+/* WebSocket Test Section */
+.webSocketSection {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e9ecef;
+}
+
+.webSocketSection h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #896651;
+  margin-bottom: 1.5rem;
 }
 
 /* Responsive Design */

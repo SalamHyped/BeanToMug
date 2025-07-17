@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import MenuOrders from "../../components/layouts/StaffLayout/menuOrders/menuOrders";
+import RealTimeDashboard from "../../components/RealTimeDashboard";
 import styles from './DashBoard.module.css';
 
 export default function DashBoard(){
@@ -25,6 +26,10 @@ export default function DashBoard(){
                         <h2>Welcome to Staff Dashboard</h2>
                         <p>Manage orders and inventory from this central location.</p>
                     </div>
+                    
+                    {/* Real-Time Dashboard */}
+                    <RealTimeDashboard />
+                    
                     <div className={styles.quickActions}>
                         <h3>Quick Actions</h3>
                         <div className={styles.actionGrid}>

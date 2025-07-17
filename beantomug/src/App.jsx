@@ -15,16 +15,23 @@ const WebSocketInitializer = () => {
   const { user } = useContext(UserContext);
 
   useEffect(() => {
-    // Initialize WebSocket connection
-    socketService.connect();
+    const initializeSocket = async () => {
+      try {
+        await socketService.connect();
+        
+        // Authenticate user if logged in
+        if (user && user.id) {
+          socketService.authenticate({
+            userId: user.id,
+            userRole: user.role || 'customer'
+          });
+        }
+      } catch (error) {
+        console.error('Failed to initialize WebSocket:', error);
+      }
+    };
 
-    // Authenticate user if logged in
-    if (user && user.id) {
-      socketService.authenticate({
-        userId: user.id,
-        userRole: user.role || 'customer'
-      });
-    } 
+    initializeSocket();
 
     // Cleanup on unmount
     return () => {

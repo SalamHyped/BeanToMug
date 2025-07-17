@@ -9,20 +9,20 @@ class SocketService {
     initialize(server) {
         this.io = socketIO(server, {
             cors: {
-                origin: ['http://localhost:5173', 'http://localhost:5174'],
-                methods: ['GET', 'POST'],
+                origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:8080'],
+                methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+                allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
                 credentials: true
-            }
+            },
+            transports: ['websocket', 'polling'],
+            allowEIO3: true
         });
 
         this.setupEventHandlers();
-        console.log('Socket.IO server initialized');
     }
 
     setupEventHandlers() {
         this.io.on('connection', (socket) => {
-            console.log(`User connected: ${socket.id}`);
-
             // Handle user authentication
             socket.on('authenticate', (userData) => {
                 this.authenticateUser(socket, userData);
@@ -36,6 +36,17 @@ class SocketService {
             // Handle user leaving rooms
             socket.on('leaveRoom', (roomData) => {
                 this.leaveRoom(socket, roomData);
+            });
+
+            // Handle test events for debugging
+            socket.on('test', (data) => {
+                // Echo back the test data with server timestamp
+                socket.emit('test', {
+                    ...data,
+                    serverTimestamp: new Date().toISOString(),
+                    serverId: socket.id,
+                    message: 'Test response from server'
+                });
             });
 
             // Handle disconnection
@@ -66,8 +77,6 @@ class SocketService {
 
         // Join user-specific room for personal notifications
         socket.join(`user-${userId}`);
-
-        console.log(`User ${userId} (${userRole}) authenticated on socket ${socket.id}`);
     }
 
     joinRoom(socket, roomData) {
@@ -77,7 +86,6 @@ class SocketService {
         if (userInfo) {
             socket.join(roomName);
             userInfo.rooms.push(roomName);
-            console.log(`User ${userInfo.userId} joined room: ${roomName}`);
         }
     }
 
@@ -88,44 +96,37 @@ class SocketService {
         if (userInfo) {
             socket.leave(roomName);
             userInfo.rooms = userInfo.rooms.filter(room => room !== roomName);
-            console.log(`User ${userInfo.userId} left room: ${roomName}`);
         }
     }
 
     handleDisconnect(socket) {
         const userInfo = this.connectedUsers.get(socket.id);
         if (userInfo) {
-            console.log(`User ${userInfo.userId} disconnected from socket ${socket.id}`);
             this.connectedUsers.delete(socket.id);
         }
     }
 
     // Real-time event emitters
+    emitNewTask(taskData) {
+        this.io.to('staff-room').emit('newTask', taskData);
+    }
+
+    emitTaskUpdate(taskData) {
+        this.io.to('staff-room').emit('taskUpdate', taskData);
+    }
+
     emitNewOrder(orderData) {
         this.io.to('staff-room').emit('newOrder', orderData);
-        console.log('New order notification sent to staff');
     }
 
     emitOrderUpdate(orderData) {
         this.io.to('staff-room').emit('orderUpdate', orderData);
         this.io.to(`user-${orderData.customerId}`).emit('orderUpdate', orderData);
-        console.log('Order update notification sent');
-    }
-
-    emitNewTask(taskData) {
-        this.io.to('staff-room').emit('newTask', taskData);
-        console.log('New task notification sent to staff');
-    }
-
-    emitTaskUpdate(taskData) {
-        this.io.to('staff-room').emit('taskUpdate', taskData);
-        console.log('Task update notification sent');
     }
 
     emitGalleryUpdate(galleryData) {
         this.io.to('admin-room').emit('galleryUpdate', galleryData);
         this.io.to('staff-room').emit('galleryUpdate', galleryData);
-        console.log('Gallery update notification sent');
     }
 
     emitNotification(notificationData) {
@@ -154,8 +155,6 @@ class SocketService {
                 timestamp: new Date().toISOString()
             });
         }
-        
-        console.log('Notification sent:', message);
     }
 
     // Get connected users count for monitoring
@@ -167,6 +166,16 @@ class SocketService {
     getUsersInRoom(roomName) {
         const room = this.io.sockets.adapter.rooms.get(roomName);
         return room ? room.size : 0;
+    }
+
+    // Debug method to show current connections
+    debugConnections() {
+        console.log('=== Socket.IO Debug Info ===');
+        console.log('Connected users:', this.connectedUsers.size);
+        console.log('Users in staff-room:', this.getUsersInRoom('staff-room'));
+        console.log('Users in admin-room:', this.getUsersInRoom('admin-room'));
+        console.log('Connected users details:', Array.from(this.connectedUsers.values()));
+        console.log('===========================');
     }
 }
 
