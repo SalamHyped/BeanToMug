@@ -434,15 +434,24 @@ class PayPalService {
           await this.markOrderCompleted(connection, order.order_id);
           await connection.commit();
           
-          // Emit real-time notification for new order
+          // Get complete order data with items and ingredients
+          const { getCompleteOrderData } = require('../utils/orderUtils');
+          const completeOrderData = await getCompleteOrderData(order.order_id);
+          
+          // Emit real-time notification with complete order data
           const socketService = require('../services/socketService');
-          socketService.emitNewOrder({
-            orderId: order.order_id,
-            customerId: order.user_id,
-            orderType: order.order_type || 'Dine In',
-            status: 'processing',
-            createdAt: new Date().toISOString()
-          });
+          if (completeOrderData) {
+            await socketService.emitNewOrder(completeOrderData);
+          } else {
+            // Fallback to basic data if complete data not available
+            await socketService.emitNewOrder({
+              orderId: order.order_id,
+              customerId: order.user_id,
+              orderType: order.order_type || 'Dine In',
+              status: 'processing',
+              createdAt: new Date().toISOString()
+            });
+          }
           
           // Emit notification to staff
           socketService.emitNotification({

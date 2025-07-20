@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import socketService from '../../../../services/socketService';
 import ToggleSwitch from '../../../controls/ToggleSwitch';
 import classes from './menuOrders.module.css';
 
@@ -49,14 +50,120 @@ const MenuOrders = () => {
       fetchOrders();
     }, [fetchOrders]);
 
-    // Real-time polling every 30 seconds
+    // WebSocket event listeners for real-time updates
     useEffect(() => {
-      const interval = setInterval(() => {
-        fetchOrders();
-      }, 30000); // 30 seconds
+      // Handle new orders - use complete data from WebSocket
+      const handleNewOrder = (orderData) => {
+        console.log('New order received via WebSocket:', orderData);
+        
+        // Check if we have complete order data with items
+        if (orderData.items && Array.isArray(orderData.items)) {
+          // We have complete order data from WebSocket - use it directly
+          console.log('Using complete order data from WebSocket:', orderData);
+          
+          // Only add if it matches current filter
+          if ((showCompleted && orderData.status === 'completed') || 
+              (!showCompleted && orderData.status === 'processing')) {
+            setOrders(prev => [orderData, ...prev]);
+          }
+        } else {
+          // Basic notification - fetch complete data from API
+          console.log('Fetching complete order data from API for order:', orderData.orderId);
+          axios.get('http://localhost:8801/orders/staff/all', {
+            withCredentials: true
+          }).then(response => {
+            const newOrder = response.data.orders.find(order => 
+              order.order_id === orderData.orderId
+            );
+            
+            if (newOrder) {
+              if ((showCompleted && newOrder.status === 'completed') || 
+                  (!showCompleted && newOrder.status === 'processing')) {
+                setOrders(prev => [newOrder, ...prev]);
+              }
+            }
+          }).catch(error => {
+            console.error('Error fetching new order data:', error);
+          });
+        }
+      };
 
-      return () => clearInterval(interval);
-    }, [fetchOrders]);
+      // Handle order updates - use complete data from WebSocket when available
+      const handleOrderUpdate = (orderData) => {
+        console.log('Order update received via WebSocket:', orderData);
+        
+        // Check if we have complete order data with items
+        if (orderData.items && Array.isArray(orderData.items)) {
+          // We have complete order data from WebSocket
+          console.log('Using complete order update data from WebSocket:', orderData);
+          
+          setOrders(prev => {
+            const existingOrder = prev.find(order => order.order_id === orderData.order_id);
+            if (existingOrder) {
+              // Update existing order with complete data
+              return prev.map(order => 
+                order.order_id === orderData.order_id 
+                  ? { ...order, ...orderData }
+                  : order
+              );
+            } else {
+              // Add new order if it matches current filter
+              if ((showCompleted && orderData.status === 'completed') || 
+                  (!showCompleted && orderData.status === 'processing')) {
+                return [orderData, ...prev];
+              }
+            }
+            return prev;
+          });
+        } else {
+          // Fallback: update existing order with basic data
+          setOrders(prev => {
+            const existingOrder = prev.find(order => order.order_id === orderData.orderId);
+            if (existingOrder) {
+              return prev.map(order => 
+                order.order_id === orderData.orderId 
+                  ? { ...order, status: orderData.status }
+                  : order
+              );
+            }
+            return prev;
+          });
+          
+          // If order not found in current list, fetch complete data
+          const existingOrder = orders.find(order => order.order_id === orderData.orderId);
+          if (!existingOrder) {
+            axios.get('http://localhost:8801/orders/staff/all', {
+              withCredentials: true
+            }).then(response => {
+              const updatedOrder = response.data.orders.find(order => 
+                order.order_id === orderData.orderId
+              );
+              
+              if (updatedOrder) {
+                setOrders(prev => [updatedOrder, ...prev]);
+              }
+            }).catch(error => {
+              console.error('Error fetching updated order data:', error);
+            });
+          }
+        }
+      };
+
+      // Handle order status changes - same as order updates
+      const handleOrderStatusChange = handleOrderUpdate;
+
+      // Register WebSocket event listeners
+      socketService.on('newOrder', handleNewOrder);
+      socketService.on('orderUpdate', handleOrderUpdate);
+      socketService.on('orderStatusChange', handleOrderStatusChange);
+
+      // Cleanup listeners on unmount
+      return () => {
+        socketService.off('newOrder', handleNewOrder);
+        socketService.off('orderUpdate', handleOrderUpdate);
+        socketService.off('orderStatusChange', handleOrderStatusChange);
+      };
+    }, [showCompleted]); // Re-register when filter changes
 
     // Manual refresh function
     const handleRefresh = () => {

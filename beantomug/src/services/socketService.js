@@ -163,16 +163,21 @@ class SocketService {
 
     // Authenticate user with socket
     authenticate(userData) {
+        console.log('SocketService: Authenticating user:', userData);
+        
         if (!this.socket) {
+            console.log('SocketService: Socket not available, storing pending authentication');
             this.pendingAuthentication = userData;
             return;
         }
 
         if (!this.isConnected) {
+            console.log('SocketService: Socket not connected, storing pending authentication');
             this.pendingAuthentication = userData;
             return;
         }
 
+        console.log('SocketService: Emitting authenticate event');
         this.socket.emit('authenticate', userData);
         this.pendingAuthentication = null;
     }

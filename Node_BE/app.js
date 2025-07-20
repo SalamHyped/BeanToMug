@@ -69,6 +69,41 @@ app.get('/test', (req, res) => {
     });
 });
 
+// Test notification endpoint for debugging
+app.post('/test-notification', (req, res) => {
+    try {
+        const { type, message } = req.body;
+        
+        // Emit test notification to all connected users
+        socketService.emitNotification({
+            targetRole: 'staff',
+            message: message || 'Test notification from server',
+            type: type || 'test'
+        });
+        
+        // Also emit to admin room
+        socketService.emitNotification({
+            targetRole: 'admin',
+            message: message || 'Test notification from server',
+            type: type || 'test'
+        });
+        
+        res.json({
+            success: true,
+            message: 'Test notification sent',
+            timestamp: new Date().toISOString(),
+            connectedUsers: socketService.getConnectedUsersCount()
+        });
+    } catch (error) {
+        console.error('Test notification error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send test notification',
+            error: error.message
+        });
+    }
+});
+
 // Routes
 app.use('/menu', menuRouter);
 app.use('/cart', cartRouter);

@@ -70,6 +70,45 @@ router.get('/my-tasks', authenticateToken, requireRole(['admin', 'staff']), asyn
   }
 });
 
+// Get recent tasks for dashboard display (Admin and Staff)
+router.get('/recent', authenticateToken, requireRole(['admin', 'staff']), async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+    
+    const query = `
+      SELECT t.*, 
+             u1.username as assigned_by_name,
+             GROUP_CONCAT(u2.username ORDER BY u2.username SEPARATOR ',') as assignments
+      FROM tasks t
+      LEFT JOIN users u1 ON t.assigned_by = u1.id
+      LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+      LEFT JOIN users u2 ON ta.user_id = u2.id
+      GROUP BY t.task_id
+      ORDER BY t.created_at DESC
+      LIMIT ?
+    `;
+    
+    const [tasks] = await req.db.execute(query, [limit]);
+    
+    // Parse assignments string into array
+    const tasksWithAssignments = tasks.map(task => ({
+      ...task,
+      assignments: task.assignments ? task.assignments.split(',') : []
+    }));
+    
+    res.json({
+      success: true,
+      tasks: tasksWithAssignments
+    });
+  } catch (error) {
+    console.error('Error fetching recent tasks:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch recent tasks' 
+    });
+  }
+});
+
 // Get single task with assignments and comments (Admin or assigned Staff)
 router.get('/:taskId', authenticateToken, canAccessTask, async (req, res) => {
   try {

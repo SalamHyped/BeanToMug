@@ -1,14 +1,70 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { UserContext } from '../../context/UserContext/UserProvider';
+import React, { useState, useEffect } from 'react';
+import { useUser } from '../../context/UserContext/UserContext';
 import socketService from '../../services/socketService';
+import axios from 'axios';
+import DashboardHeader from './DashboardHeader';
+import RecentOrders from './RecentOrders';
+import RecentTasks from './RecentTasks';
+import GalleryUpdates from './GalleryUpdates';
 import styles from './realTimeDashboard.module.css';
 
 const RealTimeDashboard = () => {
-    const { user } = useContext(UserContext);
+    const { user } = useUser();
     const [orders, setOrders] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [galleryUpdates, setGalleryUpdates] = useState([]);
     const [connectionStatus, setConnectionStatus] = useState('disconnected');
+    const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
+
+    // Fetch initial data on component mount
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                console.log('RealTimeDashboard: Fetching initial data...');
+                setIsLoadingInitialData(true);
+                
+                // Fetch recent orders (optimized endpoint)
+                const ordersResponse = await axios.get('http://localhost:8801/orders/staff/recent', {
+                    withCredentials: true
+                });
+                
+                if (ordersResponse.data.orders) {
+                    setOrders(ordersResponse.data.orders);
+                    console.log('RealTimeDashboard: Loaded', ordersResponse.data.orders.length, 'recent orders');
+                }
+                
+                // Fetch recent tasks (optimized endpoint)
+                try {
+                    console.log('RealTimeDashboard: Fetching recent tasks...');
+                    const tasksResponse = await axios.get('http://localhost:8801/tasks/recent', {
+                        withCredentials: true
+                    });
+                    
+                    console.log('RealTimeDashboard: Tasks response:', tasksResponse.data);
+                    
+                    if (tasksResponse.data.success && tasksResponse.data.tasks) {
+                        setTasks(tasksResponse.data.tasks);
+                        console.log('RealTimeDashboard: Loaded', tasksResponse.data.tasks.length, 'recent tasks');
+                    } else {
+                        console.log('RealTimeDashboard: No tasks data in response');
+                    }
+                } catch (tasksError) {
+                    console.error('RealTimeDashboard: Error fetching recent tasks:', tasksError);
+                    if (tasksError.response) {
+                        console.error('RealTimeDashboard: Error status:', tasksError.response.status);
+                        console.error('RealTimeDashboard: Error data:', tasksError.response.data);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('RealTimeDashboard: Error fetching initial data:', error);
+            } finally {
+                setIsLoadingInitialData(false);
+            }
+        };
+
+        fetchInitialData();
+    }, []);
 
     useEffect(() => {
         // Update connection status
@@ -27,13 +83,15 @@ const RealTimeDashboard = () => {
     useEffect(() => {
         // Listen for real-time updates
         const handleNewOrder = (orderData) => {
+            console.log('RealTimeDashboard: New order received:', orderData);
             setOrders(prev => [orderData, ...prev.slice(0, 4)]); // Keep last 5 orders
         };
 
         const handleOrderUpdate = (orderData) => {
+            console.log('RealTimeDashboard: Order update received:', orderData);
             setOrders(prev => 
                 prev.map(order => 
-                    order.orderId === orderData.orderId 
+                    (order.order_id || order.orderId) === (orderData.order_id || orderData.orderId)
                         ? { ...order, ...orderData }
                         : order
                 )
@@ -74,101 +132,37 @@ const RealTimeDashboard = () => {
         };
     }, []);
 
-    if (!user || (user.role !== 'admin' && user.role !== 'staff')) {
-        return null; // Only show for admin and staff
+    // Debug logging
+    console.log('RealTimeDashboard render:', { user, userRole: user?.role });
+
+    // Note: No authentication checks needed here because this component
+    // is rendered under ProtectedRoute which already handles:
+    // - Loading state
+    // - User authentication
+    // - Role authorization (admin/staff only)
+
+    // Show loading state while fetching initial data
+    if (isLoadingInitialData) {
+        return (
+            <div className={styles.dashboard}>
+                <DashboardHeader connectionStatus="disconnected" />
+                <div className={styles.grid}>
+                    <div className={styles.section}>
+                        <p className={styles.empty}>Loading recent data...</p>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
         <div className={styles.dashboard}>
-            <div className={styles.header}>
-                <h2>Real-Time Dashboard</h2>
-                <div className={`${styles.status} ${styles[connectionStatus]}`}>
-                    {connectionStatus === 'connected' ? '🟢 Live' : '🔴 Offline'}
-                </div>
-            </div>
-
+            <DashboardHeader connectionStatus={connectionStatus} />
+            
             <div className={styles.grid}>
-                {/* Orders Section */}
-                <div className={styles.section}>
-                    <h3>🛒 Recent Orders</h3>
-                    <div className={styles.list}>
-                        {orders.length === 0 ? (
-                            <p className={styles.empty}>No recent orders</p>
-                        ) : (
-                            orders.map((order, index) => (
-                                <div key={index} className={styles.item}>
-                                    <div className={styles.itemHeader}>
-                                        <span className={styles.id}>#{order.orderId}</span>
-                                        <span className={`${styles.status} ${styles[order.status]}`}>
-                                            {order.status}
-                                        </span>
-                                    </div>
-                                    <div className={styles.itemDetails}>
-                                        <span>{order.orderType}</span>
-                                        <span className={styles.time}>
-                                            {new Date(order.createdAt).toLocaleTimeString()}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Tasks Section */}
-                <div className={styles.section}>
-                    <h3>📝 Recent Tasks</h3>
-                    <div className={styles.list}>
-                        {tasks.length === 0 ? (
-                            <p className={styles.empty}>No recent tasks</p>
-                        ) : (
-                            tasks.map((task, index) => (
-                                <div key={index} className={styles.item}>
-                                    <div className={styles.itemHeader}>
-                                        <span className={styles.title}>{task.title}</span>
-                                        <span className={`${styles.priority} ${styles[task.priority]}`}>
-                                            {task.priority}
-                                        </span>
-                                    </div>
-                                    <div className={styles.itemDetails}>
-                                        <span>{task.status}</span>
-                                        <span className={styles.time}>
-                                            {new Date(task.createdAt).toLocaleTimeString()}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Gallery Section */}
-                <div className={styles.section}>
-                    <h3>🖼️ Gallery Updates</h3>
-                    <div className={styles.list}>
-                        {galleryUpdates.length === 0 ? (
-                            <p className={styles.empty}>No recent uploads</p>
-                        ) : (
-                            galleryUpdates.map((update, index) => (
-                                <div key={index} className={styles.item}>
-                                    <div className={styles.itemHeader}>
-                                        <span className={styles.type}>
-                                            {update.fileType?.startsWith('image/') ? '📷 Image' : '🎥 Video'}
-                                        </span>
-                                        <span className={styles.time}>
-                                            {new Date(update.publishDate).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <div className={styles.itemDetails}>
-                                        <span className={styles.description}>
-                                            {update.description || 'No description'}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
+                <RecentOrders orders={orders} />
+                <RecentTasks tasks={tasks} />
+                <GalleryUpdates galleryUpdates={galleryUpdates} />
             </div>
         </div>
     );

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useOutletContext } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import RealTimeDashboard from "../../components/RealTimeDashboard";
+
 const AdminDashboard = () => {
+  const { isSidebarCollapsed } = useOutletContext() || { isSidebarCollapsed: false };
   const [tasks, setTasks] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,7 +133,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className={styles.dashboard}>
+    <div className={`${styles.dashboard} ${isSidebarCollapsed ? styles.dashboardCollapsed : ''}`}>
       <div className={styles.header}>
         <h1>Admin Dashboard</h1>
         <button 

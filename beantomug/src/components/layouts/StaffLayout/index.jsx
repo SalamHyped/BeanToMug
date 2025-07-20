@@ -28,7 +28,7 @@ const StaffLayout = () => {
         onToggleCollapse={handleToggleSidebar}
       />
       <main className={`${styles.main} ${isSidebarCollapsed ? styles.mainCollapsed : ''}`}>
-        <Outlet />
+        <Outlet context={{ isSidebarCollapsed }} />
       </main>
     </div>
   );
