@@ -3,9 +3,9 @@ import { useUser } from '../../context/UserContext/UserContext';
 import socketService from '../../services/socketService';
 import axios from 'axios';
 import DashboardHeader from './DashboardHeader';
-import RecentOrders from './RecentOrders';
-import RecentTasks from './RecentTasks';
-import GalleryUpdates from './GalleryUpdates';
+import RecentOrders from './body/RecentOrders';
+import RecentTasks from './body/RecentTasks';
+import GalleryUpdates from './body/GalleryUpdates';
 import styles from './realTimeDashboard.module.css';
 
 const RealTimeDashboard = () => {

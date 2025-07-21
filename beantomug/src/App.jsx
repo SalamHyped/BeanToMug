@@ -3,6 +3,7 @@ import { useEffect, useContext } from 'react';
 
 import classes from './app.module.css';
 import React from 'react';
+import './index.css'; // Import the main CSS file with Tailwind
 
 import {CartProvider} from "./components/CartItems/CartContext"
 import MyRoutes from "./components/MyRoutes";

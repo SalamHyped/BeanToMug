@@ -1,31 +1,18 @@
-body {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Basic reset */
+* {
   margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
-
-/* Prevent layering issues with fixed elements */
-* {
-  box-sizing: border-box;
-}
-
-/* Ensure proper stacking context */
-#root {
-  position: relative;
-  z-index: 1;
-}
-
-/* Prevent any potential double rendering issues */
-.sidebar {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }

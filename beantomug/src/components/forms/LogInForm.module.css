@@ -94,7 +94,7 @@ input:focus {
   box-shadow: 0 0 0 2px rgba(137, 101, 81, 0.2);
 }
 
-button {
+.loginButton {
   border-radius: 20px;
   border: 1px solid #896551;
   background-color: #896551;
@@ -108,11 +108,11 @@ button {
   cursor: pointer;
 }
 
-button:active {
+.loginButton:active {
   transform: scale(0.95);
 }
 
-button:focus {
+.loginButton:focus {
   outline: none;
 }
 
