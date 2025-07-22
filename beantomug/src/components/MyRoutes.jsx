@@ -26,6 +26,7 @@ import StaffLayout from './layouts/StaffLayout';
 const Dashboard = lazy(() => import('../pages/staff/DashBoard'));
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 const TaskDashboard = lazy(() => import('../pages/staff/TaskDashboard'));
+const Receipts = lazy(() => import('../pages/staff/Receipts'));
 const PublicGallery = lazy(() => import('../pages/Gallery'));
 const StaffGallery = lazy(() => import('../pages/staff/StaffGallery'));
 
@@ -113,6 +114,11 @@ export default function MyRoutes(){
                     <Route path="orders" element={
                       <Suspense fallback={<PageLoader />}>
                         <Dashboard />
+                      </Suspense>
+                    } />
+                    <Route path="receipts" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Receipts />
                       </Suspense>
                     } />
                     <Route path="inventory" element={

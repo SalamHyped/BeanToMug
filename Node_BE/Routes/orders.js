@@ -4,38 +4,69 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 
 /**
  * GET /orders/staff/all
- * Retrieves all orders for staff management
+ * Retrieves orders for staff management with pagination and filtering
  * 
- * This endpoint provides a comprehensive view of all orders for staff:
+ * This endpoint allows staff to browse and filter orders:
  * - Requires user authentication via JWT token
- * - Fetches all orders (excluding cart items) for staff management
- * - Groups order items with their respective orders
- * - Includes ingredients/options for each order item
- * - Orders are sorted by creation date (newest first)
- * - Returns structured data for staff order management
+ * - Supports pagination
+ * - Supports date filtering (all, today, yesterday, week, month)
+ * - Supports custom date range (startDate to endDate)
+ * - Supports search by order ID, status, or order type
+ * - Supports status filtering
+ * - Returns paginated results with total count
+ * 
+ * Query Parameters:
+ * - page: Page number (default: 1)
+ * - limit: Items per page (default: 20)
+ * - dateFilter: Date filter (all, today, yesterday, week, month)
+ * - startDate: Custom start date (YYYY-MM-DD format)
+ * - endDate: Custom end date (YYYY-MM-DD format)
+ * - searchTerm: Search term for order ID, status, or order type
+ * - status: Filter by specific status
  * 
  * Authentication: Required (JWT token)
- * Response: Array of orders with their associated items and options
+ * Response: Array of orders with pagination details
  */
 router.get('/staff/all', authenticateToken, async (req, res) => {
   try {
     const { getCompleteOrderData } = require('../utils/orderUtils');
     
-    // Get all orders using shared utility
-    const orders = await getCompleteOrderData();
+    // Get pagination and filter parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const dateFilter = req.query.dateFilter || 'all';
+    const searchTerm = req.query.searchTerm || '';
+    const startDate = req.query.startDate || null;
+    const endDate = req.query.endDate || null;
     
-    // Return successful response with structured order data
+    // Get paginated and filtered orders
+    const { orders, totalCount, totalPages } = await getCompleteOrderData(null, { 
+      page, 
+      limit, 
+      offset,
+      dateFilter,
+      searchTerm,
+      startDate,
+      endDate
+    });
+    
+    // Return successful response with paginated data
     res.json({
       success: true,
-      orders: orders
+      orders: orders,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalCount: totalCount,
+        limit: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
+      }
     });
     
   } catch (error) {
-    // Log the error for debugging purposes
     console.error('Error fetching staff orders:', error);
-    
-    // Return generic error message to client
-    // In production, you might want to log more details but not expose them
     res.status(500).json({
       success: false,
       message: 'Failed to fetch orders'
@@ -60,26 +91,95 @@ router.get('/staff/recent', authenticateToken, async (req, res) => {
   try {
     const { getRecentOrders } = require('../utils/orderUtils');
     
+    // Get limit from query params or default to 5
+    const limit = parseInt(req.query.limit) || 5;
+    
     // Get only recent orders (optimized)
-    const recentOrders = await getRecentOrders(5);
+    const recentOrders = await getRecentOrders(limit);
     
     // Return successful response with recent order data
     res.json({
       success: true,
-      orders: recentOrders
+      orders: recentOrders,
+      meta: {
+        limit: limit,
+        count: recentOrders.length,
+        endpoint: 'recent'
+      }
     });
     
   } catch (error) {
-    // Log the error for debugging purposes
     console.error('Error fetching recent orders:', error);
-    
-    // Return generic error message to client
     res.status(500).json({
       success: false,
       message: 'Failed to fetch recent orders'
     });
   }
 });
+
+
+
+/**
+ * GET /orders/staff/stats
+ * Retrieves various order statistics for the dashboard
+ * 
+ * This endpoint provides key metrics for the dashboard:
+ * - Total orders
+ * - Today's orders
+ * - This week's orders
+ * - This month's orders
+ * - Pending orders
+ * - Completed orders
+ * 
+ * Authentication: Required (JWT token)
+ * Response: Object containing statistics
+ */
+router.get('/staff/stats', authenticateToken, async (req, res) => {
+  try {
+    const { dbSingleton } = require('../utils/dbSingleton'); // Assuming dbSingleton is in orderUtils
+    
+    const connection = await dbSingleton.getConnection();
+    
+    // Get various statistics
+    const stats = await Promise.all([
+      // Total orders
+      connection.execute('SELECT COUNT(*) as total FROM orders WHERE is_cart = 0'),
+      // Today's orders
+      connection.execute('SELECT COUNT(*) as today FROM orders WHERE is_cart = 0 AND DATE(created_at) = CURDATE()'),
+      // This week's orders
+      connection.execute('SELECT COUNT(*) as week FROM orders WHERE is_cart = 0 AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)'),
+      // This month's orders
+      connection.execute('SELECT COUNT(*) as month FROM orders WHERE is_cart = 0 AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)'),
+      // Pending orders
+      connection.execute('SELECT COUNT(*) as pending FROM orders WHERE is_cart = 0 AND status = "pending"'),
+      // Completed orders
+      connection.execute('SELECT COUNT(*) as completed FROM orders WHERE is_cart = 0 AND status = "completed"')
+    ]);
+    
+    const [total, today, week, month, pending, completed] = stats.map(result => result[0][0]);
+    
+    res.json({
+      success: true,
+      stats: {
+        total: total.total,
+        today: today.today,
+        week: week.week,
+        month: month.month,
+        pending: pending.pending,
+        completed: completed.completed
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching order stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order statistics'
+    });
+  }
+});
+
+
 
 /**
  * PUT /orders/staff/:orderId/status

@@ -1,7 +1,14 @@
 .dashboard {
-  width: 100%;
-  max-width: 1200px;
+  max-width: 120rem;
   margin: 0 auto;
+  padding: 2rem;
+  background-image:  linear-gradient(135deg, #3E2723 0%, #5D4037 15%, #8D6E63 30%, #A1887F 45%, #D7CCC8 60%, #EFEBE9 75%, #D7CCC8 90%, #8D6E63 100%);
+  background-size: 300% 300%;
+  animation: coffeeSteam 12s ease-in-out infinite;
+  min-height: 100vh;
+  box-shadow: 
+    0 0.25rem 0.5rem rgba(0, 0, 0, 0.3),
+    inset 0 0.0625rem 0.125rem rgba(255, 255, 255, 0.2);
 }
 
 .header {
@@ -33,25 +40,8 @@
   overflow: hidden;
 }
 
-/* Welcome Section */
-.welcomeSection {
-  padding: 2rem;
-  text-align: center;
-  background: linear-gradient(135deg, #896651 0%, #6b4f3f 100%);
-  color: white;
-}
 
-.welcomeSection h2 {
-  font-size: 2rem;
-  margin: 0 0 1rem 0;
-  font-weight: 600;
-}
 
-.welcomeSection p {
-  font-size: 1.1rem;
-  margin: 0;
-  opacity: 0.9;
-}
 
 /* Quick Actions */
 .quickActions {

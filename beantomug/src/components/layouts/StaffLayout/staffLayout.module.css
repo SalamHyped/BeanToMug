@@ -22,8 +22,8 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .main {
-    margin-left: 250px;
-    width: calc(100vw - 250px);
+    margin-left: 220px;
+    width: calc(100vw - 220px);
   }
   
   .mainCollapsed {

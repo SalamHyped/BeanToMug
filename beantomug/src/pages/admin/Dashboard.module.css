@@ -1,8 +1,8 @@
 .dashboard {
-  width: 100%;
+  max-width: 120rem;
+  margin: 0 auto;
   min-height: 100vh;
-  margin: 0;
-  padding: 0;
+  padding: 2rem;
   background: 
     linear-gradient(135deg, #3E2723 0%, #5D4037 15%, #8D6E63 30%, #A1887F 45%, #D7CCC8 60%, #EFEBE9 75%, #D7CCC8 90%, #8D6E63 100%);
   background-size: 300% 300%;

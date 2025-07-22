@@ -22,27 +22,11 @@ export default function DashBoard(){
             // Main dashboard
             return (
                 <>
-                    <div className={styles.welcomeSection}>
-                        <h2>Welcome to Staff Dashboard</h2>
-                        <p>Manage orders and inventory from this central location.</p>
-                    </div>
-                    
+                  
                     {/* Real-Time Dashboard */}
                     <RealTimeDashboard />
                     
-                    <div className={styles.quickActions}>
-                        <h3>Quick Actions</h3>
-                        <div className={styles.actionGrid}>
-                            <div className={styles.actionCard}>
-                                <h4>📋 Orders Queue</h4>
-                                <p>View and manage pending orders</p>
-                            </div>
-                            <div className={styles.actionCard}>
-                                <h4>📦 Inventory</h4>
-                                <p>Manage stock and supplies</p>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </>
             );
         }
