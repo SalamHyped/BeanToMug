@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Rating from '../components/Rating/Rating';
+import PostPaymentReceipt from '../components/ReceiptOrders/PostPaymentReceipt';
 import styles from './PaymentSuccess.module.css';
 
 const PaymentSuccess = () => {
@@ -10,6 +11,7 @@ const PaymentSuccess = () => {
   const location = useLocation();
   const [orderDetails, setOrderDetails] = useState(location.state?.orderDetails || null);
   const [showRating, setShowRating] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -38,6 +40,7 @@ const PaymentSuccess = () => {
       });
 
       console.log('Rating submission response:', response.data);
+      setShowReceipt(false);
       navigate('/');
     } catch (error) {
       console.error('Error submitting rating:', {
@@ -45,8 +48,14 @@ const PaymentSuccess = () => {
         response: error.response?.data,
         status: error.response?.status
       });
+      setShowReceipt(false);
       navigate('/');
     }
+  };
+
+  const handleReceiptClose = () => {
+    setShowReceipt(false);
+    setShowRating(true);
   };
 
   if (!orderDetails) {
@@ -59,15 +68,25 @@ const PaymentSuccess = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.successMessage}>
-        <h2>Payment Successful!</h2>
-        <p>Thank you for your order.</p>
-        {showRating && (
-          <div className={styles.ratingContainer}>
-            <Rating onSubmit={handleRatingSubmit} />
-          </div>
-        )}
-      </div>
+      {showReceipt ? (
+        <PostPaymentReceipt
+          orderId={orderDetails.order_id}
+          onClose={handleReceiptClose}
+          showDownload={true}
+          showPrint={true}
+          showEmail={false}
+        />
+      ) : (
+        <div className={styles.successMessage}>
+          <h2>Payment Successful!</h2>
+          <p>Thank you for your order.</p>
+          {showRating && (
+            <div className={styles.ratingContainer}>
+              <Rating onSubmit={handleRatingSubmit} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

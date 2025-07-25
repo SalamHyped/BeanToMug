@@ -381,6 +381,53 @@ router.get('/history', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /orders/guest/:orderId
+ * Retrieves detailed information about a guest order (no authentication required)
+ * 
+ * This endpoint provides comprehensive details for a guest order:
+ * - No authentication required (for guest orders)
+ * - Validates that the order exists and is a guest order (user_id = NULL)
+ * - Fetches complete order information including all items
+ * - Used for post-payment receipt display for guests
+ * 
+ * @param {string} orderId - The order ID from the URL parameter
+ * 
+ * Authentication: None (for guest orders)
+ * Response: Detailed order information with items
+ */
+router.get('/guest/:orderId', async (req, res) => {
+  try {
+    const { getSingleOrder } = require('../utils/orderUtils');
+    
+    // Get the order ID from the URL parameter
+    const orderId = req.params.orderId;
+    
+    // Get order details using shared utility (null for guest orders)
+    const order = await getSingleOrder(orderId, null);
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Guest order not found'
+      });
+    }
+    
+    // Return the complete order information with items
+    res.json({
+      success: true,
+      order: order
+    });
+    
+  } catch (error) {
+    console.error('Error fetching guest order details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order details'
+    });
+  }
+});
+
+/**
  * GET /orders/:orderId
  * Retrieves detailed information about a specific order
  * 
@@ -397,82 +444,107 @@ router.get('/history', authenticateToken, async (req, res) => {
  */
 router.get('/:orderId', authenticateToken, async (req, res) => {
   try {
+    const { getSingleOrder } = require('../utils/orderUtils');
+    
     // Extract user ID from the authenticated JWT token
     const userId = req.user.id;
     
     // Get the order ID from the URL parameter
     const orderId = req.params.orderId;
     
-    // Step 1: Verify the order exists and belongs to the authenticated user
-    // This is a security measure to prevent users from accessing other users' orders
-    const orderQuery = `
-      SELECT * FROM orders 
-      WHERE order_id = ? AND user_id = ? AND is_cart = 0
-    `;
+    // Get order details using shared utility (with user authentication)
+    const order = await getSingleOrder(orderId, userId);
     
-    // Execute the query with order ID and user ID as parameters
-    const [orderRows] = await req.db.execute(orderQuery, [orderId, userId]);
-    
-    // If no order is found, return 404 error
-    // This could happen if:
-    // - The order doesn't exist
-    // - The order belongs to a different user
-    // - The order is actually a cart item (is_cart = 1)
-    if (orderRows.length === 0) {
+    if (!order) {
       return res.status(404).json({
         success: false,
         message: 'Order not found'
       });
     }
     
-    // Extract the order data (there should only be one row)
-    const order = orderRows[0];
-    
-    // Step 2: Get all items associated with this order
-    // This query fetches item details by joining order_item with dish table
-    const itemsQuery = `
-      SELECT 
-        oi.order_item_id,
-        oi.item_id,
-        oi.quantity,
-        oi.price,
-        d.item_name
-      FROM order_item oi
-      LEFT JOIN dish d ON oi.item_id = d.item_id
-      WHERE oi.order_id = ?
-    `;
-    
-    // Execute the query to get all items for this order
-    const [itemRows] = await req.db.execute(itemsQuery, [orderId]);
-    
-    // Process the item data into a consistent format
-    const items = itemRows.map(item => ({
-      order_item_id: item.order_item_id,
-      item_id: item.item_id,
-      item_name: item.item_name,
-      price: parseFloat(item.price),  // Convert string to number
-      quantity: item.quantity,
-      options: null // Options field not available in current schema
-      // Note: Customization options are not currently stored in the database
-    }));
-    
     // Return the complete order information with items
     res.json({
       success: true,
-      order: {
-        ...order,  // Spread all order properties (id, status, timestamps, etc.)
-        items: items  // Add the processed items array
+      order: order
+    });
+    
+  } catch (error) {
+    console.error('Error fetching order details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order details'
+    });
+  }
+});
+
+/**
+ * GET /orders/customer/all
+ * Retrieves orders for customer view with pagination and filtering
+ * 
+ * This endpoint allows customers to view their own orders:
+ * - Requires user authentication via JWT token
+ * - Only returns orders belonging to the authenticated user
+ * - Supports pagination
+ * - Supports date filtering (all, today, yesterday, week, month)
+ * - Supports custom date range (startDate to endDate)
+ * - Supports search by order ID, status, or order type
+ * - Returns paginated results with total count
+ * 
+ * Query Parameters:
+ * - page: Page number (default: 1)
+ * - limit: Items per page (default: 20)
+ * - dateFilter: Date filter (all, today, yesterday, week, month)
+ * - startDate: Custom start date (YYYY-MM-DD format)
+ * - endDate: Custom end date (YYYY-MM-DD format)
+ * - searchTerm: Search term for order ID, status, or order type
+ * 
+ * Authentication: Required (JWT token)
+ * Response: Array of customer's orders with pagination details
+ */
+router.get('/customer/all', authenticateToken, async (req, res) => {
+  try {
+    const { getCompleteOrderData } = require('../utils/orderUtils');
+    
+    // Get pagination and filter parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const dateFilter = req.query.dateFilter || 'all';
+    const searchTerm = req.query.searchTerm || '';
+    const startDate = req.query.startDate || null;
+    const endDate = req.query.endDate || null;
+    
+    // Get paginated and filtered orders for the authenticated user
+    const { orders, totalCount, totalPages } = await getCompleteOrderData(null, { 
+      page, 
+      limit, 
+      offset,
+      dateFilter,
+      searchTerm,
+      startDate,
+      endDate,
+      userId: req.user.user_id // Filter by authenticated user
+    });
+    
+    // Return successful response with paginated data
+    res.json({
+      success: true,
+      orders: orders,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalCount: totalCount,
+        limit: limit,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
       }
     });
     
   } catch (error) {
-    // Log the error for debugging purposes
-    console.error('Error fetching order details:', error);
-    
-    // Return generic error message to client
+    console.error('Error fetching customer orders:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch order details'
+      message: 'Failed to fetch orders'
     });
   }
 });

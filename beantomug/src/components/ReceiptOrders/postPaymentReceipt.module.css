@@ -1,0 +1,436 @@
+/* PostPaymentReceipt Component Styles */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Success Header */
+.successHeader {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.1) 0%, rgba(52, 152, 219, 0.1) 100%);
+    border-radius: 1rem;
+    border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.successIcon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: bounce 1s ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #7f8c8d;
+    margin-bottom: 1.5rem;
+}
+
+.orderInfo {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.orderId {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.orderDate {
+    background: rgba(255, 255, 255, 0.2);
+    color: #2c3e50;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: 500;
+}
+
+/* Receipt Section */
+.receiptSection {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.receiptTitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.receiptContent {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.receiptContent pre {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 0;
+    white-space: pre-wrap;
+    color: #2c3e50;
+}
+
+/* Order Summary */
+.orderSummary {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.orderSummary h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.summaryItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.label {
+    font-weight: 600;
+    color: #7f8c8d;
+}
+
+.value {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status.pending {
+    background: rgba(255, 193, 7, 0.2);
+    color: #856404;
+}
+
+.status.processing {
+    background: rgba(0, 123, 255, 0.2);
+    color: #004085;
+}
+
+.status.completed {
+    background: rgba(40, 167, 69, 0.2);
+    color: #155724;
+}
+
+.status.cancelled {
+    background: rgba(220, 53, 69, 0.2);
+    color: #721c24;
+}
+
+/* Action Buttons */
+.actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.downloadButton,
+.printButton,
+.emailButton,
+.closeButton {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.downloadButton {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.downloadButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(240, 147, 251, 0.3);
+}
+
+.downloadButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.printButton {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.printButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.emailButton {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.emailButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
+}
+
+.closeButton {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    color: white;
+}
+
+.closeButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(39, 174, 96, 0.3);
+}
+
+/* Next Steps */
+.nextSteps {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nextSteps h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.stepsList {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stepNumber {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.stepContent h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.stepContent p {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Loading and Error States */
+.loading,
+.error {
+    text-align: center;
+    padding: 3rem;
+    color: #7f8c8d;
+}
+
+.spinner {
+    width: 3rem;
+    height: 3rem;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error h3 {
+    color: #e74c3c;
+    margin-bottom: 1rem;
+}
+
+.retryButton {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+}
+
+.retryButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.errorMessage {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.errorMessage p {
+    color: #c0392b;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+        margin: 1rem;
+    }
+
+    .title {
+        font-size: 2rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+    }
+
+    .orderInfo {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .summaryGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .downloadButton,
+    .printButton,
+    .emailButton,
+    .closeButton {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+    }
+
+    .step {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stepNumber {
+        align-self: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0.5rem;
+        margin: 0.5rem;
+    }
+
+    .successHeader {
+        padding: 1rem;
+    }
+
+    .successIcon {
+        font-size: 3rem;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .receiptContent pre {
+        font-size: 0.8rem;
+    }
+} 

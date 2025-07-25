@@ -116,6 +116,12 @@ function buildWhereClause(options) {
         params.push(searchParam, searchParam, searchParam);
     }
     
+    // Add user filter (for customer endpoints)
+    if (options.userId) {
+        whereClause += ' AND o.user_id = ?';
+        params.push(options.userId);
+    }
+    
     return { whereClause, params };
 }
 
@@ -317,11 +323,86 @@ async function getRecentOrders(limit = 5) {
     }
 }
 
+/**
+ * Get a single order by ID with items
+ * @param {number} orderId - The order ID to fetch
+ * @param {number|null} userId - User ID for authentication (null for guest orders)
+ * @returns {Object|null} Order object with items or null if not found
+ */
+async function getSingleOrder(orderId, userId = null) {
+    try {
+        const connection = await dbSingleton.getConnection();
+        
+        // Build the WHERE clause based on user authentication
+        let whereClause = 'WHERE order_id = ? AND is_cart = 0';
+        let params = [orderId];
+        
+        if (userId !== null) {
+            // Authenticated user - check ownership
+            whereClause += ' AND user_id = ?';
+            params.push(userId);
+        } else {
+            // Guest order - must have user_id = NULL
+            whereClause += ' AND user_id IS NULL';
+        }
+        
+        // Step 1: Get order details
+        const orderQuery = `
+            SELECT * FROM orders 
+            ${whereClause}
+        `;
+        
+        const [orderRows] = await connection.execute(orderQuery, params);
+        
+        if (orderRows.length === 0) {
+            return null;
+        }
+        
+        const order = orderRows[0];
+        
+        // Step 2: Get order items
+        const itemsQuery = `
+            SELECT 
+                oi.order_item_id,
+                oi.item_id,
+                oi.quantity,
+                oi.price,
+                d.item_name
+            FROM order_item oi
+            LEFT JOIN dish d ON oi.item_id = d.item_id
+            WHERE oi.order_id = ?
+        `;
+        
+        const [itemRows] = await connection.execute(itemsQuery, [orderId]);
+        
+        // Process items into consistent format
+        const items = itemRows.map(item => ({
+            order_item_id: item.order_item_id,
+            item_id: item.item_id,
+            item_name: item.item_name,
+            price: parseFloat(item.price),
+            quantity: item.quantity,
+            options: null // Options field not available in current schema
+        }));
+        
+        // Return complete order with items
+        return {
+            ...order,
+            items: items
+        };
+        
+    } catch (error) {
+        console.error('Error fetching single order:', error);
+        return null;
+    }
+}
+
 module.exports = {
     getCompleteOrderData,
     getRecentOrders,
     processOrderRows,
     buildWhereClause,
     getOrderCount,
-    buildOrderQuery
+    buildOrderQuery,
+    getSingleOrder
 }; 

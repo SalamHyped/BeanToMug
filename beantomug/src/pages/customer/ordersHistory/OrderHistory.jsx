@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useUser } from '../../../context/UserContext/UserContext';
 import axios from 'axios';
+import OrderItemDisplay from '../../../components/OrderItemDisplay';
 import classes from './OrderHistory.module.css';
 
 export default function OrderHistory() {
@@ -219,31 +220,13 @@ export default function OrderHistory() {
                 {/* Expanded Order Details */}
                 {selectedOrder?.order_id === order.order_id && (
                   <div className={classes.orderDetails}>
-                    <div className={classes.itemsList}>
-                      <h4>Order Items</h4>
-                      {order.items.map((item, index) => (
-                        <div key={index} className={classes.orderItem}>
-                          <div className={classes.itemInfo}>
-                            <h5>{item.item_name}</h5>
-                            <p className={classes.itemOptions}>
-                              {item.options && Object.keys(item.options).length > 0
-                                ? Object.entries(item.options)
-                                    .filter(([_, opt]) => opt.selected)
-                                    .map(([_, opt]) => `${opt.label}: ${opt.value}`)
-                                    .join(', ')
-                                : 'No customizations'
-                              }
-                            </p>
-                          </div>
-                          <div className={classes.itemQuantity}>
-                            Qty: {item.quantity}
-                          </div>
-                          <div className={classes.itemPrice}>
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <OrderItemDisplay 
+                      items={order.items}
+                      variant="detailed"
+                      showOptions={true}
+                      showPrice={true}
+                      showQuantity={true}
+                    />
                     
                     <div className={classes.orderSummary}>
                       <div className={classes.summaryRow}>

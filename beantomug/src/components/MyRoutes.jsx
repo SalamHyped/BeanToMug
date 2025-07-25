@@ -27,6 +27,7 @@ const Dashboard = lazy(() => import('../pages/staff/DashBoard'));
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 const TaskDashboard = lazy(() => import('../pages/staff/TaskDashboard'));
 const Receipts = lazy(() => import('../pages/staff/Receipts'));
+const CustomerReceipts = lazy(() => import('../pages/customer/Receipts'));
 const PublicGallery = lazy(() => import('../pages/Gallery'));
 const StaffGallery = lazy(() => import('../pages/staff/StaffGallery'));
 
@@ -71,6 +72,11 @@ export default function MyRoutes(){
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']} />}>
                 <Route index element={<Menu />} />
                 <Route path="orders" element={<OrderHistory />} />
+                <Route path="receipts" element={
+                  <Suspense fallback={<PageLoader />}>
+                    <CustomerReceipts />
+                  </Suspense>
+                } />
                 <Route path="profile" element={<Profile />} />
             </Route>
 
