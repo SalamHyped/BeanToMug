@@ -40,27 +40,18 @@ export const generateReceiptContent = (order) => {
 
         receipt += `${itemName}\n`;
         receipt += `  ${itemQuantity} x $${itemPrice.toFixed(2)} = $${itemTotal.toFixed(2)}\n`;
-        
-        // Add options/customizations if available
-        if (item.options && item.options.length > 0) {
-            receipt += `  Options:\n`;
-            item.options.forEach(option => {
-                const optionPrice = parseFloat(option.price || 0);
-                const priceText = optionPrice > 0 ? ` (+$${optionPrice.toFixed(2)})` : '';
-                receipt += `    • ${option.name}${priceText}\n`;
-            });
-        }
-        
-        // Add customizations if available (for backward compatibility)
-        if (item.customizations && item.customizations.length > 0) {
+     
+        // Add ingredients if available (from database structure)
+        if (item.ingredients && item.ingredients.length > 0) {
             receipt += `  Customizations:\n`;
-            item.customizations.forEach(custom => {
-                const customPrice = parseFloat(custom.price || 0);
-                const priceText = customPrice > 0 ? ` (+$${customPrice.toFixed(2)})` : '';
-                receipt += `    • ${custom.name}${priceText}\n`;
+            item.ingredients.forEach(ingredient => {
+                const ingredientPrice = parseFloat(ingredient.price || 0);
+                const priceText = ingredientPrice > 0 ? ` (+$${ingredientPrice.toFixed(2)})` : '';
+                receipt += `    • ${ingredient.ingredient_name}${priceText}\n`;
             });
         }
         
+      
         // Add special instructions if available
         if (item.special_instructions || item.specialInstructions) {
             receipt += `  Special Instructions: ${item.special_instructions || item.specialInstructions}\n`;
