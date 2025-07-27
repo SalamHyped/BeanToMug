@@ -27,6 +27,11 @@ function processOrderRows(rows) {
                 paypal_order_id: row.paypal_order_id,
                 payment_method: row.paypal_order_id ? 'PayPal' : 'Not specified',
                 payment_status: row.paypal_order_id ? 'Paid' : 'Pending',
+                // Customer information
+                first_name: row.first_name,
+                last_name: row.last_name,
+                email: row.email,
+                phone_number: row.phone_number || row.user_phone,
                 items: []                      // Array to hold order items
             });
         }
@@ -168,6 +173,11 @@ function buildOrderQuery(orderId, options) {
             o.vat_amount,
             o.subtotal,
             o.paypal_order_id,
+            o.phone_number,
+            u.first_name,
+            u.last_name,
+            u.email,
+            u.phone_number as user_phone,
             oi.order_item_id,
             oi.item_id,
             d.item_name,
@@ -178,6 +188,7 @@ function buildOrderQuery(orderId, options) {
             ing.ingredient_name,
             it.name as ingredient_type
         FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
         LEFT JOIN order_item oi ON o.order_id = oi.order_id
         LEFT JOIN dish d ON oi.item_id = d.item_id
         LEFT JOIN order_item_ingredient oii ON oi.order_item_id = oii.order_item_id
@@ -360,30 +371,23 @@ async function getSingleOrder(orderId, userId = null) {
         
         const order = orderRows[0];
         
-        // Step 2: Get order items
-        const itemsQuery = `
-            SELECT 
-                oi.order_item_id,
-                oi.item_id,
-                oi.quantity,
-                oi.price,
-                d.item_name
-            FROM order_item oi
-            LEFT JOIN dish d ON oi.item_id = d.item_id
-            WHERE oi.order_id = ?
-        `;
+        // Step 2: Get order items with ingredients using the same query structure as getCompleteOrderData
+        const { query: itemsQuery, params: itemsParams } = buildOrderQuery(orderId, null);
+        const [itemRows] = await connection.execute(itemsQuery, itemsParams);
         
-        const [itemRows] = await connection.execute(itemsQuery, [orderId]);
+        // Use the existing processOrderRows function to handle ingredients properly
+        const processedOrders = processOrderRows(itemRows);
+        const processedOrder = processedOrders[0]; // Get the first (and only) order
         
-        // Process items into consistent format
-        const items = itemRows.map(item => ({
-            order_item_id: item.order_item_id,
-            item_id: item.item_id,
-            item_name: item.item_name,
-            price: parseFloat(item.price),
-            quantity: item.quantity,
-            options: null // Options field not available in current schema
-        }));
+        if (!processedOrder) {
+            return null;
+        }
+        
+        // Return complete order with items and ingredients
+        return {
+            ...order,
+            items: processedOrder.items
+        };
         
         // Return complete order with items
         return {

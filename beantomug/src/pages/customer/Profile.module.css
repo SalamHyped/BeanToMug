@@ -4,7 +4,7 @@
   margin: 0 auto;
   padding: 2rem;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f9f5f1 0%, #f3d9ca 100%);
+  background: transparent;
 }
 
 /* Header */
@@ -12,9 +12,11 @@
   text-align: center;
   margin-bottom: 3rem;
   padding: 2rem;
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .header h1 {
@@ -59,10 +61,12 @@
 
 /* Profile Picture Section */
 .profilePictureSection {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   padding: 2rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   gap: 2rem;
@@ -111,10 +115,12 @@
 
 /* Profile Form */
 .profileForm {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   padding: 2rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .formHeader {
@@ -434,10 +440,12 @@
 
 /* Security Section */
 .securitySection {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   padding: 2rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .securitySection h3 {
@@ -502,10 +510,12 @@
 
 /* Stats Section */
 .statsSection {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   padding: 2rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .statsSection h3 {

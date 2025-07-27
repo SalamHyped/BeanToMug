@@ -4,7 +4,7 @@
   margin: 0 auto;
   padding: 2rem;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f9f5f1 0%, #f3d9ca 100%);
+  background: transparent;
 }
 
 /* Header */
@@ -12,9 +12,11 @@
   text-align: center;
   margin-bottom: 3rem;
   padding: 2rem;
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .header h1 {
@@ -31,11 +33,13 @@
 
 /* Controls */
 .controls {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   padding: 1.5rem;
   border-radius: 1rem;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .searchBox {
@@ -88,9 +92,11 @@
 .loading {
   text-align: center;
   padding: 4rem;
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .spinner {
@@ -123,9 +129,11 @@
 .emptyState {
   text-align: center;
   padding: 4rem;
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .emptyIcon {
@@ -144,9 +152,11 @@
 
 /* Orders Container */
 .ordersContainer {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
 }
 
@@ -173,13 +183,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
-  background: #f9f5f1;
+  background: rgba(249, 245, 241, 0.8);
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 .orderHeader:hover {
-  background: #f3d9ca;
+  background: rgba(243, 217, 202, 0.9);
 }
 
 .orderInfo {

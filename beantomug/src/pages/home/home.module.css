@@ -1,7 +1,7 @@
 /* Home Page Styles */
 .homeContainer {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f9f5f1 0%, #f3d9ca 100%);
+    background: transparent;
   }
   
   /* Hero Section */

@@ -21,13 +21,14 @@ import Footer from './footer/Footer';
 // Layouts load immediately (no lazy loading for better UX)
 import AdminLayout from './layouts/AdminLayout';
 import StaffLayout from './layouts/StaffLayout';
+import CustomerLayout from './layouts/CustomerLayout';
 
 // Only page content is lazy-loaded
 const Dashboard = lazy(() => import('../pages/staff/DashBoard'));
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 const TaskDashboard = lazy(() => import('../pages/staff/TaskDashboard'));
 const Receipts = lazy(() => import('../pages/staff/Receipts'));
-const CustomerReceipts = lazy(() => import('../pages/customer/Receipts'));
+const CustomerReceipts = lazy(() => import('../pages/customer/CustomerReceipts'));
 const PublicGallery = lazy(() => import('../pages/Gallery'));
 const StaffGallery = lazy(() => import('../pages/staff/StaffGallery'));
 
@@ -70,14 +71,16 @@ export default function MyRoutes(){
             
             {/* Customer protected routes */}
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']} />}>
-                <Route index element={<Menu />} />
-                <Route path="orders" element={<OrderHistory />} />
-                <Route path="receipts" element={
-                  <Suspense fallback={<PageLoader />}>
-                    <CustomerReceipts />
-                  </Suspense>
-                } />
-                <Route path="profile" element={<Profile />} />
+                <Route element={<CustomerLayout />}>
+                    <Route index element={<Menu />} />
+                    <Route path="orders" element={<OrderHistory />} />
+                    <Route path="receipts" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <CustomerReceipts />
+                      </Suspense>
+                    } />
+                    <Route path="profile" element={<Profile />} />
+                </Route>
             </Route>
 
             {/* Admin protected routes - Layout loads immediately, only pages are lazy */}
@@ -137,6 +140,7 @@ export default function MyRoutes(){
                         <StaffGallery />
                       </Suspense>
                     } />
+                    <Route path="profile" element={<Profile />} />
                 </Route>
             </Route>
         </Routes>

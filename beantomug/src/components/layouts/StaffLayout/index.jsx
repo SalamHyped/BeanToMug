@@ -10,7 +10,8 @@ const STAFF_NAV_ITEMS = [
   { to: "/staff/orders", label: "Orders Queue", icon: "📋" },
   { to: "/staff/receipts", label: "Receipts", icon: "🧾" },
   { to: "/staff/inventory", label: "Inventory", icon: "📦" },
-  { to: "/staff/gallery", label: "Gallery", icon: "📷" }
+  { to: "/staff/gallery", label: "Gallery", icon: "📷" },
+  { to: "/staff/profile", label: "Profile", icon: "👤" }
 ];
 
 const StaffLayout = () => {

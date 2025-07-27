@@ -428,29 +428,34 @@ class CartService {
       // Process ingredient selections with validation, price calculation, and auto-addition
       const processedResult = processIngredientSelections(options, availableIngredients, item.price);
       
-      console.log('=== ADD TO USER CART DEBUG ===');
-      console.log('Item ID:', item.item_id);
-      console.log('Options:', options);
-      console.log('Processed result:', processedResult);
-      console.log('==============================');
+
       
       // Check if item with same options already exists in cart
+      // Get all existing items with the same item_id
       const [existingItems] = await connection.execute(`
-        SELECT oi.order_item_id 
+        SELECT oi.order_item_id, GROUP_CONCAT(oii.ingredient_id ORDER BY oii.ingredient_id) as ingredient_ids
         FROM order_item oi
         LEFT JOIN order_item_ingredient oii ON oi.order_item_id = oii.order_item_id
         WHERE oi.order_id = ? AND oi.item_id = ?
         GROUP BY oi.order_item_id
-        HAVING COUNT(DISTINCT oii.ingredient_id) = ?
-      `, [cartOrder.order_id, item.item_id, processedResult.ingredients.all.length]);
+      `, [cartOrder.order_id, item.item_id]);
 
-      if (existingItems.length > 0) {
+      // Get the ingredient IDs for the new item
+      const newIngredientIds = processedResult.ingredients.all.map(ing => ing.ingredient_id).sort().join(',');
+      
+      // Find exact match
+      const exactMatch = existingItems.find(existingItem => {
+        const existingIngredientIds = existingItem.ingredient_ids || '';
+        return existingIngredientIds === newIngredientIds;
+      });
+
+      if (exactMatch) {
         // Update existing item quantity
         await connection.execute(`
           UPDATE order_item 
           SET quantity = quantity + ?, updated_at = NOW()
           WHERE order_item_id = ?
-        `, [quantity, existingItems[0].order_item_id]);
+        `, [quantity, exactMatch.order_item_id]);
       } else {
         // Add new item to cart
         const [result] = await connection.execute(`
@@ -557,21 +562,30 @@ class CartService {
         }
       }
       
-      // Find matching order item
+      // Find matching order item with exact ingredient match
       const [orderItems] = await connection.execute(`
-        SELECT oi.order_item_id 
+        SELECT oi.order_item_id, GROUP_CONCAT(oii.ingredient_id ORDER BY oii.ingredient_id) as ingredient_ids
         FROM order_item oi
         LEFT JOIN order_item_ingredient oii ON oi.order_item_id = oii.order_item_id
         WHERE oi.order_id = ? AND oi.item_id = ?
         GROUP BY oi.order_item_id
-        HAVING COUNT(DISTINCT oii.ingredient_id) = ?
-      `, [cartOrder.order_id, itemId, options ? Object.keys(options).filter(id => options[id].selected).length : 0]);
+      `, [cartOrder.order_id, itemId]);
 
-      if (orderItems.length === 0) {
+      // Get the ingredient IDs for the options
+      const optionIngredientIds = options ? 
+        Object.keys(options).filter(id => options[id].selected).map(id => parseInt(id)).sort((a, b) => a - b).join(',') : '';
+      
+      // Find exact match
+      const exactMatch = orderItems.find(orderItem => {
+        const existingIngredientIds = orderItem.ingredient_ids || '';
+        return existingIngredientIds === optionIngredientIds;
+      });
+
+      if (!exactMatch) {
         throw new Error('Item not found in cart');
       }
 
-      const orderItemId = orderItems[0].order_item_id;
+      const orderItemId = exactMatch.order_item_id;
       
       if (quantity <= 0) {
         // Remove item if quantity is 0 or less
@@ -646,21 +660,30 @@ class CartService {
       
       const cartOrder = await this.getOrCreateUserCart(userId);
 
-      // Find matching order item
+      // Find matching order item with exact ingredient match
       const [orderItems] = await connection.execute(`
-        SELECT oi.order_item_id 
+        SELECT oi.order_item_id, GROUP_CONCAT(oii.ingredient_id ORDER BY oii.ingredient_id) as ingredient_ids
         FROM order_item oi
         LEFT JOIN order_item_ingredient oii ON oi.order_item_id = oii.order_item_id
         WHERE oi.order_id = ? AND oi.item_id = ?
         GROUP BY oi.order_item_id
-        HAVING COUNT(DISTINCT oii.ingredient_id) = ?
-      `, [cartOrder.order_id, itemId, options ? Object.keys(options).filter(id => options[id].selected).length : 0]);
+      `, [cartOrder.order_id, itemId]);
 
-      if (orderItems.length === 0) {
+      // Get the ingredient IDs for the options
+      const optionIngredientIds = options ? 
+        Object.keys(options).filter(id => options[id].selected).map(id => parseInt(id)).sort((a, b) => a - b).join(',') : '';
+      
+      // Find exact match
+      const exactMatch = orderItems.find(orderItem => {
+        const existingIngredientIds = orderItem.ingredient_ids || '';
+        return existingIngredientIds === optionIngredientIds;
+      });
+
+      if (!exactMatch) {
         throw new Error('Item not found in cart');
       }
 
-      const orderItemId = orderItems[0].order_item_id;
+      const orderItemId = exactMatch.order_item_id;
       
       // Remove ingredients first (foreign key constraint)
       await connection.execute(`

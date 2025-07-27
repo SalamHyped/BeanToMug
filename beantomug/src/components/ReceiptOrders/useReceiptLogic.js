@@ -28,6 +28,38 @@ export const generateReceiptContent = (order) => {
     if (order.payment_status) {
         receipt += `Payment Status: ${order.payment_status}\n`;
     }
+    
+    // Add customer information if available
+    const customerInfo = [];
+    if (order.customer_name || order.first_name || order.last_name) {
+        const firstName = order.first_name || '';
+        const lastName = order.last_name || '';
+        const fullName = order.customer_name || `${firstName} ${lastName}`.trim();
+        if (fullName) {
+            customerInfo.push(`Customer: ${fullName}`);
+        }
+    }
+    if (order.phone_number || order.phone || order.user_phone) {
+        const phone = order.phone_number || order.phone || order.user_phone;
+        // Convert integer phone number to string and format it
+        const phoneStr = phone.toString();
+        if (phoneStr && phoneStr !== '0') {
+            customerInfo.push(`Phone: ${phoneStr}`);
+        }
+    }
+    if (order.email || order.customer_email) {
+        customerInfo.push(`Email: ${order.email || order.customer_email}`);
+    }
+    
+    if (customerInfo.length > 0) {
+        receipt += '-'.repeat(40) + '\n';
+        receipt += 'CUSTOMER INFORMATION:\n';
+        receipt += '-'.repeat(40) + '\n';
+        customerInfo.forEach(info => {
+            receipt += `${info}\n`;
+        });
+    }
+    
     receipt += '-'.repeat(40) + '\n';
     receipt += 'ITEMS:\n';
     receipt += '-'.repeat(40) + '\n';

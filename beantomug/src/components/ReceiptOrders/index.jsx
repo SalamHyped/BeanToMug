@@ -8,7 +8,7 @@ import styles from './receiptOrders.module.css';
 
 // Prop validation
 const validateProps = (props) => {
-    const { userRole, pageSize, showDownload, showView, showSearch, showDateFilter, showPagination } = props;
+    const { userRole, pageSize, showDownload, showView, showPrint, showSearch, showDateFilter, showPagination } = props;
     
     const errors = [];
     
@@ -26,6 +26,10 @@ const validateProps = (props) => {
     
     if (typeof showView !== 'boolean') {
         errors.push(`Invalid showView: ${showView}. Must be boolean`);
+    }
+    
+    if (typeof showPrint !== 'boolean') {
+        errors.push(`Invalid showPrint: ${showPrint}. Must be boolean`);
     }
     
     if (typeof showSearch !== 'boolean') {
@@ -71,6 +75,7 @@ const ReceiptOrders = ({
     userRole = 'staff',
     showDownload = true,
     showView = true,
+    showPrint = true,
     showSearch = true,
     showDateFilter = true,
     showPagination = true,
@@ -86,8 +91,8 @@ const ReceiptOrders = ({
     const searchInputRef = useRef(null);
 
     // Validate props
-    const propErrors = useMemo(() => validateProps({ userRole, pageSize, showDownload, showView, showSearch, showDateFilter, showPagination }), 
-        [userRole, pageSize, showDownload, showView, showSearch, showDateFilter, showPagination]);
+    const propErrors = useMemo(() => validateProps({ userRole, pageSize, showDownload, showView, showPrint, showSearch, showDateFilter, showPagination }), 
+        [userRole, pageSize, showDownload, showView, showPrint, showSearch, showDateFilter, showPagination]);
 
     if (propErrors.length > 0) {
         console.error('ReceiptOrders prop validation errors:', propErrors);
@@ -145,7 +150,7 @@ const ReceiptOrders = ({
     const [currentPage, setCurrentPage] = useState(1);
 
     // Use shared receipt logic
-    const { downloadReceipt, viewReceipt } = useReceiptLogic();
+    const { downloadReceipt, viewReceipt, printReceipt } = useReceiptLogic();
 
     // Memoized API endpoint
     const apiEndpoint = useMemo(() => {
@@ -457,6 +462,15 @@ const ReceiptOrders = ({
                                                 title="View Receipt"
                                             >
                                                 👁️ View Receipt
+                                            </button>
+                                        )}
+                                        {showPrint && (
+                                            <button
+                                                onClick={() => printReceipt(order)}
+                                                className={styles.printButton}
+                                                title="Print Receipt"
+                                            >
+                                                🖨️ Print
                                             </button>
                                         )}
                                         {showDownload && (

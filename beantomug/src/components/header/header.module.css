@@ -1,5 +1,10 @@
 .menuItem.active {
-  color: #ffffff;
+  color: #896651;
+  font-weight: 600;
+  border-bottom: 2px solid #896651;
+  padding-bottom: 2px;
+  margin-bottom: -2px;
+  transition: all 0.3s ease;
 }
 
 * {
@@ -20,6 +25,57 @@
   padding: 0 1rem;
   height: 90px;
 }
+
+/* Transparent header for home page */
+.transparentHeader {
+  background-color: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  border-radius: 0;
+  transition: all 0.3s ease;
+}
+
+.transparentHeader .menuItem {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: color 0.3s ease;
+}
+
+.transparentHeader .menuItem:hover {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid #ffffff;
+  padding-bottom: 2px;
+  margin-bottom: -2px;
+  transition: all 0.3s ease;
+}
+
+.transparentHeader .menuItem.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Customer header - white background with dark text */
+.customerHeader {
+  background-color: #ffffff;
+  color: #3e2723;
+  box-shadow: 0 4px 16px rgba(62, 39, 35, 0.1);
+}
+
+.customerHeader .menuItem {
+  color: #3e2723;
+}
+
+.customerHeader .menuItem:hover {
+  color: #8b6f47;
+  border-bottom: 2px solid #8b6f47;
+  padding-bottom: 2px;
+  margin-bottom: -2px;
+  transition: all 0.3s ease;
+}
+
+.customerHeader .menuItem.active {
+  color: #3e2723;
+  background-color: rgba(139, 111, 71, 0.1);
+}
 .menuItem {
   position: relative;
   display: inline-block;
@@ -33,41 +89,10 @@
   text-transform: uppercase;
   font-family: "Railway";
   font-weight: 200;
-  color: #896651;
   cursor: pointer;
 }
 
-.menuItem::before,
-.menu-item::after {
-  position: absolute;
 
-  z-index: -1;
-  transition: 1s;
-  content: "";
-}
-
-.menuItem::before {
-  height: 50px;
-  width: 130px;
-  top: 0;
-  left: 0;
-}
-
-.menuItem::after {
-  width: 150px;
-  height: 30px;
-  bottom: 0;
-  right: 0;
-}
-.menuItem:hover::before {
-  width: 0px;
-  background: #fff;
-}
-
-.menuItem:hover::after {
-  height: 0px;
-  background: #fff;
-}
 
 ul {
   display: flex;
@@ -101,23 +126,7 @@ nav ul {
   padding: 0;
 }
 
-.menuItem {
-  position: relative;
-  text-decoration: none;
-  color: #333;
-  font-size: 1.1rem;
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
 
-.menuItem:hover {
-  color: #896651;
-}
-
-.active {
-  color: #896651;
-  font-weight: 600;
-}
 
 .loginWrapper {
   display: flex;
@@ -126,10 +135,11 @@ nav ul {
 }
 
 .cart_button {
-  color: #333;
   font-size: 1.5rem;
   transition: color 0.3s ease;
 }
+
+
 
 .cart_button:hover {
   color: #896651;
@@ -137,16 +147,16 @@ nav ul {
 
 .login_butt {
   text-decoration: none;
-  color: #fff;
-  background-color: #896651;
   padding: 0.5rem 1.5rem;
   border-radius: 25px;
   font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
+
+
 .login_butt:hover {
-  background-color: #6d4f3f;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* User Menu Styles */
@@ -162,10 +172,11 @@ nav ul {
   border: none;
   cursor: pointer;
   padding: 0.5rem 1rem;
-  color: #333;
   font-size: 1rem;
   font-weight: 500;
 }
+
+
 
 .userButton:hover {
   color: #896651;

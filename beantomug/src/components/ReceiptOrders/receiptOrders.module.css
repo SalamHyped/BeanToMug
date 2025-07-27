@@ -561,12 +561,13 @@
 }
 
 .viewButton,
-.downloadButton {
+.downloadButton,
+.printButton {
     flex: 1;
-    padding: 0.6rem 0.8rem;
+    padding: 0.4rem 0.6rem;
     border: none;
-    border-radius: 0.4rem;
-    font-size: 0.85rem;
+    border-radius: 0.3rem;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -574,38 +575,52 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
 }
 
 .viewButton {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(93, 64, 55, 0.8);
     color: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(15px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(93, 64, 55, 0.4);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(93, 64, 55, 0.2);
 }
 
 .viewButton:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(20px);
+    box-shadow: 0 6px 20px rgba(93, 64, 55, 0.3);
+    background: rgba(93, 64, 55, 0.9);
+    border-color: rgba(93, 64, 55, 0.6);
 }
 
 .downloadButton {
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.8) 0%, rgba(160, 82, 45, 0.8) 100%);
+    background: rgba(93, 64, 55, 0.8);
     color: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(139, 69, 19, 0.4);
+    border: 1px solid rgba(93, 64, 55, 0.4);
     backdrop-filter: blur(10px);
-    box-shadow: 0 2px 8px rgba(139, 69, 19, 0.2);
+    box-shadow: 0 2px 8px rgba(93, 64, 55, 0.2);
 }
 
 .downloadButton:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.9) 0%, rgba(160, 82, 45, 0.9) 100%);
-    border-color: rgba(139, 69, 19, 0.6);
+    box-shadow: 0 6px 20px rgba(93, 64, 55, 0.3);
+    background: rgba(93, 64, 55, 0.9);
+    border-color: rgba(93, 64, 55, 0.6);
+}
+
+.printButton {
+    background: rgba(93, 64, 55, 0.8);
+    color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(93, 64, 55, 0.4);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(93, 64, 55, 0.2);
+}
+
+.printButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(93, 64, 55, 0.3);
+    background: rgba(93, 64, 55, 0.9);
+    border-color: rgba(93, 64, 55, 0.6);
 }
 
 /* Empty State */
@@ -652,11 +667,12 @@
 }
 
 .viewButton,
-.downloadButton {
-    padding: 0.75rem 1.5rem;
+.downloadButton,
+.printButton {
+    padding: 0.5rem 1rem;
     border: none;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -666,25 +682,7 @@
     gap: 0.5rem;
 }
 
-.viewButton {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
 
-.viewButton:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-}
-
-.downloadButton {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-}
-
-.downloadButton:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(240, 147, 251, 0.3);
-}
 
 /* Modal */
 .modalOverlay {
@@ -913,9 +911,10 @@
     }
 
     .viewButton,
-    .downloadButton {
-        padding: 0.6rem 0.8rem;
-        font-size: 0.85rem;
+    .downloadButton,
+    .printButton {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
     }
 
     .orderHeader {
@@ -968,8 +967,9 @@
     }
 
     .viewButton,
-    .downloadButton {
-        padding: 0.5rem 0.7rem;
-        font-size: 0.8rem;
+    .downloadButton,
+    .printButton {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.7rem;
     }
 } 
