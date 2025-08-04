@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../Sidebar';
+import NotificationToast from '../../controls/NotificationToast';
 import styles from './adminLayout.module.css';
 
 // Static navigation items - better for tree-shaking
@@ -10,6 +11,7 @@ const ADMIN_NAV_ITEMS = [
   { to: "/admin/orders", label: "Orders", icon: "📋" },
   { to: "/admin/users", label: "Users", icon: "👥" },
   { to: "/admin/menu", label: "Menu Management", icon: "📝" },
+  { to: "/admin/inventory", label: "Inventory", icon: "📦" },
   { to: "/admin/gallery", label: "Gallery", icon: "📷" }
 ];
 
@@ -31,6 +33,7 @@ const AdminLayout = () => {
       <main className={`${styles.main} ${isSidebarCollapsed ? styles.mainCollapsed : ''}`}>
         <Outlet context={{ isSidebarCollapsed }} />
       </main>
+      <NotificationToast />
     </div>
   );
 };

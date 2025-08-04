@@ -202,18 +202,19 @@ INSERT INTO `ingredient_category` (`id`, `name`, `type_id`) VALUES
 CREATE TABLE `ingredient_type` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `name` text NOT NULL,
-  `option_group` text NOT NULL
+  `option_group` text NOT NULL,
+  `is_physical` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Dumping data for table `ingredient_type`
 --
 
-INSERT INTO `ingredient_type` (`id`, `name`, `option_group`) VALUES
-(1, 'Extra Shot', 'Coffee Additions'),
-(2, 'Syrup', 'Syrups'),
-(3, 'Topping', 'Toppings'),
-(4, 'Milk Alternative', 'Milk Alternatives');
+INSERT INTO `ingredient_type` (`id`, `name`, `option_group`, `is_physical`) VALUES
+(1, 'Extra Shot', 'Coffee Additions', 0),
+(2, 'Syrup', 'Syrups', 1),
+(3, 'Topping', 'Toppings', 1),
+(4, 'Milk Alternative', 'Milk Alternatives', 1);
 
 -- --------------------------------------------------------
 
@@ -548,7 +549,7 @@ INSERT INTO `users` (`id`, `first_name`, `last_name`, `phone_number`, `username`
 (16, '', '', 0, 'salam', 'shibli.salam30@gmail.com', '$2b$10$BBjbjNXqKz5m5DTaquK./.XZA11GQpdLe30Hw09EmfCVgizna3TES', 'staff', 1),
 (17, '', '', 0, 'tyroneHype', 'shiblislam@gmail.com', '$2b$10$fcLbh3IqsOFNhX4UClHoYuvKzXh/vcx5G9kRcTPv3zDvjBMxiv7Ri', 'customer', 1);
 
--- --------------------------------------------------------
+
 
 --
 -- Table structure for table `workschedule`

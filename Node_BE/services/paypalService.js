@@ -432,6 +432,11 @@ class PayPalService {
         if (captureResult.result.status === "COMPLETED") {
           // Payment successful - mark order as completed
           await this.markOrderCompleted(connection, order.order_id);
+          
+          // Deduct stock for the completed order
+          const stockService = require('./stockService');
+          const stockResult = await stockService.deductStockForOrder(order.order_id);
+          
           await connection.commit();
           
           // Get complete order data with items and ingredients
@@ -459,6 +464,9 @@ class PayPalService {
             message: `New order #${order.order_id} received!`,
             type: 'new_order'
           });
+          
+          // Log stock deduction results
+          console.log(`Stock deducted for order ${order.order_id}:`, stockResult);
           
           return {
             success: true,

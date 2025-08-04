@@ -31,6 +31,7 @@ const Receipts = lazy(() => import('../pages/staff/Receipts'));
 const CustomerReceipts = lazy(() => import('../pages/customer/CustomerReceipts'));
 const PublicGallery = lazy(() => import('../pages/Gallery'));
 const StaffGallery = lazy(() => import('../pages/staff/StaffGallery'));
+const AdminInventory = lazy(() => import('../pages/admin/Inventory'));
 
 // Loading component for page content only
 const PageLoader = () => (
@@ -102,6 +103,11 @@ export default function MyRoutes(){
                     <Route path="gallery" element={
                       <Suspense fallback={<PageLoader />}>
                         <StaffGallery />
+                      </Suspense>
+                    } />
+                    <Route path="inventory" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <AdminInventory />
                       </Suspense>
                     } />
                 </Route>

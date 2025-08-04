@@ -49,6 +49,23 @@ class SocketService {
                 });
             });
 
+            // Handle staff viewing inventory alerts
+            socket.on('staffViewingAlerts', (data) => {
+                this.handleStaffViewingAlerts(socket, data);
+            });
+
+            // Handle staff alert interactions
+            socket.on('staffAlertInteraction', (data) => {
+                console.log('Backend SocketService: Received staffAlertInteraction event:', data);
+                this.handleStaffAlertInteraction(socket, data);
+            });
+
+        socket.on('testNotification', (data) => {
+            console.log('Backend SocketService: Received test notification:', data);
+            // Broadcast to admin room
+            this.io.to('admin-room').emit('testNotification', data);
+        });
+
             // Handle disconnection
             socket.on('disconnect', () => {
                 this.handleDisconnect(socket);
@@ -183,7 +200,6 @@ class SocketService {
         
         console.log('Backend SocketService: Emitting notification:', notificationData);
         console.log('Backend SocketService: Connected users:', this.connectedUsers.size);
-        console.log('Backend SocketService: Users in staff-room:', this.getUsersInRoom('staff-room'));
         console.log('Backend SocketService: Users in admin-room:', this.getUsersInRoom('admin-room'));
         
         // Send to specific user if userId provided
@@ -212,6 +228,68 @@ class SocketService {
                 timestamp: new Date().toISOString()
             });
         }
+    }
+
+    handleStaffViewingAlerts(socket, data) {
+        const userInfo = this.connectedUsers.get(socket.id);
+        console.log('Backend SocketService: Staff viewing alerts:', { userInfo, data });
+        
+        // Notify admins that staff is viewing alerts
+        this.io.to('admin-room').emit('staffAlertActivity', {
+            type: 'viewing_alerts',
+            alertCount: data.alertCount,
+            alerts: data.alerts,
+            viewedBy: data.viewedBy,
+            timestamp: data.timestamp,
+            staffInfo: userInfo ? { userId: userInfo.userId, userRole: userInfo.userRole } : null
+        });
+
+        // Also send a general notification to admins
+        const notificationData = {
+            message: `Staff member is viewing ${data.alertCount} inventory alert(s)`,
+            type: 'staff_alert_activity',
+            timestamp: new Date().toISOString(),
+            data: {
+                alertCount: data.alertCount,
+                viewedBy: data.viewedBy
+            }
+        };
+        
+        console.log('Backend SocketService: Emitting notification to admin-room:', notificationData);
+        console.log('Backend SocketService: Users in admin-room:', this.getUsersInRoom('admin-room'));
+        this.io.to('admin-room').emit('notification', notificationData);
+    }
+
+    handleStaffAlertInteraction(socket, data) {
+        const userInfo = this.connectedUsers.get(socket.id);
+        console.log('Backend SocketService: Staff alert interaction:', { userInfo, data });
+        
+        // Notify admins of staff interaction with specific alert
+        this.io.to('admin-room').emit('staffAlertActivity', {
+            type: 'alert_interaction',
+            alertId: data.alertId,
+            alertType: data.alertType,
+            message: data.message,
+            action: data.action,
+            timestamp: data.timestamp,
+            staffInfo: userInfo ? { userId: userInfo.userId, userRole: userInfo.userRole } : null
+        });
+
+        // Send specific notification to admins
+        const notificationData = {
+            message: `Staff member ${data.action} alert: ${data.message}`,
+            type: 'staff_alert_interaction',
+            timestamp: new Date().toISOString(),
+            data: {
+                alertId: data.alertId,
+                alertType: data.alertType,
+                action: data.action
+            }
+        };
+        
+        console.log('Backend SocketService: Emitting staff alert interaction notification:', notificationData);
+        console.log('Backend SocketService: Users in admin-room:', this.getUsersInRoom('admin-room'));
+        this.io.to('admin-room').emit('notification', notificationData);
     }
 
     // Get connected users count for monitoring

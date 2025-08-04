@@ -238,6 +238,31 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
       });
     }
     
+    // Handle stock updates based on status change
+    if (status === 'completed') {
+      // Deduct stock when order is marked as completed
+      try {
+        const stockService = require('../services/stockService');
+        const stockResult = await stockService.deductStockForOrder(orderId);
+        console.log(`Stock deducted for completed order ${orderId}:`, stockResult);
+      } catch (stockError) {
+        console.error(`Error deducting stock for order ${orderId}:`, stockError);
+        // Don't fail the order status update if stock deduction fails
+        // The stock can be manually adjusted later
+      }
+    } else if (status === 'cancelled') {
+      // Restore stock when order is cancelled (in case it was previously completed)
+      try {
+        const stockService = require('../services/stockService');
+        const stockResult = await stockService.restoreStockForCancelledOrder(orderId);
+        console.log(`Stock restored for cancelled order ${orderId}:`, stockResult);
+      } catch (stockError) {
+        console.error(`Error restoring stock for cancelled order ${orderId}:`, stockError);
+        // Don't fail the order status update if stock restoration fails
+        // The stock can be manually adjusted later
+      }
+    }
+    
     // Emit real-time notification for order update
     await req.socketService.emitOrderUpdate({
       orderId,
