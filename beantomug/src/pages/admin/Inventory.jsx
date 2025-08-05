@@ -185,10 +185,11 @@ export default function Inventory() {
          <button 
            onClick={() => {
              console.log('Admin: Testing notification manually');
-             socketService.emit('testNotification', {
+             const sent = socketService.sendToServer('testNotification', {
                message: 'Test notification from admin',
                type: 'staff_alert_activity'
              });
+             console.log('Admin: Test notification sent to server:', sent);
            }}
            style={{ 
              padding: '0.5rem 1rem', 

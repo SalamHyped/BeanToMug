@@ -232,6 +232,18 @@ class SocketService {
         });
     }
 
+    // Send event to server
+    sendToServer(event, data) {
+        if (!this.socket || !this.isConnected) {
+            console.error('Socket not connected, cannot send to server');
+            return false;
+        }
+        
+        console.log('SocketService: Sending to server:', event, data);
+        this.socket.emit(event, data);
+        return true;
+    }
+
     // Disconnect socket
     disconnect() {
         if (this.socket) {

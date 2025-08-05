@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import socketService from '../../services/socketService';
 import styles from './TaskDashboard.module.css';
 
 const TaskDashboard = () => {
@@ -11,6 +12,62 @@ const TaskDashboard = () => {
   useEffect(() => {
     fetchMyTasks();
   }, []);
+
+  // WebSocket listeners for real-time task updates
+  useEffect(() => {
+    if (socketService.isConnected) {
+      console.log('Staff TaskDashboard: Setting up WebSocket listeners');
+      
+      // Listen for new tasks assigned to this staff member
+      socketService.on('newTask', handleNewTask);
+      
+      // Listen for task updates
+      socketService.on('taskUpdate', handleTaskUpdate);
+
+      return () => {
+        console.log('Staff TaskDashboard: Cleaning up WebSocket listeners');
+        socketService.off('newTask', handleNewTask);
+        socketService.off('taskUpdate', handleTaskUpdate);
+      };
+    } else {
+      console.log('Staff TaskDashboard: Socket not connected, cannot set up listeners');
+    }
+  }, []);
+
+  const handleNewTask = (taskData) => {
+    console.log('Staff TaskDashboard: Received new task:', taskData);
+    
+    // For now, add the task and let the backend filter it
+    // The backend should only send tasks assigned to this user
+    setTasks(prev => [{
+      task_id: taskData.taskId,
+      title: taskData.title,
+      description: taskData.description,
+      priority: taskData.priority,
+      status: 'pending',
+      due_date: taskData.dueDate,
+      estimated_hours: taskData.estimated_hours,
+      assigned_by_name: taskData.assignedBy,
+      all_assignments: taskData.assignments || [],
+      created_at: taskData.createdAt
+    }, ...prev]);
+  };
+
+  const handleTaskUpdate = (taskData) => {
+    console.log('Staff TaskDashboard: Received task update:', taskData);
+    
+    // Update specific task in the list
+    setTasks(prev => prev.map(task => 
+      task.task_id === taskData.taskId 
+        ? { 
+            ...task, 
+            title: taskData.title,
+            status: taskData.status,
+            priority: taskData.priority
+          }
+        : task
+    ));
+  };
 
   const fetchMyTasks = async () => {
     try {
@@ -28,15 +85,31 @@ const TaskDashboard = () => {
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       const task = tasks.find(t => t.task_id === taskId);
+      
+      // Optimistic update - update UI immediately
+      setTasks(prev => prev.map(t => 
+        t.task_id === taskId 
+          ? { ...t, status: newStatus }
+          : t
+      ));
+      
+      // Send update to backend
       await axios.put(`http://localhost:8801/tasks/${taskId}`, {
         ...task,
         status: newStatus
       }, {
         withCredentials: true
       });
-      fetchMyTasks();
+      
+      // No need to fetch all tasks again - WebSocket will handle updates
     } catch (error) {
       console.error('Error updating task:', error);
+      // Revert optimistic update on error
+      setTasks(prev => prev.map(t => 
+        t.task_id === taskId 
+          ? { ...t, status: task.status } // Revert to original status
+          : t
+      ));
     }
   };
 

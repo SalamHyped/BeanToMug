@@ -43,7 +43,7 @@ export default function Inventory() {
   const notifyAdminOfAlerts = (alerts) => {
     if (socketService.isConnected) {
       console.log('Staff: Notifying admin of alerts:', alerts.length);
-      socketService.emit('staffViewingAlerts', {
+      const sent = socketService.sendToServer('staffViewingAlerts', {
         alertCount: alerts.length,
         alerts: alerts.map(alert => ({
           id: alert.ingredient_id,
@@ -94,8 +94,8 @@ export default function Inventory() {
         timestamp: new Date().toISOString()
       };
       console.log('Staff: Emitting staffAlertInteraction with data:', eventData);
-      socketService.emit('staffAlertInteraction', eventData);
-      console.log('Staff: Event emitted successfully');
+      const sent = socketService.sendToServer('staffAlertInteraction', eventData);
+      console.log('Staff: Event sent to server:', sent);
     } else {
       console.log('Staff: Socket not connected, cannot notify admin of click');
     }
@@ -172,9 +172,9 @@ export default function Inventory() {
                action: 'viewed',
                timestamp: new Date().toISOString()
              };
-             console.log('Staff: Emitting test staffAlertInteraction with data:', eventData);
-             socketService.emit('staffAlertInteraction', eventData);
-             console.log('Staff: Test event emitted successfully');
+                           console.log('Staff: Emitting test staffAlertInteraction with data:', eventData);
+              const sent = socketService.sendToServer('staffAlertInteraction', eventData);
+              console.log('Staff: Test event sent to server:', sent);
            }}
           style={{
             marginTop: '1rem',
