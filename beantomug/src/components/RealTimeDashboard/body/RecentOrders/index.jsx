@@ -1,128 +1,251 @@
-﻿import React from 'react';
-import { useDashboardComponent } from '../../../../hooks/useDashboardComponent';
+﻿import React, { useState, useMemo, useCallback } from 'react';
 import DashboardCard from '../../shared/DashboardCard';
-import NavigationDots from '../../shared/NavigationDots';
 import ItemDisplay from '../../shared/ItemDisplay';
 import EmptyState from '../../shared/EmptyState';
 
 const RecentOrders = ({ orders = [] }) => {
-    const {
-        expandedItems: expandedOrders,
-        showNewItemIndicator: showNewOrderIndicator,
-        newItemIds: newOrderIds,
-        currentIndex,
-        isSliding,
-        slideDirection,
-        toggleItemDetails: toggleOrderItems,
-        handleDotClick,
-        handleMouseEnter,
-        handleMouseLeave,
-        currentItem: currentOrder
-    } = useDashboardComponent(orders, 'orderId');
+    const [showAll, setShowAll] = useState(false);
+    const [expandedOrders, setExpandedOrders] = useState(new Set());
+    
+    // Memoize display orders to prevent unnecessary recalculations
+    const displayOrders = useMemo(() => {
+        return showAll ? orders : orders.slice(0, 3);
+    }, [orders, showAll]);
 
-    const renderOrderContent = (order) => (
-        <>
-            {/* Order Header */}
-            <div className="flex justify-between items-center mb-2 pb-1 border-b border-amber-200">
-                <div className="flex items-center gap-1">
-                    <span className="bg-amber-700 text-white px-1 py-0.5 rounded text-xs font-bold shadow-sm transform hover:scale-110 transition-all duration-300">
-                        #{order.order_id || order.orderId}
-                    </span>
-                    <span className={`px-1 py-0.5 rounded-full text-xs font-bold uppercase shadow-sm ${getStatusClasses(order.status)}`}>
-                        {order.status}
-                    </span>
-                </div>
-                <div className="text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
-                    {new Date(order.created_at || order.createdAt).toLocaleTimeString()}
-                </div>
-            </div>
-            
-            {/* Order Details */}
-            <div className="flex justify-between items-center mb-2 pb-1 border-b border-amber-200">
-                <span className="text-xs font-semibold text-amber-700 bg-amber-100 px-1 py-0.5 rounded-full">
-                    {order.order_type || order.orderType}
-                </span>
-                <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-1 py-0.5 rounded-full">
-                    <span className="animate-spin">🕒</span>
-                    <span>{new Date(order.created_at || order.createdAt).toLocaleDateString()}</span>
-                </div>
-            </div>
-        </>
-    );
-
-    const renderOrderDetails = (order) => (
-        <div className="flex flex-col gap-1">
-            {order.items && Array.isArray(order.items) && order.items.map((item, itemIndex) => (
-                <div key={itemIndex} className="p-1 bg-white rounded border border-l border-amber-500 shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105">
-                    <div className="flex justify-between items-start mb-1 pb-0.5 border-b border-amber-200">
-                        <span className="font-bold text-amber-800 text-xs hover:text-amber-600 transition-colors duration-300">
-                            {item.item_name} x{item.quantity}
-                        </span>
-                        <span className="text-xs font-semibold text-amber-600 bg-amber-100 px-0.5 py-0 rounded-full">
-                            ${item.price}
-                        </span>
-                    </div>
-                    {item.ingredients && item.ingredients.length > 0 && (
-                        <div className="flex flex-wrap gap-0.5 pt-0.5 border-t border-amber-100">
-                            {item.ingredients.map((ingredient, ingIndex) => (
-                                <span key={ingIndex} className="bg-amber-100 text-amber-700 px-1 py-0 rounded-full text-xs font-medium shadow-sm hover:shadow-md hover:scale-110 transition-all duration-300 transform hover:rotate-1">
-                                    {ingredient.ingredient_name}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            ))}
-        </div>
-    );
-
-    const getStatusClasses = (status) => {
+    // Memoize status classes function
+    const getStatusClasses = useCallback((status) => {
         switch (status?.toLowerCase()) {
             case 'pending': return 'bg-yellow-100 text-yellow-800';
             case 'processing': return 'bg-amber-100 text-amber-800';
             case 'completed': return 'bg-green-100 text-green-800';
             default: return 'bg-red-100 text-red-800';
         }
-    };
+    }, []);
+
+    // Memoize toggle function
+    const toggleOrderDetails = useCallback((orderId) => {
+        setExpandedOrders(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(orderId)) {
+                newSet.delete(orderId);
+            } else {
+                newSet.add(orderId);
+            }
+            return newSet;
+        });
+    }, []);
+
+    // Memoize show all toggle
+    const handleShowAllToggle = useCallback(() => {
+        setShowAll(prev => !prev);
+    }, []);
+
+    // Memoize order content renderer
+    const renderOrderContent = useCallback((order, isExpanded, handleToggle) => {
+        // Pre-calculate dates to avoid repeated calculations
+        const createdDate = new Date(order.created_at || order.createdAt);
+        const timeString = createdDate.toLocaleTimeString();
+        const dateString = createdDate.toLocaleDateString();
+        
+        // Pre-calculate order ID
+        const orderId = order.order_id || order.orderId;
+        const orderType = order.order_type || order.orderType;
+        
+        // Pre-calculate items for efficiency
+        const items = order.items || [];
+        const hasItems = Array.isArray(items) && items.length > 0;
+        const previewItems = hasItems ? items.slice(0, 2) : [];
+        const remainingItems = hasItems ? items.length - 2 : 0;
+
+        return (
+            <div className="mb-2 p-2 bg-white/60 backdrop-blur-sm rounded-lg border border-amber-200 shadow-sm hover:shadow-md transition-all duration-300">
+                {/* Order Header */}
+                <div className="flex justify-between items-center mb-1 pb-1 border-b border-amber-200">
+                    <div className="flex items-center gap-1">
+                        <span className="text-lg">📋</span>
+                        <span className="px-1 py-0.5 rounded-full text-xs font-bold uppercase shadow-sm bg-amber-100 text-amber-800">
+                            {orderType}
+                        </span>
+                    </div>
+                    <div className="text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                        {timeString}
+                    </div>
+                </div>
+                
+                {/* Order Message */}
+                <div className="mb-1">
+                    <p className="text-xs text-amber-800 line-clamp-2">Order #{orderId} - {orderType}</p>
+                </div>
+
+                {/* Order Meta Info */}
+                <div className="mt-1 flex flex-wrap gap-1">
+                    <span className="text-xs text-amber-600 bg-amber-50 px-1 py-0.5 rounded-full">
+                        {dateString}
+                    </span>
+                    <span className="text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                        #{orderId}
+                    </span>
+                </div>
+
+                {/* Order Items Preview */}
+                {hasItems && (
+                    <div className="mt-1">
+                        <div className="text-xs font-semibold text-amber-700 mb-1">Items:</div>
+                        <div className="space-y-0.5">
+                            {previewItems.map((item, itemIndex) => (
+                                <div key={`${orderId}-item-${itemIndex}`} className="p-0.5 bg-amber-50 rounded border border-amber-100">
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-medium text-amber-800 text-xs">
+                                            {item.item_name} x{item.quantity}
+                                        </span>
+                                        <span className="text-xs font-semibold text-amber-600">
+                                            ${item.price}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                            {remainingItems > 0 && (
+                                <div className="text-xs text-amber-600 italic">
+                                    +{remainingItems} more items
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Complete Order Details - Inside the content */}
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    isExpanded ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                    <div className="mt-2 space-y-2 border-t border-amber-200 pt-2">
+                        <div className="text-xs font-semibold text-amber-800 border-b border-amber-200 pb-1">
+                            Complete Order Details
+                        </div>
+                        
+                        {/* All Order Items with Customizations */}
+                        {hasItems && items.map((item, itemIndex) => (
+                            <div key={`${orderId}-detail-${itemIndex}`} className="p-1.5 bg-white/60 backdrop-blur-sm rounded border border-amber-200 transform transition-all duration-200 hover:scale-[1.02]">
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className="font-semibold text-amber-800 text-xs">
+                                        {item.item_name} x{item.quantity}
+                                    </span>
+                                    <span className="text-xs font-semibold text-amber-600">
+                                        ${(item.price * item.quantity).toFixed(2)}
+                                    </span>
+                                </div>
+                                
+                                {/* Item Customizations/Ingredients */}
+                                {item.ingredients && item.ingredients.length > 0 && (
+                                    <div className="mt-1">
+                                        <span className="text-xs font-medium text-amber-700">Customizations:</span>
+                                        <div className="flex flex-wrap gap-0.5 mt-0.5">
+                                            {item.ingredients.map((ingredient, ingIndex) => (
+                                                <span key={`${orderId}-ingredient-${itemIndex}-${ingIndex}`} className="bg-amber-100 text-amber-700 px-0.5 py-0.5 rounded text-xs transform transition-all duration-150 hover:scale-105">
+                                                    {ingredient.ingredient_name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {/* Item Options */}
+                                {item.options && Object.keys(item.options).length > 0 && (
+                                    <div className="mt-1">
+                                        <span className="text-xs font-medium text-amber-700">Options:</span>
+                                        <div className="flex flex-wrap gap-0.5 mt-0.5">
+                                            {Object.entries(item.options).map(([key, option]) => (
+                                                option && option.selected && (
+                                                    <span key={`${orderId}-option-${itemIndex}-${key}`} className="bg-amber-100 text-amber-700 px-0.5 py-0.5 rounded text-xs transform transition-all duration-150 hover:scale-105">
+                                                        {option.label}: {option.value}
+                                                    </span>
+                                                )
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                        
+                        {/* Order Summary */}
+                        <div className="mt-2 p-1.5 bg-white/60 backdrop-blur-sm rounded border border-amber-200 transform transition-all duration-200 hover:shadow-md">
+                            <div className="text-xs font-semibold text-amber-800 mb-1">Order Summary</div>
+                            <div className="space-y-0.5 text-xs">
+                                <div className="flex justify-between">
+                                    <span className="text-amber-700">Status:</span>
+                                    <span className={`${getStatusClasses(order.status)}`}>
+                                        {order.status}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-amber-700">Type:</span>
+                                    <span className="text-amber-800">{orderType}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-amber-700">Total:</span>
+                                    <span className="text-amber-800">${order.total_amount || '0.00'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-amber-700">Items:</span>
+                                    <span className="text-amber-800">{items.length}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Show Details Button - Inside the content */}
+                <div className="flex justify-center mt-2">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggle();
+                        }}
+                        className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors duration-200"
+                    >
+                        <span>{isExpanded ? 'Show Less' : 'Show Details'}</span>
+                        <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                            ▼
+                        </span>
+                    </button>
+                </div>
+            </div>
+        );
+    }, [getStatusClasses]);
 
     return (
         <DashboardCard
             title="Recent Orders"
             icon="🛒"
             itemCount={orders.length}
-            showNewIndicator={showNewOrderIndicator}
-            isExpanded={expandedOrders.size > 0}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
         >
-            {/* Single Order Display */}
-            <div className={`relative overflow-hidden transition-all duration-500 ${
-                expandedOrders.size > 0 ? 'min-h-40' : 'h-32'
-            }`}>
+            <div className="space-y-1">
                 {orders.length === 0 ? (
                     <EmptyState icon="📋" message="No recent orders" />
-                ) : currentOrder ? (
-                    <ItemDisplay
-                        item={currentOrder}
-                        itemId={currentOrder.order_id || currentOrder.orderId}
-                        isNew={newOrderIds.has(currentOrder.order_id || currentOrder.orderId)}
-                        isSliding={isSliding}
-                        slideDirection={slideDirection}
-                        isExpanded={expandedOrders.has(currentOrder.order_id || currentOrder.orderId)}
-                        onToggleDetails={toggleOrderItems}
-                        renderItemContent={renderOrderContent}
-                        renderExpandedContent={renderOrderDetails}
-                    />
-                ) : null}
+                ) : (
+                    <>
+                        {displayOrders.map((order) => (
+                            <ItemDisplay
+                                key={order.order_id || order.orderId}
+                                item={order}
+                                itemId={order.order_id || order.orderId}
+                                isExpanded={expandedOrders.has(order.order_id || order.orderId)}
+                                onToggleDetails={toggleOrderDetails}
+                                renderItemContent={renderOrderContent}
+                            />
+                        ))}
+                        {orders.length > 3 && (
+                            <button
+                                onClick={handleShowAllToggle}
+                                className="w-full mt-1 p-1.5 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors duration-200"
+                            >
+                                {showAll ? 'Show Less' : `Show All (${orders.length})`}
+                            </button>
+                        )}
+                    </>
+                )}
             </div>
-            
-            <NavigationDots
-                items={orders}
-                currentIndex={currentIndex}
-                onDotClick={handleDotClick}
-            />
         </DashboardCard>
     );
 };
 
-export default RecentOrders;
+export default React.memo(RecentOrders);

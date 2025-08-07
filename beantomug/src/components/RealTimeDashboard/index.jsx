@@ -5,14 +5,13 @@ import axios from 'axios';
 import DashboardHeader from './DashboardHeader';
 import RecentOrders from './body/RecentOrders';
 import RecentTasks from './body/RecentTasks';
-import GalleryUpdates from './body/GalleryUpdates';
+import Inventory from '../../pages/staff/Inventory';
 import styles from './realTimeDashboard.module.css';
 
 const RealTimeDashboard = () => {
     const { user } = useUser();
     const [orders, setOrders] = useState([]);
     const [tasks, setTasks] = useState([]);
-    const [galleryUpdates, setGalleryUpdates] = useState([]);
     const [connectionStatus, setConnectionStatus] = useState('disconnected');
     const [isLoadingInitialData, setIsLoadingInitialData] = useState(true);
 
@@ -84,7 +83,7 @@ const RealTimeDashboard = () => {
         // Listen for real-time updates
         const handleNewOrder = (orderData) => {
             console.log('RealTimeDashboard: New order received:', orderData);
-            setOrders(prev => [orderData, ...prev.slice(0, 4)]); // Keep last 5 orders
+            setOrders(prev => [orderData, ...prev.slice(0, 9)]); // Keep last 10 orders for better list experience
         };
 
         const handleOrderUpdate = (orderData) => {
@@ -99,7 +98,7 @@ const RealTimeDashboard = () => {
         };
 
         const handleNewTask = (taskData) => {
-            setTasks(prev => [taskData, ...prev.slice(0, 4)]); // Keep last 5 tasks
+            setTasks(prev => [taskData, ...prev.slice(0, 9)]); // Keep last 10 tasks for better list experience
         };
 
         const handleTaskUpdate = (taskData) => {
@@ -112,23 +111,17 @@ const RealTimeDashboard = () => {
             );
         };
 
-        const handleGalleryUpdate = (galleryData) => {
-            setGalleryUpdates(prev => [galleryData, ...prev.slice(0, 4)]); // Keep last 5 updates
-        };
-
         // Register listeners
         socketService.on('newOrder', handleNewOrder);
         socketService.on('orderUpdate', handleOrderUpdate);
         socketService.on('newTask', handleNewTask);
         socketService.on('taskUpdate', handleTaskUpdate);
-        socketService.on('galleryUpdate', handleGalleryUpdate);
 
         return () => {
             socketService.off('newOrder', handleNewOrder);
             socketService.off('orderUpdate', handleOrderUpdate);
             socketService.off('newTask', handleNewTask);
             socketService.off('taskUpdate', handleTaskUpdate);
-            socketService.off('galleryUpdate', handleGalleryUpdate);
         };
     }, []);
 
@@ -148,7 +141,12 @@ const RealTimeDashboard = () => {
                 <DashboardHeader connectionStatus="disconnected" />
                 <div className={styles.grid}>
                     <div className={styles.section}>
-                        <p className={styles.empty}>Loading recent data...</p>
+                        <div className="flex items-center justify-center h-32">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mx-auto mb-2"></div>
+                                <p className="text-amber-700 text-sm">Loading recent data...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -159,10 +157,21 @@ const RealTimeDashboard = () => {
         <div className={styles.dashboard}>
             <DashboardHeader connectionStatus={connectionStatus} />
             
+            {/* Main Grid - All Components */}
             <div className={styles.grid}>
                 <RecentOrders orders={orders} />
                 <RecentTasks tasks={tasks} />
-                <GalleryUpdates galleryUpdates={galleryUpdates} />
+                <div className={styles.inventoryAlertsSection}>
+                    <Inventory />
+                </div>
+                <div className={styles.contentColumn}>
+                    <div className={styles.contentDiv1}>
+                        {/* First content div */}
+                    </div>
+                    <div className={styles.contentDiv2}>
+                        {/* Second content div */}
+                    </div>
+                </div>
             </div>
         </div>
     );

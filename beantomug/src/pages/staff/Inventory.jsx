@@ -130,11 +130,11 @@ export default function Inventory() {
       {alerts.length > 0 ? (
         <div className={styles.alertsSection}>
           <h2 className={styles.sectionTitle}>Stock Alerts</h2>
-          <div className={styles.alertsGrid}>
+          <ul className={styles.alertsList}>
             {alerts.map(alert => (
-              <div 
+              <li 
                 key={alert.ingredient_id || alert.id} 
-                className={styles.alertCard}
+                className={styles.alertItem}
                 onClick={() => handleAlertClick(alert)}
                 style={{ cursor: 'pointer' }}
               >
@@ -147,9 +147,9 @@ export default function Inventory() {
                 <small className={styles.alertTime}>
                   {new Date(alert.created_at).toLocaleString()}
                 </small>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       ) : (
         <div className={styles.noAlerts}>
@@ -157,38 +157,6 @@ export default function Inventory() {
           <p>All ingredients are currently well-stocked.</p>
         </div>
       )}
-
-      {/* Staff Note */}
-      <div className={styles.staffNote}>
-        <h3>Staff Access</h3>
-        <p>You can view stock alerts here. For full inventory management, please contact an administrator.</p>
-                 <button 
-           onClick={() => {
-             console.log('Staff: Testing staff alert interaction...');
-             const eventData = {
-               alertId: 'test-123',
-               alertType: 'low_stock',
-               message: 'Test alert notification from staff',
-               action: 'viewed',
-               timestamp: new Date().toISOString()
-             };
-                           console.log('Staff: Emitting test staffAlertInteraction with data:', eventData);
-              const sent = socketService.sendToServer('staffAlertInteraction', eventData);
-              console.log('Staff: Test event sent to server:', sent);
-           }}
-          style={{
-            marginTop: '1rem',
-            padding: '0.5rem 1rem',
-            background: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.25rem',
-            cursor: 'pointer'
-          }}
-        >
-          Test Notification
-        </button>
-      </div>
     </div>
   );
 } 

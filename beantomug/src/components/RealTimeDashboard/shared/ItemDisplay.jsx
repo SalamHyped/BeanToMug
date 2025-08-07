@@ -1,58 +1,34 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 
-const ItemDisplay = ({ 
-    item, 
-    itemId, 
-    isNew, 
-    isSliding, 
-    slideDirection, 
-    isExpanded, 
+const ItemDisplay = ({
+    item,
+    itemId,
+    isNew = false,
+    isExpanded = false,
     onToggleDetails,
-    renderItemContent,
-    renderExpandedContent
+    renderItemContent
 }) => {
+    const [isExpandedLocal, setIsExpandedLocal] = useState(isExpanded);
+
+    const handleToggle = useCallback(() => {
+        const newExpandedState = !isExpandedLocal;
+        setIsExpandedLocal(newExpandedState);
+        if (onToggleDetails) {
+            onToggleDetails(itemId);
+        }
+    }, [isExpandedLocal, onToggleDetails, itemId]);
+
     return (
-        <div className={`transition-all duration-300 ease-in-out ${
-            isSliding 
-                ? slideDirection === 'left' 
-                    ? 'transform -translate-x-full opacity-0' 
-                    : 'transform translate-x-full opacity-0'
-                : 'transform translate-x-0 opacity-100'
-        }`}>
-            <div className={`bg-white rounded-lg p-3 shadow-md border border-l-2 transform hover:scale-105 transition-all duration-300 ${
-                isNew
-                    ? 'border-amber-500 border-l-amber-500 bg-amber-50 shadow-lg animate-pulse' 
-                    : 'border-amber-300 border-l-amber-500 hover:border-amber-400 hover:border-l-amber-600'
-            }`}>
-                <div className="relative z-10">
-                    {renderItemContent(item)}
-                    
-                    {renderExpandedContent && (
-                        <div className="mt-2 pt-1 border-t border-amber-200">
-                            <button 
-                                className="w-full bg-amber-50 hover:bg-amber-100 border border-amber-200 p-1 cursor-pointer flex justify-between items-center text-amber-700 text-xs rounded transition-all duration-300 font-semibold shadow-sm hover:shadow-md transform hover:scale-105"
-                                onClick={() => onToggleDetails(itemId)}
-                            >
-                                <span className="flex items-center gap-1">
-                                    <span className="animate-bounce">📋</span>
-                                    <span>
-                                        {isExpanded ? 'Hide Details' : 'Show Details'}
-                                    </span>
-                                </span>
-                                <span className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
-                            </button>
-                            
-                            {isExpanded && (
-                                <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-200 shadow-sm">
-                                    {renderExpandedContent(item)}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+        <div className={`relative transition-all duration-500 ease-in-out transform bg-[#BFA6A0]
+${
+            isNew ? 'animate-pulse' : ''
+        } hover:scale-[1.01]`}>
+            {/* Main Item Content with integrated details and Show Details button */}
+            <div className="cursor-pointer transition-all duration-300 hover:shadow-lg" onClick={handleToggle}>
+                {renderItemContent && renderItemContent(item, isExpandedLocal, handleToggle)}
             </div>
         </div>
     );
 };
 
-export default ItemDisplay; 
+export default React.memo(ItemDisplay); 
