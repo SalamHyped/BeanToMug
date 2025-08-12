@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { CheckSquare, Clock, Calendar, User, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import DashboardCard from '../../shared/DashboardCard';
 import ItemDisplay from '../../shared/ItemDisplay';
 import EmptyState from '../../shared/EmptyState';
@@ -75,6 +76,7 @@ const RecentTasks = ({ tasks = [] }) => {
                 {/* Task Header */}
                 <div className="flex justify-between items-center mb-1 pb-1 border-b border-amber-200">
                     <div className="flex items-center gap-1">
+                        <CheckSquare size={16} className="text-amber-700" />
                         <span className="bg-amber-700 text-white px-1 py-0.5 rounded text-xs font-bold shadow-sm">
                             #{taskId}
                         </span>
@@ -82,7 +84,8 @@ const RecentTasks = ({ tasks = [] }) => {
                             {status}
                         </span>
                     </div>
-                    <div className="text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                    <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                        <Clock size={12} />
                         {timeString}
                     </div>
                 </div>
@@ -93,7 +96,7 @@ const RecentTasks = ({ tasks = [] }) => {
                         {title}
                     </span>
                     <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-1 py-0.5 rounded-full">
-                        <span>🕒</span>
+                        <Clock size={12} />
                         <span>{dateString}</span>
                     </div>
                 </div>
@@ -110,11 +113,13 @@ const RecentTasks = ({ tasks = [] }) => {
                     <span className={`px-1 py-0.5 rounded-full text-xs font-bold uppercase ${getPriorityClasses(priority)}`}>
                         {priority}
                     </span>
-                    <span className="text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                        <User size={12} />
                         By: {assignedByName}
                     </span>
                     {hasAssignments && (
-                        <span className="text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                        <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                            <Calendar size={12} />
                             Assigned: {assignments.length}
                         </span>
                     )}
@@ -192,9 +197,11 @@ const RecentTasks = ({ tasks = [] }) => {
                         className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors duration-200"
                     >
                         <span>{isExpanded ? 'Show Less' : 'Show Details'}</span>
-                        <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                            ▼
-                        </span>
+                        {isExpanded ? (
+                            <ChevronUp size={12} className="transition-transform duration-200" />
+                        ) : (
+                            <ChevronDown size={12} className="transition-transform duration-200" />
+                        )}
                     </button>
                 </div>
             </div>
@@ -204,12 +211,12 @@ const RecentTasks = ({ tasks = [] }) => {
     return (
         <DashboardCard
             title="Recent Tasks"
-            icon="📝"
+            icon={<CheckSquare size={20} />}
             itemCount={tasks.length}
         >
             <div className="space-y-1">
                 {tasks.length === 0 ? (
-                    <EmptyState icon="📋" message="No recent tasks" />
+                    <EmptyState icon={<CheckSquare size={32} />} message="No recent tasks" />
                 ) : (
                     <>
                         {displayTasks.map((task) => (

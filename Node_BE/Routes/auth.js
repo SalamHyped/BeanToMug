@@ -303,7 +303,7 @@ router.post('/login', async (req, res) => {
 
     // 2. Query database for user with the provided username
     const [users] = await req.db.query(
-      'SELECT * FROM users WHERE username = ?', 
+      'SELECT *, status FROM users WHERE username = ?', 
       [username]
     );
     
@@ -337,7 +337,16 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // 5. CART MIGRATION: Only for customers - merge session cart with user's database cart
+    // 5. Check if user account is active (not deactivated)
+    if (!user.status) {
+      return res.status(401).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact us.',
+        accountDeactivated: true
+      });
+    }
+
+    // 6. CART MIGRATION: Only for customers - merge session cart with user's database cart
     let cartMigrationResult = null;
     if (user.role === 'customer') {
       const cartService = require('../services/cartService');
@@ -373,7 +382,7 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // 6. Set session data for authenticated user
+    // 7. Set session data for authenticated user
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.role = user.role;
@@ -390,7 +399,7 @@ router.post('/login', async (req, res) => {
       });
     });
 
-    // 7. Send success response with user data and cart info (only for customers)
+    // 8. Send success response with user data and cart info (only for customers)
     const response = { 
       success: true, 
       user: {

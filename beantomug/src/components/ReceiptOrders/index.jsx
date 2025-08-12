@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useUser } from '../../context/UserContext/UserContext';
 import Pagination from '../controls/Pagination';
 import { useReceiptLogic, generateReceiptContent } from './useReceiptLogic';
+import OrderFilterControls from '../controls/OrderFilterControls';
+import useOrderFiltering from '../../hooks/useOrderFiltering';
 import styles from './receiptOrders.module.css';
 
 // Prop validation
@@ -134,11 +136,6 @@ const ReceiptOrders = ({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedOrder, setSelectedOrder] = useState(null);
-    const [dateFilter, setDateFilter] = useState('all');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
     const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 1,
@@ -148,6 +145,17 @@ const ReceiptOrders = ({
         hasPrevPage: false
     });
     const [currentPage, setCurrentPage] = useState(1);
+
+    // Use the order filtering hook
+    const filtering = useOrderFiltering(orders, {
+        enableTimeFilter: showDateFilter,
+        enableSearch: showSearch,
+        enableCustomRange: true,
+        debounceDelay: 300,
+        defaultTimeFilter: 'all'
+    });
+
+    const { filteredOrders, filterStats, getApiParams } = filtering;
 
     // Use shared receipt logic
     const { downloadReceipt, viewReceipt, printReceipt } = useReceiptLogic();
@@ -164,24 +172,17 @@ const ReceiptOrders = ({
     }, [userRole]);
 
     // Memoized request params
-    const requestParams = useMemo(() => ({
-        page: currentPage,
-        limit: pageSize,
-        dateFilter,
-        searchTerm: debouncedSearchTerm,
-        ...(startDate && { startDate }),
-        ...(endDate && { endDate }),
-        ...(customFilters && customFilters)
-    }), [currentPage, pageSize, dateFilter, debouncedSearchTerm, startDate, endDate, customFilters]);
-
-    // Optimized debounce
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearchTerm(searchTerm);
-        }, 300); // Reduced from 500ms for better responsiveness
-
-        return () => clearTimeout(timer);
-    }, [searchTerm]);
+    const requestParams = useMemo(() => {
+        const baseParams = {
+            page: currentPage,
+            limit: pageSize,
+            ...(customFilters && customFilters)
+        };
+        
+        // Add filtering parameters from the hook
+        const filterParams = getApiParams();
+        return { ...baseParams, ...filterParams };
+    }, [currentPage, pageSize, customFilters, getApiParams]);
 
     // Memoized fetch function
     const fetchOrders = useCallback(async () => {
@@ -242,14 +243,6 @@ const ReceiptOrders = ({
         }
     }, [onOrderClick, viewReceipt]);
 
-    const handleSearchChange = useCallback((e) => {
-        setSearchTerm(e.target.value);
-    }, []);
-
-    const handleDateFilterChange = useCallback((filter) => {
-        setDateFilter(filter);
-    }, []);
-
     const handlePageChange = useCallback((page) => {
         setCurrentPage(page);
     }, []);
@@ -308,65 +301,33 @@ const ReceiptOrders = ({
 
                 {/* Search and Filter Controls */}
                 <div className={styles.controls}>
-                    {showSearch && (
-                        <div className={styles.searchContainer}>
-                            <input
-                                ref={searchInputRef}
-                                type="text"
-                                placeholder="Search orders..."
-                                value={searchTerm}
-                                onChange={handleSearchChange}
-                                className={styles.searchInput}
-                            />
-                        </div>
-                    )}
-
-                    {showDateFilter && (
-                        <div className={styles.dateFilterContainer}>
-                            <select
-                                value={dateFilter}
-                                onChange={(e) => handleDateFilterChange(e.target.value)}
-                                className={styles.dateFilter}
-                            >
-                                <option value="all">All Time</option>
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month">This Month</option>
-                                <option value="custom">Custom Range</option>
-                            </select>
-
-                            {dateFilter === 'custom' && (
-                                <div className={styles.customDateRange}>
-                                    <input
-                                        type="date"
-                                        value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
-                                        className={styles.dateInput}
-                                    />
-                                    <span>to</span>
-                                    <input
-                                        type="date"
-                                        value={endDate}
-                                        onChange={(e) => setEndDate(e.target.value)}
-                                        className={styles.dateInput}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    {/* Use the reusable filter controls component */}
+                    <OrderFilterControls 
+                        filtering={filtering}
+                        options={{
+                            showStats: true,
+                            showClearButton: true,
+                            compact: false
+                        }}
+                    />
                 </div>
 
                 {/* Receipts Grid */}
                 <div className={styles.receiptsGrid}>
-                    {orders.length === 0 ? (
+                    {filteredOrders.length === 0 ? (
                         <div className={styles.emptyState}>
                             <div className={styles.emptyIcon}>📋</div>
                             <h3>No Receipts Found</h3>
-                            <p>No order receipts match your current filters.</p>
+                            <p>
+                                {orders.length === 0 
+                                    ? 'No order receipts available.'
+                                    : 'No order receipts match your current filters.'
+                                }
+                            </p>
                         </div>
                     ) : (
                         <div className={styles.gridContainer}>
-                            {orders.map((order, index) => (
+                            {filteredOrders.map((order, index) => (
                                 <div 
                                     key={order.order_id} 
                                     className={styles.receiptCard}

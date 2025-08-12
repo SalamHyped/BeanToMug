@@ -29,6 +29,23 @@ export default function CategoryItem({items=[], category}) {
     setCartConfirmationOpen(true); // open confirmation
   };
 
+  // Helper function to get the display price (VAT-inclusive if available, fallback to base price)
+  const getDisplayPrice = (item) => {
+    // Prefer VAT-inclusive price for customer transparency
+    if (item.priceWithVAT !== undefined && item.priceWithVAT !== null) {
+      return item.priceWithVAT;
+    }
+    // Fallback to base price if VAT calculation not available
+    return item.price;
+  };
+
+  // Helper function to format price with currency symbol
+  const formatPrice = (price) => {
+    const numericPrice = parseFloat(price);
+    if (isNaN(numericPrice)) return '0 ₪';
+    return `${numericPrice.toFixed(2)} ₪`;
+  };
+
   return (
     <div className={classes.category_container}>
       {items.map((item) => (
@@ -42,7 +59,11 @@ export default function CategoryItem({items=[], category}) {
               borderColor="#ffffff"
             />
             <div className={classes.itemName}>{item.item_name}</div>
-            <div className={classes.itemPrice}>{item.price} ₪</div>
+            <div className={classes.itemPrice}>
+              {formatPrice(getDisplayPrice(item))}
+              {/* Show VAT indicator if VAT-inclusive price is available */}
+             
+            </div>
           </Link>
         </div>
       ))}

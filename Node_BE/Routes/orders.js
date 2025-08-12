@@ -22,7 +22,7 @@ const { authenticateToken } = require('../middleware/authMiddleware');
  * - startDate: Custom start date (YYYY-MM-DD format)
  * - endDate: Custom end date (YYYY-MM-DD format)
  * - searchTerm: Search term for order ID, status, or order type
- * - status: Filter by specific status
+ * - status: Filter by specific status (processing, completed, pending, etc.)
  * 
  * Authentication: Required (JWT token)
  * Response: Array of orders with pagination details
@@ -33,22 +33,24 @@ router.get('/staff/all', authenticateToken, async (req, res) => {
     
     // Get pagination and filter parameters
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = parseInt(req.query.limit) || 20; // Keep reasonable default
     const offset = (page - 1) * limit;
     const dateFilter = req.query.dateFilter || 'all';
     const searchTerm = req.query.searchTerm || '';
     const startDate = req.query.startDate || null;
     const endDate = req.query.endDate || null;
+    const status = req.query.status || null; // Add status parameter
     
-    // Get paginated and filtered orders
+    // Get filtered orders with pagination
     const { orders, totalCount, totalPages } = await getCompleteOrderData(null, { 
-      page, 
-      limit, 
+      page,
+      limit,
       offset,
       dateFilter,
       searchTerm,
       startDate,
-      endDate
+      endDate,
+      status // Pass status to backend filtering
     });
     
     // Return successful response with paginated data
@@ -264,13 +266,36 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
     }
     
     // Emit real-time notification for order update
-    await req.socketService.emitOrderUpdate({
-      orderId,
-      status,
-      customerId: orderData.user_id,
-      orderType: orderData.order_type,
-      updatedAt: new Date().toISOString()
-    });
+    // Get complete order data to emit via WebSocket for better synchronization
+    try {
+      const { getSingleOrder } = require('../utils/orderUtils');
+      const completeOrder = await getSingleOrder(orderId);
+      
+      if (completeOrder) {
+        // Backend now always sends complete order data with order_id
+        // No need for field normalization since we're using order_id consistently
+        await req.socketService.emitOrderUpdate(completeOrder);
+      } else {
+        // Fallback to basic notification if complete data not available
+        await req.socketService.emitOrderUpdate({
+          order_id: orderId,
+          status,
+          customerId: orderData.user_id,
+          orderType: orderData.order_type,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    } catch (wsError) {
+      console.error('Error emitting WebSocket update:', wsError);
+      // Fallback to basic notification
+      await req.socketService.emitOrderUpdate({
+        order_id: orderId,
+        status,
+        customerId: orderData.user_id,
+        orderType: orderData.order_type,
+        updatedAt: new Date().toISOString()
+      });
+    }
     
     // Emit notification to staff
     req.socketService.emitNotification({
@@ -522,6 +547,7 @@ router.get('/:orderId', authenticateToken, async (req, res) => {
  * - startDate: Custom start date (YYYY-MM-DD format)
  * - endDate: Custom end date (YYYY-MM-DD format)
  * - searchTerm: Search term for order ID, status, or order type
+ * - status: Filter by specific status (processing, completed, pending, etc.)
  * 
  * Authentication: Required (JWT token)
  * Response: Array of customer's orders with pagination details
@@ -538,6 +564,7 @@ router.get('/customer/all', authenticateToken, async (req, res) => {
     const searchTerm = req.query.searchTerm || '';
     const startDate = req.query.startDate || null;
     const endDate = req.query.endDate || null;
+    const status = req.query.status || null; // Add status parameter
     
     // Get paginated and filtered orders for the authenticated user
     const { orders, totalCount, totalPages } = await getCompleteOrderData(null, { 
@@ -548,6 +575,7 @@ router.get('/customer/all', authenticateToken, async (req, res) => {
       searchTerm,
       startDate,
       endDate,
+      status, // Pass status to backend filtering
       userId: req.user.user_id // Filter by authenticated user
     });
     

@@ -1,0 +1,130 @@
+/* Order Item Styles */
+
+.orderItemDetail {
+  background: #f8f9fa;
+  margin-bottom: 0.5rem;
+  padding: 0.75rem;
+  border-left: 3px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.orderItemDetail:hover {
+  background: #f1f3f4;
+  border-left-color: #896651;
+}
+
+.preparedItem {
+  background: #f0fdf4;
+  border-left-color: #059669;
+  opacity: 0.8;
+  order: 999; /* Ensures prepared items appear at bottom */
+}
+
+.preparedItem:hover {
+  background: #dcfce7;
+  border-left-color: #059669;
+}
+
+.itemMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.itemCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  z-index: 10;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.preparationCheckbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #059669;
+  z-index: 10;
+  position: relative;
+  pointer-events: auto;
+}
+
+.itemName {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.preparedText {
+  text-decoration: line-through;
+  color: #9ca3af;
+  opacity: 0.7;
+}
+
+.itemQuantity {
+  background: #896651;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.itemIngredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.ingredientTag {
+  background: #e1f5fe;
+  color: #0277bd;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  border: 1px solid #b3e5fc;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .orderItemDetail {
+    padding: 0.5rem;
+  }
+  
+  .itemCheckbox {
+    gap: 0.375rem;
+  }
+  
+  .preparationCheckbox {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+  
+  .itemName {
+    font-size: 0.875rem;
+  }
+  
+  .itemQuantity {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .itemCheckbox {
+    gap: 0.25rem;
+  }
+  
+  .preparationCheckbox {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}

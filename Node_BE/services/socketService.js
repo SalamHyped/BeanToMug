@@ -60,6 +60,12 @@ class SocketService {
                 this.handleStaffAlertInteraction(socket, data);
             });
 
+            // Handle item preparation toggle for cross-view sync
+            socket.on('itemPreparationToggle', (data) => {
+                console.log('Backend SocketService: Received itemPreparationToggle event:', data);
+                this.handleItemPreparationToggle(socket, data);
+            });
+
         socket.on('testNotification', (data) => {
             console.log('Backend SocketService: Received test notification:', data);
             // Broadcast to admin room
@@ -76,8 +82,6 @@ class SocketService {
     authenticateUser(socket, userData) {
         const { userId, userRole } = userData;
         
-        console.log('Backend SocketService: Authenticating user:', { userId, userRole, socketId: socket.id });
-        
         // Store user connection info
         this.connectedUsers.set(socket.id, {
             userId,
@@ -90,19 +94,12 @@ class SocketService {
         if (userRole === 'admin') {
             socket.join('admin-room');
             socket.join('staff-room');
-            console.log('Backend SocketService: User joined admin-room and staff-room');
         } else if (userRole === 'staff') {
             socket.join('staff-room');
-            console.log('Backend SocketService: User joined staff-room');
         }
 
         // Join user-specific room for personal notifications
         socket.join(`user-${userId}`);
-        console.log('Backend SocketService: User joined user-specific room:', `user-${userId}`);
-        
-        console.log('Backend SocketService: Current connected users:', this.connectedUsers.size);
-        console.log('Backend SocketService: Users in staff-room:', this.getUsersInRoom('staff-room'));
-        console.log('Backend SocketService: Users in admin-room:', this.getUsersInRoom('admin-room'));
     }
 
     joinRoom(socket, roomData) {
@@ -134,8 +131,6 @@ class SocketService {
 
     // Real-time event emitters
     emitNewTask(taskData) {
-        console.log('Backend SocketService: Emitting new task:', taskData);
-        console.log('Backend SocketService: Users in staff-room:', this.getUsersInRoom('staff-room'));
         this.io.to('staff-room').emit('newTask', taskData);
     }
 
@@ -144,47 +139,66 @@ class SocketService {
     }
 
     emitNewOrder(orderData) {
-        console.log('Backend SocketService: Emitting new order data:', orderData);
-        
-        // Check if we have complete order data with items
-        if (orderData.items && Array.isArray(orderData.items)) {
-            console.log('Backend SocketService: Emitting complete order data with items');
-            this.io.to('staff-room').emit('newOrder', orderData);
-        } else {
-            console.log('Backend SocketService: Emitting basic order notification');
-            this.io.to('staff-room').emit('newOrder', {
-                orderId: orderData.orderId || orderData.order_id,
-                status: orderData.status || 'processing',
-                customerId: orderData.customerId,
-                orderType: orderData.orderType,
+        // Backend now always sends complete order data with items
+        // Ensure consistent field names - use order_id
+        const normalizedData = {
+            ...orderData,
+            order_id: orderData.order_id || orderData.orderId
+        };
+
+        this.io.to('staff-room').emit('newOrder', normalizedData);
+    }
+
+    emitOrderUpdate(orderData) {
+        // Normalize order_id to ensure consistency
+        const order_id = orderData.order_id || orderData.orderId;
+        const status = orderData.status;
+
+        if (!order_id || !status) {
+            return;
+        }
+
+        // Backend now always sends complete order data with items
+        // Ensure consistent field names - use order_id
+        const normalizedData = {
+            ...orderData,
+            order_id: order_id
+        };
+
+        // Emit complete order data to staff room
+        this.io.to('staff-room').emit('orderUpdate', normalizedData);
+
+        // Also notify the specific customer with basic data
+        if (orderData.customerId) {
+            this.io.to(`user-${orderData.customerId}`).emit('orderUpdate', {
+                order_id: order_id,
+                status: status,
                 timestamp: new Date().toISOString()
             });
         }
     }
 
-    emitOrderUpdate(orderData) {
-        console.log('Backend SocketService: Emitting order update:', orderData);
-        
-        // Check if we have complete order data with items
-        if (orderData.items && Array.isArray(orderData.items)) {
-            console.log('Backend SocketService: Emitting complete order update data');
-            this.io.to('staff-room').emit('orderUpdate', orderData);
-        } else {
-            console.log('Backend SocketService: Emitting basic order update notification');
-            this.io.to('staff-room').emit('orderUpdate', {
-                orderId: orderData.orderId || orderData.order_id,
-                status: orderData.status,
-                customerId: orderData.customerId,
-                orderType: orderData.orderType,
-                timestamp: new Date().toISOString()
-            });
-        }
-        
-        // Also notify the specific customer with basic data
-        if (orderData.customerId) {
-            this.io.to(`user-${orderData.customerId}`).emit('orderUpdate', {
-                orderId: orderData.orderId || orderData.order_id,
-                status: orderData.status,
+    emitItemPreparationUpdate(preparationData) {
+        // Emit to staff room for real-time synchronization
+        this.io.to('staff-room').emit('itemPreparationUpdate', {
+            order_id: preparationData.order_id || preparationData.orderId,
+            itemIndex: preparationData.itemIndex,
+            isPrepared: preparationData.isPrepared,
+            itemName: preparationData.itemName,
+            updatedBy: preparationData.updatedBy,
+            updatedAt: preparationData.updatedAt,
+            timestamp: new Date().toISOString()
+        });
+
+        // Also emit to the specific user who made the change for immediate feedback
+        if (preparationData.updatedBy) {
+            this.io.to(`user-${preparationData.updatedBy}`).emit('itemPreparationUpdate', {
+                order_id: preparationData.order_id || preparationData.orderId,
+                itemIndex: preparationData.itemIndex,
+                isPrepared: preparationData.isPrepared,
+                itemName: preparationData.itemName,
+                updatedBy: preparationData.updatedBy,
+                updatedAt: preparationData.updatedAt,
                 timestamp: new Date().toISOString()
             });
         }
@@ -204,7 +218,6 @@ class SocketService {
         
         // Send to specific user if userId provided
         if (targetUserId) {
-            console.log('Backend SocketService: Sending to user-specific room:', `user-${targetUserId}`);
             this.io.to(`user-${targetUserId}`).emit('notification', {
                 message,
                 type,
@@ -214,14 +227,12 @@ class SocketService {
         
         // Send to role-based rooms
         if (targetRole === 'admin') {
-            console.log('Backend SocketService: Sending to admin-room');
             this.io.to('admin-room').emit('notification', {
                 message,
                 type,
                 timestamp: new Date().toISOString()
             });
         } else if (targetRole === 'staff') {
-            console.log('Backend SocketService: Sending to staff-room');
             this.io.to('staff-room').emit('notification', {
                 message,
                 type,
@@ -232,7 +243,6 @@ class SocketService {
 
     handleStaffViewingAlerts(socket, data) {
         const userInfo = this.connectedUsers.get(socket.id);
-        console.log('Backend SocketService: Staff viewing alerts:', { userInfo, data });
         
         // Notify admins that staff is viewing alerts
         this.io.to('admin-room').emit('staffAlertActivity', {
@@ -255,14 +265,11 @@ class SocketService {
             }
         };
         
-        console.log('Backend SocketService: Emitting notification to admin-room:', notificationData);
-        console.log('Backend SocketService: Users in admin-room:', this.getUsersInRoom('admin-room'));
         this.io.to('admin-room').emit('notification', notificationData);
     }
 
     handleStaffAlertInteraction(socket, data) {
         const userInfo = this.connectedUsers.get(socket.id);
-        console.log('Backend SocketService: Staff alert interaction:', { userInfo, data });
         
         // Notify admins of staff interaction with specific alert
         this.io.to('admin-room').emit('staffAlertActivity', {
@@ -287,9 +294,15 @@ class SocketService {
             }
         };
         
-        console.log('Backend SocketService: Emitting staff alert interaction notification:', notificationData);
-        console.log('Backend SocketService: Users in admin-room:', this.getUsersInRoom('admin-room'));
         this.io.to('admin-room').emit('notification', notificationData);
+    }
+
+    handleItemPreparationToggle(socket, data) {
+        // Broadcast the preparation status change to all staff members
+        this.io.to('staff-room').emit('itemPreparationUpdate', {
+            ...data,
+            timestamp: new Date().toISOString()
+        });
     }
 
     // Get connected users count for monitoring

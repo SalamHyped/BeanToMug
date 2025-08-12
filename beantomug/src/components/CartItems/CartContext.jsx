@@ -31,12 +31,8 @@ console.log(cartItems)
     }
   };
 
-  const calculateItemPrice = (item, options) => {
-    // Use item_price if available (from backend), otherwise calculate from base price
-    if (item.item_price !== undefined && item.item_price !== null) {
-      return parseFloat(item.item_price);
-    }
-    
+  // Unified price calculation function
+  const calculateItemPrice = (item, options, includeVAT = false) => {
     let totalPrice = parseFloat(item.price || 0);
     
     // Add prices from selected options if they exist
@@ -48,44 +44,66 @@ console.log(cartItems)
       });
     }
 
+    // If VAT is requested and backend provides it, use backend calculation
+    if (includeVAT && item.priceWithVAT !== undefined && item.priceWithVAT !== null) {
+      return parseFloat(item.priceWithVAT);
+    }
+    
+    // If VAT is requested but backend doesn't provide it, calculate locally
+    if (includeVAT) {
+      const FALLBACK_VAT_RATE = 15.00; // Fallback VAT rate
+      const vatAmount = (totalPrice * FALLBACK_VAT_RATE) / 100;
+      return totalPrice + vatAmount;
+    }
+    
+    // Return base price without VAT
     return totalPrice;
   };
 
-  // VAT calculation functions
-  const VAT_RATE = 15.00; // 15% VAT - should match backend
-
-  const calculateVATAmount = (subtotal) => {
-    return (subtotal * VAT_RATE) / 100;
+  // Helper function for VAT amount calculation
+  const calculateVATAmount = (subtotal, vatRate = 15.00) => {
+    return (subtotal * vatRate) / 100;
   };
 
   // Memoized cart totals calculation - only recalculates when cartItems change
   const cartTotals = useMemo(() => {
     let subtotal = 0;
+    let subtotalWithVAT = 0;
+    let totalVATAmount = 0;
 
     // Calculate subtotal for all items
     if (cartItems && Array.isArray(cartItems)) {
       cartItems.forEach(item => {
         if (item && typeof item === 'object') {
-          const itemPrice = calculateItemPrice(item, item.options || {});
+          const itemBasePrice = calculateItemPrice(item, item.options || {}, false); // No VAT
+          const itemPriceWithVAT = calculateItemPrice(item, item.options || {}, true); // With VAT
           const quantity = parseInt(item.quantity) || 1;
-          subtotal += itemPrice * quantity;
+          
+          subtotal += itemBasePrice * quantity;
+          subtotalWithVAT += itemPriceWithVAT * quantity;
+          
+          // If backend provides VAT amount, use it for more accurate calculation
+          if (item.vatAmount !== undefined && item.vatAmount !== null) {
+            totalVATAmount += parseFloat(item.vatAmount) * quantity;
+          }
         }
       });
     }
 
-    // Calculate VAT
-    const vatAmount = calculateVATAmount(subtotal);
-    const totalWithVAT = subtotal + vatAmount;
+    // Use backend VAT amount if available, otherwise calculate from difference
+    const vatAmount = totalVATAmount > 0 ? totalVATAmount : (subtotalWithVAT - subtotal);
+    const totalWithVAT = subtotalWithVAT;
 
     return {
       subtotal: subtotal,
+      subtotalWithVAT: subtotalWithVAT,
       vatAmount: vatAmount,
-      vatRate: VAT_RATE,
+      vatRate: 15.00, // Fallback rate, actual rate comes from backend
       totalWithVAT: totalWithVAT
     };
   }, [cartItems]); // Only recalculate when cartItems change
 
-  // Legacy function for backward compatibility
+  // Legacy function for backward compatibility (now just returns memoized totals)
   const calculateCartTotals = () => {
     return cartTotals;
   };
@@ -177,23 +195,24 @@ console.log(cartItems)
     }
   };
 
+  const contextValue = {
+    cartItems,
+    orderType,
+    error,
+    cartTotals,
+    calculateCartTotals,
+    calculateItemPrice, // Now unified function with VAT parameter
+    addToCart,
+    removeFromCart,
+    updateQuantity,
+    updateOrderType, // Add the missing function
+    setOrderType,
+    fetchCart,
+    clearCart
+  };
+
   return (
-    <CartContext.Provider value={{ 
-      cartItems,
-      orderType,
-      error,
-      addToCart, 
-      removeFromCart, 
-      updateQuantity,
-      updateOrderType,
-      clearCart,
-      setCartItems,
-      refreshCart: fetchCart,
-      calculateCartTotals,
-      calculateVATAmount,
-      VAT_RATE,
-      cartTotals // Memoized totals for direct access
-    }}>
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

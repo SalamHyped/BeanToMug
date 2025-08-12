@@ -181,11 +181,29 @@ router.get("/items/:id", async (req, res) => {
     });
 
     // Determine overall item availability
-    // Item is available only if ALL REQUIRED ingredients are in stock
-    // Optional ingredients being out of stock should not make the item unavailable
-    const isAvailable = ingredients
-      .filter(ing => ing.isRequired)  // Only check required ingredients
-      .every(ing => ing.inStock);
+    // Item is available if:
+    // 1. Item itself is active (status = 1)
+    // 2. At least one ingredient of each required type is available
+    // 3. Non-required ingredients being out of stock should not make the item unavailable
+    
+    // Check if item is active
+    const itemActive = item.status === 1;
+    
+    // Check required ingredients availability (more flexible)
+    // This logic handles cases where multiple ingredients exist under the same type
+    // For example: "Milk Type" has Soy Milk, Regular Milk, Almond Milk
+    // If "Milk Type" is required, at least ONE milk option must be available
+    const requiredIngredientsAvailable = ingredients
+      .filter(ing => ing.isRequired)
+      .every(ing => {
+        // If it's a required ingredient type, at least one option should be available
+        const sameTypeIngredients = ingredients.filter(other => 
+          other.category === ing.category && other.isRequired
+        );
+        return sameTypeIngredients.some(other => other.inStock);
+      });
+    
+    const isAvailable = itemActive && requiredIngredientsAvailable;
 
     // Combine all data into the final response
     const response = {

@@ -74,6 +74,32 @@
   width: fit-content;
 }
 
+.priceContainer {
+    margin: 0.5rem 0;
+}
+
+.vatIndicator {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: #6B7280;
+    font-style: italic;
+    margin-left: 0.5rem;
+}
+
+.vatBreakdown {
+    font-size: 0.8rem;
+    color: #6B7280;
+    margin: 0.25rem 0;
+    font-style: italic;
+}
+
+.vatNote {
+    font-size: 0.8rem;
+    color: #6B7280;
+    font-style: italic;
+    margin-left: 0.25rem;
+}
+
 /* Error Message */
 .errorMessage {
   display: flex;

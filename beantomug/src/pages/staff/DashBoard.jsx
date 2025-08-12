@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
-import MenuOrders from "../../components/layouts/StaffLayout/menuOrders/menuOrders";
+import MenuOrders from "../../components/layouts/StaffLayout/menuOrders";
 import RealTimeDashboard from "../../components/RealTimeDashboard";
 import Inventory from './Inventory';
 import styles from './DashBoard.module.css';

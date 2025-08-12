@@ -66,6 +66,195 @@
   flex: 1;
 }
 
+/* Filter Controls */
+.filterControls {
+  background: #f9f5f1;
+  border: 1px solid #f3d9ca;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filterSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filterHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #3e2723;
+  font-size: 0.875rem;
+}
+
+.filterIcon {
+  color: #896651;
+}
+
+.timeFilterButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.timeFilterButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid #f3d9ca;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.timeFilterButton:hover {
+  background: #f3d9ca;
+  border-color: #896651;
+  color: #3e2723;
+}
+
+.timeFilterButton.active {
+  background: #896651;
+  border-color: #896651;
+  color: white;
+}
+
+.customTimeRange {
+  background: white;
+  border: 1px solid #f3d9ca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dateInputs,
+.timeInputs {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 150px;
+}
+
+.inputGroup label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #3e2723;
+}
+
+.dateInput,
+.timeInput {
+  padding: 0.5rem;
+  border: 1px solid #f3d9ca;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.dateInput:focus,
+.timeInput:focus {
+  outline: none;
+  border-color: #896651;
+  box-shadow: 0 0 0 2px rgba(137, 102, 81, 0.1);
+}
+
+.searchSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.searchInput {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  color: #6b7280;
+  z-index: 1;
+}
+
+.searchField {
+  width: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  border: 1px solid #f3d9ca;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.searchField:focus {
+  outline: none;
+  border-color: #896651;
+  box-shadow: 0 0 0 2px rgba(137, 102, 81, 0.1);
+}
+
+.filterStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f3d9ca;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #f3d9ca;
+}
+
+.clearFiltersButton {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.clearFiltersButton:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
 /* Loading State */
 .loading {
   display: flex;
@@ -261,6 +450,38 @@
   background: linear-gradient(135deg, #fff 0%, #f0fdf4 100%);
 }
 
+/* Completed order styling */
+.orderCard.completed {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+  background: #f8f9fa;
+  border-color: #e9ecef;
+}
+
+.orderCard.completed:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: none;
+}
+
+.orderCard.completed .dragHandle {
+  display: none;
+}
+
+.orderCard.completed::after {
+  content: '✓ Completed';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: #10b981;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
 /* Order Header */
 .orderHeader {
   display: flex;
@@ -336,6 +557,28 @@
   font-weight: 500;
 }
 
+.customerInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.customerName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  background: #f9fafb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+  min-width: 120px;
+}
+
 /* Order Content */
 .orderContent {
   flex: 1;
@@ -366,6 +609,38 @@
   margin-top: 0.5rem;
 }
 
+.expandToggle {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.expandButton {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.expandButton:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #374151;
+  transform: translateY(-1px);
+}
+
+.expandButton:active {
+  transform: translateY(0);
+}
+
 .orderItemDetail {
   background: #f8f9fa;
   border-radius: 0.5rem;
@@ -379,6 +654,18 @@
   border-left-color: #896651;
 }
 
+.preparedItem {
+  background: #f0fdf4;
+  border-left-color: #059669;
+  opacity: 0.8;
+  order: 999; /* Ensures prepared items appear at bottom */
+}
+
+.preparedItem:hover {
+  background: #dcfce7;
+  border-left-color: #059669;
+}
+
 .itemMain {
   display: flex;
   justify-content: space-between;
@@ -386,10 +673,40 @@
   margin-bottom: 0.5rem;
 }
 
+.itemCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  z-index: 10;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.preparationCheckbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: #059669;
+  z-index: 10;
+  position: relative;
+  pointer-events: auto;
+}
+
 .itemName {
   font-weight: 600;
   color: #374151;
   font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.preparedText {
+  text-decoration: line-through;
+  color: #9ca3af;
+  opacity: 0.7;
 }
 
 .itemQuantity {
@@ -430,6 +747,30 @@
   color: #6b7280;
   font-weight: 500;
   transition: all 0.2s ease;
+}
+
+.restoreButton {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.restoreButton:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+}
+
+.restoreButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
 }
 
 /* Drag Progress Bar */
@@ -521,6 +862,17 @@
   transform: scale(0.95);
 }
 
+/* Pagination */
+.paginationContainer {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  background: #f9f5f1;
+  border-radius: 0.75rem;
+  border: 1px solid #f3d9ca;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .ordersGrid {
@@ -533,31 +885,58 @@
   .container {
     padding: 0.5rem;
   }
-  
+
   .header {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .headerControls {
+    align-items: stretch;
+  }
+
+  .toggleSection {
+    justify-content: center;
+  }
+
+  .refreshButton {
+    align-self: center;
+  }
+
+  /* Filter Controls Responsive */
+  .filterControls {
+    padding: 0.75rem;
     gap: 0.75rem;
   }
-  
-  .headerControls {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+
+  .timeFilterButtons {
+    justify-content: center;
   }
-  
-  .toggleSection {
-    padding: 0.375rem;
+
+  .timeFilterButton {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
   }
-  
-  .refreshButton {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.8rem;
+
+  .dateInputs,
+  .timeInputs {
+    flex-direction: column;
+    gap: 0.5rem;
   }
-  
+
+  .inputGroup {
+    min-width: auto;
+  }
+
+  .filterStats {
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
   .ordersGrid {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
   }
   
   .orderCard {
@@ -587,12 +966,41 @@
     font-size: 0.75rem;
   }
   
+  .customerInfo {
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
+  }
+  
+  .customerName {
+    font-size: 0.75rem;
+    min-width: 100px;
+  }
+  
   .itemsList {
     gap: 0.5rem;
   }
   
+  .expandButton {
+    font-size: 0.7rem;
+    padding: 0.375rem 0.75rem;
+  }
+  
+  .paginationContainer {
+    margin-top: 1rem;
+    padding: 0.75rem;
+  }
+  
   .orderItemDetail {
     padding: 0.5rem;
+  }
+  
+  .itemCheckbox {
+    gap: 0.375rem;
+  }
+  
+  .preparationCheckbox {
+    width: 0.875rem;
+    height: 0.875rem;
   }
   
   .itemName {
@@ -622,68 +1030,224 @@
     grid-template-columns: 1fr;
     gap: 0.5rem;
   }
-  
+
   .headerControls {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
   }
-  
+
   .toggleSection {
-    justify-content: center;
-    padding: 0.25rem;
-  }
-  
-  .refreshButton {
-    width: 100%;
     justify-content: center;
     padding: 0.5rem;
   }
+
+  .refreshButton {
+    align-self: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  /* Filter Controls Mobile */
+  .filterControls {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .timeFilterButtons {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .timeFilterButton {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem;
+  }
+
+  .customTimeRange {
+    padding: 0.75rem;
+  }
+
+  .dateInputs,
+  .timeInputs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .inputGroup {
+    width: 100%;
+  }
+
+  .filterStats {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .statItem {
+    width: 100%;
+    justify-content: center;
+  }
   
+  /* Order card mobile styles */
   .orderCard {
     padding: 0.75rem;
-    min-height: 160px;
   }
   
   .orderHeader {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.375rem;
-  }
-  
-  .orderMeta {
-    flex-direction: column;
-    align-items: flex-start;
     gap: 0.25rem;
   }
   
-  .orderNumber {
-    font-size: 0.875rem;
+  .customerInfo {
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
   }
   
-  .orderStatus {
-    font-size: 0.625rem;
+  .customerName {
+    font-size: 0.7rem;
+    min-width: 80px;
     padding: 0.125rem 0.375rem;
   }
   
-  .orderType {
-    font-size: 0.625rem;
+  .expandButton {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
   }
   
-  .orderTime {
-    font-size: 0.625rem;
+  .paginationContainer {
+    margin-top: 0.75rem;
+    padding: 0.5rem;
   }
   
-  .itemsList {
-    gap: 0.375rem;
-  }
-  
-  .orderItemDetail {
-    padding: 0.375rem;
-  }
-  
-  .itemIngredients {
-    flex-wrap: wrap;
+  .itemCheckbox {
     gap: 0.25rem;
   }
+  
+  .preparationCheckbox {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+} 
+
+/* Framer Motion Lazy Loading Fallbacks */
+.animatePresenceFallback {
+  /* Fallback for AnimatePresence when Framer Motion is loading */
+  position: relative;
+}
+
+.motionLoading {
+  /* Loading state for Framer Motion components */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  color: #666;
+}
+
+.motionLoading .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Enhanced CSS transitions for fallback animations */
+.orderCard {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity, scale;
+  transform-origin: center;
+}
+
+.orderCard.dragging {
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+  z-index: 10;
+}
+
+.orderCard.completed {
+  transform: translateX(-200px);
+  opacity: 0;
+}
+
+.orderCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Smooth transitions for drag progress */
+.dragProgressBar {
+  transition: width 0.2s ease-out;
+}
+
+/* Enhanced item animations */
+.orderItemDetail {
+  transition: all 0.2s ease;
+}
+
+.orderItemDetail:hover {
+  transform: translateX(4px);
+  background-color: rgba(0,0,0,0.02);
+}
+
+/* Smooth expand/collapse animations */
+.expandToggle {
+  transition: all 0.2s ease;
+}
+
+.expandButton {
+  transition: all 0.2s ease;
+}
+
+.expandButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Additional fallback animations for when Framer Motion is loading */
+.orderCard[data-progress] {
+  transition: all 0.3s ease;
+}
+
+.orderCard[data-progress="low"] {
+  transform: rotate(1deg);
+}
+
+.orderCard[data-progress="medium"] {
+  transform: rotate(3deg);
+}
+
+.orderCard[data-progress="high"] {
+  transform: rotate(5deg);
+}
+
+/* Smooth enter/exit animations for fallback */
+.orderCard-enter {
+  opacity: 0;
+  transform: translateX(-20px) scale(0.9);
+}
+
+.orderCard-enter-active {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  transition: all 0.3s ease;
+}
+
+.orderCard-exit {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.orderCard-exit-active {
+  opacity: 0;
+  transform: translateX(-200px) scale(0.8);
+  transition: all 0.3s ease;
 } 

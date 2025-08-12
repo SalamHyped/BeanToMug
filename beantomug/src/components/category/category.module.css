@@ -1,1 +1,15 @@
- 
+.itemPrice {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #8B4513;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.vatIndicator {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #6B7280;
+    font-style: italic;
+    margin-left: 0.25rem;
+} 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Bell, Sparkles } from 'lucide-react';
 
 const DashboardCard = ({ 
     children, 
@@ -28,7 +29,7 @@ const DashboardCard = ({
                     <div className="flex items-center gap-2">
                         <div className="relative">
                             <div className="bg-amber-700 p-1 rounded-md shadow-md transform hover:scale-105 transition-all duration-300">
-                                <span className="text-white text-sm animate-bounce">{icon}</span>
+                                <span className="text-white text-sm">{icon}</span>
                             </div>
                             <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>
                         </div>
@@ -44,8 +45,9 @@ const DashboardCard = ({
                     {showNewIndicator && (
                         <div className="bg-amber-600 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse shadow-md">
                             <span className="flex items-center gap-1">
+                                <Bell size={12} />
                                 <span>New!</span>
-                                <span className="animate-ping">●</span>
+                                <Sparkles size={12} className="animate-ping" />
                             </span>
                         </div>
                     )}

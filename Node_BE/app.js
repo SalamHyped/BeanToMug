@@ -24,6 +24,7 @@ const ordersRouter = require('./Routes/orders');
 const tasksRouter = require('./Routes/tasks');
 const galleryRouter = require('./Routes/gallery');
 const inventoryRouter = require('./Routes/inventory');
+const adminRouter = require('./Routes/admin');
 
 app.use(express.json());
 app.use(cors({
@@ -116,6 +117,7 @@ app.use('/orders', ordersRouter);
 app.use('/tasks', tasksRouter);  // Task management routes
 app.use('/gallery', galleryRouter);  // Gallery routes
 app.use('/inventory', inventoryRouter);  // Inventory management routes
+app.use('/admin', adminRouter);  // Admin management routes
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

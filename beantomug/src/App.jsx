@@ -16,45 +16,44 @@ const WebSocketInitializer = () => {
   const { user } = useContext(UserContext);
 
   useEffect(() => {
-    const initializeSocket = async () => {
-      try {
-        console.log('WebSocketInitializer: Initializing socket connection');
-        await socketService.connect();
-        
-        // Authenticate user if logged in
-        if (user && user.id) {
-          console.log('WebSocketInitializer: Authenticating user:', user);
-          socketService.authenticate({
-            userId: user.id,
-            userRole: user.role || 'customer'
-          });
-        } else {
-          console.log('WebSocketInitializer: No user to authenticate');
-        }
-      } catch (error) {
-        console.error('Failed to initialize WebSocket:', error);
-      }
-    };
+            const initializeSocket = async () => {
+          try {
+            await socketService.connect();
+
+            // Authenticate user if logged in
+            if (user && user.id) {
+              const authSuccess = socketService.authenticate({
+                userId: user.id,
+                userRole: user.role || 'customer'
+              });
+            }
+          } catch (error) {
+            // Handle error silently
+          }
+        };
 
     initializeSocket();
 
-    // Cleanup on unmount
-    return () => {
-      console.log('WebSocketInitializer: Disconnecting socket');
-      socketService.disconnect();
-    };
+            // Cleanup on unmount
+        return () => {
+          socketService.disconnect();
+        };
   }, [user]);
 
-  // Separate effect to handle user authentication when user changes
-  useEffect(() => {
-    if (user && user.id && socketService.isConnected) {
-      console.log('WebSocketInitializer: User changed, re-authenticating:', user);
-      socketService.authenticate({
-        userId: user.id,
-        userRole: user.role || 'customer'
-      });
-    }
-  }, [user, socketService.isConnected]);
+          // Separate effect to handle user authentication when user changes
+        useEffect(() => {
+          if (user && user.id) {
+            // Check connection status
+            const connectionStatus = socketService.getConnectionStatus();
+
+            if (connectionStatus.isConnected) {
+              const authSuccess = socketService.authenticate({
+                userId: user.id,
+                userRole: user.role || 'customer'
+              });
+            }
+          }
+        }, [user]);
 
   return null;
 };

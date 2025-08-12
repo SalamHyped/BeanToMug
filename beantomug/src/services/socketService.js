@@ -98,97 +98,76 @@ class SocketService {
             this.emit('connected', { socketId: this.socket.id });
         });
 
-        this.socket.on('disconnect', (reason) => {
+        this.socket.on('disconnect', () => {
             this.isConnected = false;
-            this.emit('disconnected', { reason });
-            
-            if (reason === 'io server disconnect') {
-                this.socket.connect();
-            }
+            this.emit('disconnected');
         });
 
         this.socket.on('connect_error', (error) => {
+            this.isConnected = false;
             this.reconnectAttempts++;
-            this.emit('error', error);
-            
-            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                this.emit('maxReconnectAttemptsReached', { attempts: this.reconnectAttempts });
-            }
+            this.emit('connect_error', error);
         });
 
+        // Listen for server events and emit them locally
+        this.socket.on('newOrder', (data) => {
+            this.emit('newOrder', data);
+        });
+
+        this.socket.on('orderUpdate', (data) => {
+            this.emit('orderUpdate', data);
+        });
+
+        this.socket.on('itemPreparationUpdate', (data) => {
+            this.emit('itemPreparationUpdate', data);
+        });
+
+        // Handle reconnection
         this.socket.on('reconnect', (attemptNumber) => {
-            this.isConnected = true;
             this.reconnectAttempts = 0;
             this.emit('reconnected', { attemptNumber });
         });
 
         this.socket.on('reconnect_error', (error) => {
-            this.emit('error', error);
-        });
-
-        this.socket.on('reconnect_failed', () => {
-            this.emit('reconnectFailed');
-        });
-
-        // Handle real-time events
-        this.socket.on('newOrder', (orderData) => {
-            this.emit('newOrder', orderData);
-        });
-
-        this.socket.on('orderUpdate', (orderData) => {
-            this.emit('orderUpdate', orderData);
-        });
-
-        this.socket.on('newTask', (taskData) => {
-            this.emit('newTask', taskData);
-        });
-
-        this.socket.on('taskUpdate', (taskData) => {
-            this.emit('taskUpdate', taskData);
-        });
-
-        this.socket.on('galleryUpdate', (galleryData) => {
-            this.emit('galleryUpdate', galleryData);
-        });
-
-        this.socket.on('notification', (notificationData) => {
-            this.emit('notification', notificationData);
-        });
-
-        // Handle test events
-        this.socket.on('test', (data) => {
-            this.emit('test', data);
+            this.reconnectAttempts++;
+            this.emit('reconnect_error', error);
         });
     }
 
-    // Authenticate user with socket
+    // Authenticate user and join appropriate rooms
     authenticate(userData) {
-        console.log('SocketService: Authenticating user:', userData);
-        
-        if (!this.socket) {
-            console.log('SocketService: Socket not available, storing pending authentication');
-            this.pendingAuthentication = userData;
-            return;
+        if (!this.socket || !this.isConnected) {
+            console.error('Socket not connected, cannot authenticate');
+            return false;
         }
 
-        if (!this.isConnected) {
-            console.log('SocketService: Socket not connected, storing pending authentication');
-            this.pendingAuthentication = userData;
-            return;
+        try {
+            // Send authentication data to server
+            this.socket.emit('authenticate', userData);
+            
+            // Join appropriate rooms based on user role
+            if (userData.userRole === 'staff' || userData.userRole === 'admin') {
+                this.joinRoom('staff-room', 'staff');
+            }
+            
+            return true;
+        } catch (error) {
+            return false;
         }
-
-        console.log('SocketService: Emitting authenticate event');
-        this.socket.emit('authenticate', userData);
-        this.pendingAuthentication = null;
     }
 
-    // Join a specific room
+    // Join a room
     joinRoom(roomName, roomType = 'general') {
         if (!this.socket || !this.isConnected) {
-            return;
+            return false;
         }
 
-        this.socket.emit('joinRoom', { roomName, roomType });
+        try {
+            this.socket.emit('joinRoom', { roomName, roomType });
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
 
     // Leave a room
@@ -235,11 +214,9 @@ class SocketService {
     // Send event to server
     sendToServer(event, data) {
         if (!this.socket || !this.isConnected) {
-            console.error('Socket not connected, cannot send to server');
             return false;
         }
         
-        console.log('SocketService: Sending to server:', event, data);
         this.socket.emit(event, data);
         return true;
     }
@@ -255,6 +232,11 @@ class SocketService {
             this.pendingAuthentication = null;
             this.listeners.clear();
         }
+    }
+
+    // Get the actual Socket.IO client instance
+    get socketClient() {
+        return this.socket;
     }
 
     // Get connection status

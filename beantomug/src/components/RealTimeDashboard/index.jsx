@@ -161,10 +161,10 @@ const RealTimeDashboard = () => {
             <div className={styles.grid}>
                 <RecentOrders orders={orders} />
                 <RecentTasks tasks={tasks} />
-                <div className={styles.inventoryAlertsSection}>
+                
                     <Inventory />
-                </div>
-                <div className={styles.contentColumn}>
+               
+                
                     <div className={styles.contentDiv1}>
                         {/* First content div */}
                     </div>
@@ -172,7 +172,7 @@ const RealTimeDashboard = () => {
                         {/* Second content div */}
                     </div>
                 </div>
-            </div>
+           
         </div>
     );
 };

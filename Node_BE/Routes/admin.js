@@ -1,0 +1,263 @@
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcrypt');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const { requireRole } = require('../middleware/roleMiddleware');
+
+// Get all users (Admin only)
+router.get('/users', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { includeDeactivated = 'false' } = req.query;
+    
+    let query = `
+      SELECT id, username, email, first_name, last_name, phone_number, role, email_verified, 
+             status
+      FROM users 
+    `;
+    
+    if (includeDeactivated === 'false') {
+      query += ` WHERE status = TRUE`;
+    }
+    
+    query += ` ORDER BY id DESC`;
+    
+    const [users] = await req.db.execute(query);
+    
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Add new user (Admin only)
+router.post('/users', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { username, email, password, first_name, last_name, phone_number, role } = req.body;
+    
+    // Validate required fields
+    if (!username || !email || !password || !role) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username, email, password, and role are required' 
+      });
+    }
+    
+    // Validate role
+    if (!['staff', 'customer'].includes(role)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Role must be either staff or customer' 
+      });
+    }
+    
+    // Check if username already exists
+    const [existingUsername] = await req.db.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+    
+    if (existingUsername.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username already exists' 
+      });
+    }
+    
+    // Check if email already exists
+    const [existingEmail] = await req.db.execute(
+      'SELECT id FROM users WHERE email = ?',
+      [email]
+    );
+    
+    if (existingEmail.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email already exists' 
+      });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Insert new user
+    const [result] = await req.db.execute(`
+      INSERT INTO users (username, email, password, first_name, last_name, phone_number, role, email_verified) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `, [username, email, hashedPassword, first_name || '', last_name || '', phone_number || 0, role]);
+    
+    // Get the newly created user
+    const [newUser] = await req.db.execute(`
+      SELECT id, username, email, first_name, last_name, phone_number, role, email_verified
+      FROM users WHERE id = ?
+    `, [result.insertId]);
+    
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      user: newUser[0]
+    });
+    
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to create user' 
+    });
+  }
+});
+
+// Delete user (Admin only)
+router.delete('/users/:userId', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Check if user exists and get their role
+    const [users] = await req.db.execute(
+      'SELECT id, role FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    if (users.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    const user = users[0];
+    
+    // Prevent deletion of admin users
+    if (user.role === 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Cannot delete admin users' 
+      });
+    }
+    
+    // Different logic for staff vs customer
+    if (user.role === 'staff') {
+      // Staff users should always be deactivated, never deleted
+      return res.json({
+        success: false,
+        message: 'Staff users cannot be deleted. They will be deactivated instead.',
+        userRole: 'staff',
+        action: 'deactivate'
+      });
+    }
+    
+    // For customers, check if they have orders
+    const [orders] = await req.db.execute(
+      'SELECT order_id FROM orders WHERE user_id = ? LIMIT 1',
+      [userId]
+    );
+    
+    if (orders.length > 0) {
+      // Customer has orders - deactivate instead of delete
+      return res.json({
+        success: false,
+        message: 'Customer has existing orders. They will be deactivated instead.',
+        userRole: 'customer',
+        hasOrders: true,
+        dataSummary: {
+          orderCount: orders.length
+        },
+        action: 'deactivate'
+      });
+    }
+    
+    // Customer with no orders - safe to delete
+    await req.db.execute('DELETE FROM users WHERE id = ?', [userId]);
+    
+    res.json({
+      success: true,
+      message: 'Customer deleted successfully (no orders found)'
+    });
+    
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to delete user' 
+    });
+  }
+});
+
+// Soft delete user (deactivate instead of delete)
+router.post('/users/:userId/deactivate', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Check if user exists
+    const [users] = await req.db.execute(
+      'SELECT id, role FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    if (users.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    const user = users[0];
+    
+    // Prevent deactivation of admin users
+    if (user.role === 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Cannot deactivate admin users' 
+      });
+    }
+    
+    // Soft delete by updating status
+    await req.db.execute(`
+      UPDATE users 
+      SET status = FALSE
+      WHERE id = ?
+    `, [userId]);
+    
+    res.json({
+      success: true,
+      message: 'User deactivated successfully',
+      user: { id: userId, status: false }
+    });
+    
+  } catch (error) {
+    console.error('Error deactivating user:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to deactivate user' 
+    });
+  }
+});
+
+// Reactivate a deactivated user
+router.post('/users/:userId/reactivate', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Reactivate user
+    await req.db.execute(`
+      UPDATE users 
+      SET status = TRUE
+      WHERE id = ?
+    `, [userId]);
+    
+    res.json({
+      success: true,
+      message: 'User reactivated successfully',
+      user: { id: userId, status: true }
+    });
+    
+  } catch (error) {
+    console.error('Error reactivating user:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to reactivate user' 
+    });
+  }
+});
+
+module.exports = router;

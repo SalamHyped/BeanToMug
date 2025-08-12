@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import socketService from '../../services/socketService';
+import { AlertTriangle, AlertCircle, Package, CheckCircle, Coffee, Bell } from 'lucide-react';
 import styles from './Inventory.module.css';
 
 export default function Inventory() {
@@ -122,14 +123,23 @@ export default function Inventory() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Inventory Alerts</h1>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <Coffee size={20} className="text-amber-700" />
+          <h1 className={styles.title}>Inventory Alerts</h1>
+        </div>
         <p className={styles.subtitle}>View low stock alerts and notifications</p>
       </div>
 
       {/* Alerts Section */}
       {alerts.length > 0 ? (
         <div className={styles.alertsSection}>
-          <h2 className={styles.sectionTitle}>Stock Alerts</h2>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Stock Alerts</h2>
+            <div className={styles.adminNotificationBadge}>
+              <Bell size={14} className="text-amber-600" />
+              <span>Click alerts to notify admin</span>
+            </div>
+          </div>
           <ul className={styles.alertsList}>
             {alerts.map(alert => (
               <li 
@@ -137,22 +147,32 @@ export default function Inventory() {
                 className={styles.alertItem}
                 onClick={() => handleAlertClick(alert)}
                 style={{ cursor: 'pointer' }}
+                title="Click to notify admin"
               >
                 <div className={styles.alertHeader}>
                   <span className={`${styles.alertType} ${styles[alert.alert_type]}`}>
-                    {alert.alert_type === 'low_stock' ? '⚠️' : '🚨'}
+                    {alert.alert_type === 'low_stock' ? (
+                      <AlertTriangle size={16} className="text-amber-600" />
+                    ) : alert.alert_type === 'out_of_stock' ? (
+                      <AlertCircle size={16} className="text-red-500" />
+                    ) : (
+                      <Package size={16} className="text-blue-500" />
+                    )}
                   </span>
                 </div>
                 <p className={styles.alertMessage}>{alert.message}</p>
-                <small className={styles.alertTime}>
-                  {new Date(alert.created_at).toLocaleString()}
-                </small>
+                <div className={styles.alertFooter}>
+                  <small className={styles.alertTime}>
+                    {new Date(alert.created_at).toLocaleString()}
+                  </small>
+                </div>
               </li>
             ))}
           </ul>
         </div>
       ) : (
         <div className={styles.noAlerts}>
+          <CheckCircle size={24} className="text-green-600 mx-auto mb-2" />
           <h2 className={styles.sectionTitle}>No Active Alerts</h2>
           <p>All ingredients are currently well-stocked.</p>
         </div>

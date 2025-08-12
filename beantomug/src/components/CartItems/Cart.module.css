@@ -79,8 +79,21 @@
 }
 
 .totalPrice {
+    font-size: 1rem;
     font-weight: 600;
-    color: #2d3436;
+    color: #8B4513;
+}
+
+.vatPrice {
+    font-size: 0.8rem;
+    color: #6B7280;
+    font-style: italic;
+}
+
+.vatTotal {
+    font-size: 0.8rem;
+    color: #6B7280;
+    font-style: italic;
 }
 
 .cartQuantity {

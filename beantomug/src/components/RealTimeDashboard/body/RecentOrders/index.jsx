@@ -1,4 +1,5 @@
 ﻿import React, { useState, useMemo, useCallback } from 'react';
+import { ClipboardList, Clock, Calendar, Package, ChevronDown, ChevronUp, User } from 'lucide-react';
 import DashboardCard from '../../shared/DashboardCard';
 import ItemDisplay from '../../shared/ItemDisplay';
 import EmptyState from '../../shared/EmptyState';
@@ -62,12 +63,13 @@ const RecentOrders = ({ orders = [] }) => {
                 {/* Order Header */}
                 <div className="flex justify-between items-center mb-1 pb-1 border-b border-amber-200">
                     <div className="flex items-center gap-1">
-                        <span className="text-lg">📋</span>
+                        <ClipboardList size={16} className="text-amber-700" />
                         <span className="px-1 py-0.5 rounded-full text-xs font-bold uppercase shadow-sm bg-amber-100 text-amber-800">
                             {orderType}
                         </span>
                     </div>
-                    <div className="text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                    <div className="flex items-center gap-1 text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                        <Clock size={12} />
                         {timeString}
                     </div>
                 </div>
@@ -79,12 +81,21 @@ const RecentOrders = ({ orders = [] }) => {
 
                 {/* Order Meta Info */}
                 <div className="mt-1 flex flex-wrap gap-1">
-                    <span className="text-xs text-amber-600 bg-amber-50 px-1 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-1 py-0.5 rounded-full">
+                        <Calendar size={12} />
                         {dateString}
                     </span>
-                    <span className="text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                    <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-100 px-1 py-0.5 rounded-full">
+                        <Package size={12} />
                         #{orderId}
                     </span>
+                    {/* Customer name if available */}
+                    {(order.first_name || order.last_name) && (
+                        <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-1 py-0.5 rounded-full">
+                            <User size={12} />
+                            {[order.first_name, order.last_name].filter(Boolean).join(' ')}
+                        </span>
+                    )}
                 </div>
 
                 {/* Order Items Preview */}
@@ -203,9 +214,11 @@ const RecentOrders = ({ orders = [] }) => {
                         className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors duration-200"
                     >
                         <span>{isExpanded ? 'Show Less' : 'Show Details'}</span>
-                        <span className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                            ▼
-                        </span>
+                        {isExpanded ? (
+                            <ChevronUp size={12} className="transition-transform duration-200" />
+                        ) : (
+                            <ChevronDown size={12} className="transition-transform duration-200" />
+                        )}
                     </button>
                 </div>
             </div>
@@ -215,12 +228,12 @@ const RecentOrders = ({ orders = [] }) => {
     return (
         <DashboardCard
             title="Recent Orders"
-            icon="🛒"
+            icon={<ClipboardList size={20} />}
             itemCount={orders.length}
         >
             <div className="space-y-1">
                 {orders.length === 0 ? (
-                    <EmptyState icon="📋" message="No recent orders" />
+                    <EmptyState icon={<ClipboardList size={32} />} message="No recent orders" />
                 ) : (
                     <>
                         {displayOrders.map((order) => (

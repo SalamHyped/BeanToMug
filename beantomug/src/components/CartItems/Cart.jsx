@@ -104,9 +104,21 @@ export default function Cart({ item }) {
         <div className={classes.cartPrice}>
           <span className={classes.unitPrice}>
             ${Number(item.item_price || item.price || 0).toFixed(2)} base
+            {/* Show VAT-inclusive price if available */}
+            {item.priceWithVAT && item.priceWithVAT !== (item.item_price || item.price) && (
+              <span className={classes.vatPrice}>
+                {' '}({Number(item.priceWithVAT).toFixed(2)})
+              </span>
+            )}
           </span>
           <span className={classes.totalPrice}>
             Total: ${calculateItemTotal().toFixed(2)}
+            {/* Show VAT-inclusive total if available */}
+            {item.priceWithVAT && item.priceWithVAT !== (item.item_price || item.price) && (
+              <span className={classes.vatTotal}>
+                {' '}({Number(item.priceWithVAT * item.quantity).toFixed(2)})
+              </span>
+            )}
           </span>
         </div>
       </div>

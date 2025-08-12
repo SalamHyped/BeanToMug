@@ -33,6 +33,11 @@ const PublicGallery = lazy(() => import('../pages/Gallery'));
 const StaffGallery = lazy(() => import('../pages/staff/StaffGallery'));
 const AdminInventory = lazy(() => import('../pages/admin/Inventory'));
 
+// Import the existing order queue for admin use
+const MenuOrdersContainer = lazy(() => import('./layouts/StaffLayout/menuOrders/MenuOrdersContainer'));
+// Import Users Management component
+const UsersManagement = lazy(() => import('../pages/admin/UsersManagement/index'));
+
 // Loading component for page content only
 const PageLoader = () => (
   <div style={{
@@ -97,8 +102,16 @@ export default function MyRoutes(){
                         <AdminDashboard />
                       </Suspense>
                     } />
-                    <Route path="orders" element={<div>Admin Orders</div>} />
-                    <Route path="users" element={<div>Admin Users</div>} />
+                    <Route path="orders" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <MenuOrdersContainer />
+                      </Suspense>
+                    } />
+                    <Route path="users" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <UsersManagement />
+                      </Suspense>
+                    } />
                     <Route path="menu" element={<div>Admin Menu Management</div>} />
                     <Route path="gallery" element={
                       <Suspense fallback={<PageLoader />}>

@@ -207,13 +207,14 @@ function buildOrderQuery(orderId, options) {
         query = query.replace('WHERE o.is_cart = 0', whereClause);
         params = [...params, ...filterParams];
         
-        // Add pagination
+        query += ` ORDER BY o.created_at ASC, oi.order_item_id, oii.ingredient_id`;
+        
+        // Add pagination if specified (will be handled by two-step approach in getCompleteOrderData)
         if (options.limit && options.offset !== undefined) {
-            query += ` ORDER BY o.created_at DESC, oi.order_item_id, oii.ingredient_id`;
             query += ` LIMIT ${options.limit} OFFSET ${options.offset}`;
         }
     } else {
-        query += ` ORDER BY o.created_at DESC, oi.order_item_id, oii.ingredient_id`;
+        query += ` ORDER BY o.created_at ASC, oi.order_item_id, oii.ingredient_id`;
     }
     
     return { query, params };
@@ -229,46 +230,104 @@ async function getCompleteOrderData(orderId = null, options = null) {
     try {
         const connection = await dbSingleton.getConnection();
         
-        // Get total count for pagination
-        let totalCount = 0;
-        let totalPages = 0;
-        
-        if (options && !orderId) {
-            const countResult = await getOrderCount(connection, options);
-            totalCount = countResult.totalCount;
-            totalPages = countResult.totalPages;
-        }
-        
-        // Build and execute the main query
-        const { query, params } = buildOrderQuery(orderId, options);
-        const [rows] = await connection.execute(query, params);
-        
-        if (rows.length === 0) {
-            if (orderId) {
-                return null;
-            } else {
-                return {
-                    orders: [],
-                    totalCount: totalCount,
-                    totalPages: totalPages
-                };
-            }
-        }
-        
-        // Process the rows into structured format
-        const orders = processOrderRows(rows);
-        
-        // If fetching a specific order, return the first (and only) order
+        // Single order fetch - use simple approach
         if (orderId) {
+            const { query, params } = buildOrderQuery(orderId, options);
+            const [rows] = await connection.execute(query, params);
+            const orders = processOrderRows(rows);
             return orders[0] || null;
         }
         
-        // Return paginated results
+        // Multiple orders with pagination - use two-step approach
+        if (options && options.limit && options.offset !== undefined) {
+            // Step 1: Get paginated order IDs only
+            const { whereClause, params: filterParams } = buildWhereClause(options);
+            
+            const orderIdsQuery = `
+                SELECT DISTINCT o.order_id
+                FROM orders o
+                LEFT JOIN users u ON o.user_id = u.id
+                ${whereClause}
+                ORDER BY o.created_at ASC
+                LIMIT ? OFFSET ?
+            `;
+            
+            const [orderIdRows] = await connection.execute(orderIdsQuery, [...filterParams, options.limit, options.offset]);
+            
+            // Get total count for pagination info
+            const countResult = await getOrderCount(connection, options);
+            
+            if (orderIdRows.length === 0) {
+                return {
+                    orders: [],
+                    totalCount: countResult.totalCount,
+                    totalPages: countResult.totalPages
+                };
+            }
+            
+            // Step 2: Get complete data for those specific order IDs
+            const orderIds = orderIdRows.map(row => row.order_id);
+            const placeholders = orderIds.map(() => '?').join(',');
+            
+            const fullDataQuery = `
+                SELECT 
+                    o.order_id,
+                    o.user_id,
+                    o.order_type,
+                    o.status,
+                    o.created_at,
+                    o.updated_at,
+                    o.total_price as total_amount,
+                    o.vat_amount,
+                    o.subtotal,
+                    o.paypal_order_id,
+                    o.phone_number,
+                    u.first_name,
+                    u.last_name,
+                    u.email,
+                    u.phone_number as user_phone,
+                    oi.order_item_id,
+                    oi.item_id,
+                    d.item_name,
+                    oi.price,
+                    oi.quantity,
+                    oii.ingredient_id,
+                    oii.price as ingredient_price,
+                    ing.ingredient_name,
+                    it.name as ingredient_type
+                FROM orders o
+                LEFT JOIN users u ON o.user_id = u.id
+                LEFT JOIN order_item oi ON o.order_id = oi.order_id
+                LEFT JOIN dish d ON oi.item_id = d.item_id
+                LEFT JOIN order_item_ingredient oii ON oi.order_item_id = oii.order_item_id
+                LEFT JOIN ingredient ing ON oii.ingredient_id = ing.ingredient_id
+                LEFT JOIN ingredient_type it ON it.id = ing.type_id
+                WHERE o.order_id IN (${placeholders})
+                ORDER BY o.created_at ASC, oi.order_item_id, oii.ingredient_id
+            `;
+            
+            const [fullDataRows] = await connection.execute(fullDataQuery, orderIds);
+            const orders = processOrderRows(fullDataRows);
+            
+            return {
+                orders: orders,
+                totalCount: countResult.totalCount,
+                totalPages: countResult.totalPages
+            };
+        }
+        
+        // No pagination - get all matching orders
+        const { query, params } = buildOrderQuery(orderId, options);
+        const [rows] = await connection.execute(query, params);
+        const orders = processOrderRows(rows);
+        
+        // For non-paginated results, totalPages should be 1 since all data is returned
         return {
             orders: orders,
-            totalCount: totalCount,
-            totalPages: totalPages
+            totalCount: orders.length,
+            totalPages: 1
         };
+        
     } catch (error) {
         console.error('Error fetching complete order data:', error);
         return orderId ? null : [];
@@ -387,12 +446,6 @@ async function getSingleOrder(orderId, userId = null) {
         return {
             ...order,
             items: processedOrder.items
-        };
-        
-        // Return complete order with items
-        return {
-            ...order,
-            items: items
         };
         
     } catch (error) {

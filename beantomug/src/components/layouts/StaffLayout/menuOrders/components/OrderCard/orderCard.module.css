@@ -1,0 +1,272 @@
+/* Order Card Styles */
+
+.orderCard {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.orderCard:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.orderCard.dragging {
+  z-index: 1000;
+  cursor: grabbing;
+}
+
+/* Priority classes */
+.mediumPriority {
+  border-left: 4px solid #f59e0b;
+}
+
+.lowPriority {
+  border-left: 4px solid #6b7280;
+}
+
+/* Drag progress states */
+.orderCard.dragging[data-progress="low"] {
+  border-left-color: #10b981;
+}
+
+.orderCard.dragging[data-progress="medium"] {
+  border-left-color: #f59e0b;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+}
+
+.orderCard.dragging[data-progress="high"] {
+  border-left-color: #ef4444;
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.4);
+}
+
+.orderCard.dragging::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(16, 185, 129, 0.1) 0%, rgba(245, 158, 11, 0.1) 50%, rgba(239, 68, 68, 0.1) 100%);
+  pointer-events: none;
+}
+
+/* Order Header */
+.orderHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.orderTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.orderNumber {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.orderStatus {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.orderMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.orderType {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.orderTime {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.customerInfo {
+  display: flex;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.customerName {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Order Content */
+.orderContent {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dragHandle {
+  color: #9ca3af;
+  font-size: 1.25rem;
+  cursor: grab;
+  user-select: none;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.25rem;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.contentArea {
+  flex: 1;
+}
+
+/* Order Footer */
+.orderFooter {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.dragIndicator {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.restoreButton {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.restoreButton:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.3);
+}
+
+.restoreButton:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+/* Drag Progress Bar */
+.dragProgressBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 0.25rem;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  border-radius: 0.125rem;
+  transition: all 0.2s ease;
+}
+
+/* Animated progress bar for high progress */
+.orderCard.dragging[data-progress="high"] .dragProgressBar {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+  animation: progressPulse 0.8s ease-in-out infinite;
+}
+
+.orderCard.dragging[data-progress="medium"] .dragProgressBar {
+  background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+  animation: progressPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .orderCard {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .orderHeader {
+    margin-bottom: 0.75rem;
+  }
+  
+  .orderNumber {
+    font-size: 1rem;
+  }
+  
+  .orderContent {
+    gap: 0.75rem;
+  }
+  
+  .customerInfo {
+    margin-top: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .orderCard {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .orderHeader {
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .orderMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .orderContent {
+    gap: 0.5rem;
+  }
+  
+  .dragHandle {
+    font-size: 1rem;
+  }
+}
