@@ -3,16 +3,41 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../Sidebar';
 import NotificationToast from '../../controls/NotificationToast';
 import styles from './adminLayout.module.css';
+import { 
+  FaHome, 
+  FaTasks, 
+  FaUsers, 
+  FaUtensils, 
+  FaBoxes, 
+  FaImages,
+  FaClock,
+  FaChartBar,
+  FaSignOutAlt,
+  FaUserCog,
+  FaPlus
+
+} from 'react-icons/fa';
+import { RiMenuAddFill } from "react-icons/ri";
+
 
 // Static navigation items - better for tree-shaking
 const ADMIN_NAV_ITEMS = [
-  { to: "/admin", label: "Dashboard", icon: "🏠" },
-  { to: "/admin/tasks", label: "Task Management", icon: "✅" },
-  { to: "/admin/orders", label: "Orders", icon: "📋" },
-  { to: "/admin/users", label: "Users Management", icon: "👥" },
-  { to: "/admin/menu", label: "Menu Management", icon: "📝" },
-  { to: "/admin/inventory", label: "Inventory", icon: "📦" },
-  { to: "/admin/gallery", label: "Gallery", icon: "📷" }
+  { to: "/admin", label: "Dashboard", icon: FaHome },
+  { to: "/admin/tasks", label: "Task Management", icon: FaTasks },
+  { 
+    to: "/admin/orders", 
+    label: "Menu Management", 
+    icon: FaUtensils,
+    subItems: [
+      { to: "/admin/orders/queue", label: "Order Queue", icon: FaClock },
+      { to: "/admin/orders/analytics", label: "Analytics", icon: FaChartBar },
+      { to: "/admin/orders/settings", label: "Add Menu", icon: RiMenuAddFill }
+    ]
+  },
+  { to: "/admin/users", label: "Users Management", icon: FaUsers },
+  { to: "/admin/inventory", label: "Inventory", icon: FaBoxes },
+  { to: "/admin/gallery", label: "Gallery", icon: FaImages },
+  { to: "/admin/profile", label: "Profile", icon: FaUserCog }
 ];
 
 const AdminLayout = () => {
@@ -29,6 +54,7 @@ const AdminLayout = () => {
         title="Admin Panel"
         isCollapsed={isSidebarCollapsed} 
         onToggleCollapse={handleToggleSidebar}
+        logoutIcon={FaSignOutAlt}
       />
       <main className={`${styles.main} ${isSidebarCollapsed ? styles.mainCollapsed : ''}`}>
         <Outlet context={{ isSidebarCollapsed }} />

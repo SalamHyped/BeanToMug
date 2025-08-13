@@ -1,0 +1,78 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.headerControls {
+  display: flex;
+  gap: 1rem;
+}
+
+.viewButton {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  background: white;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewButton:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.viewButton.active {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: white;
+}
+
+.content {
+  min-height: 400px;
+}
+
+.listView,
+.addView,
+.editView {
+  background: white;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.listView h2,
+.addView h2,
+.editView h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
+}
+
+.listView p,
+.addView p,
+.editView p {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+}

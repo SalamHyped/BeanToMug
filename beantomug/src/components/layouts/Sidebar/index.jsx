@@ -1,15 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useUser } from '../../../context/UserContext/UserContext';
 import classes from './sidebar.module.css';
 
-const Sidebar = ({ navItems, title, isCollapsed = false, onToggleCollapse }) => {
+const Sidebar = ({ navItems, title, isCollapsed = false, onToggleCollapse, logoutIcon }) => {
   const { user, logout } = useUser();
+  const [openDropdowns, setOpenDropdowns] = useState(new Set());
 
   const handleToggleSidebar = () => {
     if (onToggleCollapse) {
       onToggleCollapse();
     }
+  };
+
+  const toggleDropdown = (itemPath) => {
+    setOpenDropdowns(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemPath)) {
+        newSet.delete(itemPath);
+      } else {
+        newSet.add(itemPath);
+      }
+      return newSet;
+    });
   };
 
   const handleLogout = async () => {
@@ -34,30 +47,64 @@ const Sidebar = ({ navItems, title, isCollapsed = false, onToggleCollapse }) => 
         <span className={classes.toggleIcon}>☰</span>
       </button>
 
-      {/* Profile Section */}
-      <div className={classes.profileContainer}>
-        <div className={classes.profileInfo}>
-          <p className={classes.userName}>{user?.username || 'User'}</p>
-          <p className={classes.userEmail}>{user?.email || ''}</p>
-          <p className={classes.userRole}>{user?.role === 'admin' ? 'Administrator' : 'Staff Member'}</p>
-        </div>
-      </div>
+             {/* Profile Section */}
+       <div className={classes.profileContainer}>
+         <div className={classes.profileInfo}>
+           <p className={classes.userName}>{user?.username || 'User'}</p>
+           <p className={classes.userEmail}>{user?.email || ''}</p>
+           <p className={classes.userRole}>{user?.role === 'admin' ? 'Administrator' : 'Staff Member'}</p>
+         </div>
+       </div>
 
       {/* Navigation */}
       <nav className={classes.navigation}>
         <ul className={classes.navList}>
           {navItems.map((item) => (
             <li key={item.to} className={classes.navItem}>
-              <NavLink 
-                to={item.to}
-                className={({ isActive }) => 
-                  `${classes.navLink} ${isActive ? classes.active : ''}`
-                }
-                end={item.to === "/staff" || item.to === "/admin"}
-              >
-                <span className={classes.navIcon}>{item.icon}</span>
-                <span className={classes.navLabel}>{item.label}</span>
-              </NavLink>
+              {item.subItems ? (
+                <div className={classes.dropdownContainer}>
+                                     <button 
+                     className={classes.dropdownButton}
+                     onClick={() => toggleDropdown(item.to)}
+                   >
+                                            <span className={classes.navIcon}>
+                          <item.icon />
+                        </span>
+                        <span className={classes.navLabel}>{item.label}</span>
+                        <span className={`${classes.dropdownArrow} ${openDropdowns.has(item.to) ? classes.rotated : ''}`}>▼</span>
+                  </button>
+                                     <ul className={`${classes.dropdownMenu} ${openDropdowns.has(item.to) ? classes.show : ''}`}>
+                    {item.subItems.map((subItem) => (
+                      <li key={subItem.to} className={classes.dropdownItem}>
+                        <NavLink 
+                          to={subItem.to}
+                          className={({ isActive }) => 
+                            `${classes.navLink} ${isActive ? classes.active : ''}`
+                          }
+                        >
+                                                  <span className={classes.navIcon}>
+                          <subItem.icon />
+                        </span>
+                        <span className={classes.navLabel}>{subItem.label}</span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <NavLink 
+                  to={item.to}
+                  className={({ isActive }) => 
+                    `${classes.navLink} ${isActive ? classes.active : ''}`
+                  }
+                  end={item.to === "/staff" || item.to === "/admin"}
+                >
+                  <span className={classes.navIcon}>
+                    <item.icon />
+                  </span>
+                  <span className={classes.navLabel}>{item.label}</span>
+                </NavLink>
+              )}
             </li>
           ))}
         </ul>
@@ -69,7 +116,7 @@ const Sidebar = ({ navItems, title, isCollapsed = false, onToggleCollapse }) => 
           onClick={handleLogout}
           className={classes.logoutButton}
         >
-          <span className={classes.logoutIcon}>🚪</span>
+                     <span className={classes.logoutIcon}>{logoutIcon ? logoutIcon() : '🚪'}</span>
           <span className={classes.logoutText}>Logout</span>
         </button>
       </div>

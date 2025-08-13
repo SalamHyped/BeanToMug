@@ -64,26 +64,6 @@ const UsersManagement = () => {
       <div className={styles.header}>
         <h1>Users Management</h1>
         <div className={styles.headerControls}>
-          <div className={styles.dropdownContainer}>
-            <button className={styles.dropdownButton}>
-              Orders Management ▼
-            </button>
-            <div className={styles.dropdownMenu}>
-              <a href="/admin/orders/queue" className={styles.dropdownItem}>
-                📋 Order Queue
-              </a>
-              <a href="/admin/orders/history" className={styles.dropdownItem}>
-                📚 Order History
-              </a>
-              <a href="/admin/orders/analytics" className={styles.dropdownItem}>
-                📊 Analytics
-              </a>
-              <div className={styles.dropdownDivider}></div>
-              <a href="/admin/orders/settings" className={styles.dropdownItem}>
-                ⚙️ Settings
-              </a>
-            </div>
-          </div>
           <button 
             className={`${styles.toggleButton} ${showDeactivated ? styles.active : ''}`}
             onClick={() => setShowDeactivated(!showDeactivated)}

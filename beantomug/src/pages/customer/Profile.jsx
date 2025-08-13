@@ -16,9 +16,7 @@ export default function Profile() {
     email: '',
     username: ''
   });  
-  const [userStats, setUserStats] = useState({
-    totalCompletedOrders: 0
-  });
+
 
   // Validation state
   const [validationErrors, setValidationErrors] = useState({});
@@ -44,13 +42,7 @@ export default function Profile() {
       : user.username;
   }, [user]);
 
-  // Memoized user initials
-  const userInitials = useMemo(() => {
-    if (!user) return '';
-    return user.firstName && user.lastName 
-      ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
-      : user.username.charAt(0).toUpperCase();
-  }, [user]);
+
 
   // Memoized phone number formatting function
   const formatPhoneNumber = useCallback((value) => {
@@ -88,28 +80,7 @@ export default function Profile() {
     };
   }, []);
 
-  // Fetch user statistics including order count
 
-
-  useEffect(() => {
-    const fetchUserStats = async () => {
-      try {
-        const response = await axios.get('http://localhost:8801/user/me', {
-          withCredentials: true
-        });
-        
-        if (response.data.success) {
-          setUserStats(response.data.userStats);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user stats:', error);
-      }
-    };
-
-    if (user) {
-      fetchUserStats();
-    }
-  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -427,19 +398,8 @@ export default function Profile() {
       )}
 
       <div className={classes.profileContent}>
-        {/* Profile Picture Section */}
-        <div className={classes.profilePictureSection}>
-          <div className={classes.profilePicture}>
-            <div className={classes.avatar}>
-              {userInitials}
-            </div>
-          </div>
-          <div className={classes.profileInfo}>
-            <h2>{userDisplayName}</h2>
-            <p className={classes.userRole}>Customer</p>
-          </div>
-        </div>
-
+        {/* Profile Header Section */}
+        
         {/* Profile Form */}
         <div className={classes.profileForm}>
           <div className={classes.formHeader}>
@@ -673,21 +633,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Account Statistics */}
-        <div className={classes.statsSection}>
-          <h3>Account Overview</h3>
-          <div className={classes.statsGrid}>
-            <div className={classes.statCard}>
-              <div className={classes.statNumber}>{userStats.totalCompletedOrders}</div>
-              <div className={classes.statLabel}>Total Orders</div>
-            </div>
-            <div className={classes.statCard}>
-              <div className={classes.statNumber}>$0.00</div>
-              <div className={classes.statLabel}>Total Spent</div>
-            </div>
-          
-          </div>
-        </div>
+
       </div>
     </div>
   );
