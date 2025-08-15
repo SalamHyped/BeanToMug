@@ -257,7 +257,11 @@
 }
 
 .categoryPhoto {
-  margin-bottom: 1rem;
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100px;
 }
 
 .categoryPhoto img {
@@ -286,6 +290,20 @@
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
   font-weight: 500;
+}
+
+.photoPreview {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.photoPreview label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Responsive adjustments */

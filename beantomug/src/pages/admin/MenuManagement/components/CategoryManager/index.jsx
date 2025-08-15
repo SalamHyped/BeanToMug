@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCategories } from '../../hooks';
+import RoundedPhoto from '../../../../../components/roundedPhoto/RoundedPhoto';
 import styles from './index.module.css';
 
 const CategoryManager = () => {
@@ -174,6 +175,16 @@ const CategoryManager = () => {
                   placeholder="https://example.com/photo.jpg"
                   className={styles.textInput}
                 />
+                {formData.category_photo_url && (
+                  <div className={styles.photoPreview}>
+                    <label>Preview:</label>
+                    <RoundedPhoto 
+                      src={formData.category_photo_url} 
+                      alt="Category preview"
+                      size={80}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -244,12 +255,10 @@ const CategoryManager = () => {
                 
                 {category.category_photo_url && (
                   <div className={styles.categoryPhoto}>
-                    <img 
+                    <RoundedPhoto 
                       src={category.category_photo_url} 
                       alt={category.category_name}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
+                      size={100}
                     />
                   </div>
                 )}
