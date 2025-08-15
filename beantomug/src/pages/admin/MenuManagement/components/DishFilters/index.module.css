@@ -20,6 +20,24 @@
   color: #1f2937;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loadingIndicator {
+  font-size: 0.875rem;
+  color: #059669;
+  font-style: italic;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 .clearFiltersBtn {
   padding: 0.5rem 1rem;
   background: #f3f4f6;
@@ -31,9 +49,16 @@
   transition: all 0.2s ease;
 }
 
-.clearFiltersBtn:hover {
+.clearFiltersBtn:hover:not(:disabled) {
   background: #e5e7eb;
   color: #374151;
+}
+
+.clearFiltersBtn:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .filtersGrid {
@@ -125,6 +150,41 @@
 
 .removeFilterBtn:hover {
   background: rgba(30, 64, 175, 0.1);
+}
+
+.priceRangeInputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.priceInput {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.priceInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.priceInput:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.priceSeparator {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* Responsive adjustments */

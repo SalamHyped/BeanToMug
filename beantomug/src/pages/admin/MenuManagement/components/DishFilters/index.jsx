@@ -1,54 +1,92 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useCategories } from '../../hooks';
 import styles from './index.module.css';
 
-const DishFilters = ({ onFiltersChange, currentFilters }) => {
+const DishFilters = ({ onFiltersChange, currentFilters, loading = false }) => {
   const { categories } = useCategories();
   const [filters, setFilters] = useState({
     search: '',
     category: '',
     status: 'all',
-    priceRange: 'all',
+    minPrice: '',
+    maxPrice: '',
     sortBy: 'name',
     sortOrder: 'asc'
   });
+  const [searchValue, setSearchValue] = useState(''); // Local search state for debouncing
+  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
 
   useEffect(() => {
     // Initialize filters from props if provided
     if (currentFilters) {
       setFilters(prev => ({ ...prev, ...currentFilters }));
+      setSearchValue(currentFilters.search || '');
     }
   }, [currentFilters]);
 
-  const handleFilterChange = (name, value) => {
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchValue !== filters.search) {
+        setIsApplyingFilters(true);
+        handleFilterChange('search', searchValue);
+        // Reset loading state after a short delay
+        setTimeout(() => setIsApplyingFilters(false), 200);
+      }
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [searchValue, filters.search]);
+
+  const handleFilterChange = useCallback((name, value) => {
+    setIsApplyingFilters(true);
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
     onFiltersChange(newFilters);
+    // Reset loading state after a short delay
+    setTimeout(() => setIsApplyingFilters(false), 200);
+  }, [filters, onFiltersChange]);
+
+  const handleSearchChange = (e) => {
+    setSearchValue(e.target.value);
   };
 
   const clearFilters = () => {
+    setIsApplyingFilters(true);
     const defaultFilters = {
       search: '',
       category: '',
       status: 'all',
-      priceRange: 'all',
+      minPrice: '',
+      maxPrice: '',
       sortBy: 'name',
       sortOrder: 'asc'
     };
     setFilters(defaultFilters);
+    setSearchValue('');
     onFiltersChange(defaultFilters);
+    // Reset loading state after a short delay
+    setTimeout(() => setIsApplyingFilters(false), 200);
   };
 
   return (
     <div className={styles.filtersContainer}>
       <div className={styles.filtersHeader}>
         <h3>Filters & Sorting</h3>
-        <button 
-          onClick={clearFilters}
-          className={styles.clearFiltersBtn}
-        >
-          Clear All
-        </button>
+        <div className={styles.headerActions}>
+          {(loading || isApplyingFilters) && (
+            <span className={styles.loadingIndicator}>
+              {isApplyingFilters ? 'Applying filters...' : 'Loading...'}
+            </span>
+          )}
+          <button 
+            onClick={clearFilters}
+            className={styles.clearFiltersBtn}
+            disabled={loading || isApplyingFilters}
+          >
+            Clear All
+          </button>
+        </div>
       </div>
 
       <div className={styles.filtersGrid}>
@@ -59,9 +97,10 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
             type="text"
             id="search"
             placeholder="Search by dish name..."
-            value={filters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
+            value={searchValue}
+            onChange={handleSearchChange}
             className={styles.searchInput}
+            disabled={loading}
           />
         </div>
 
@@ -73,6 +112,7 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
             value={filters.category}
             onChange={(e) => handleFilterChange('category', e.target.value)}
             className={styles.selectInput}
+            disabled={loading}
           >
             <option value="">All Categories</option>
             {categories.map(category => (
@@ -91,6 +131,7 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
             className={styles.selectInput}
+            disabled={loading}
           >
             <option value="all">All Status</option>
             <option value="1">Active</option>
@@ -101,19 +142,29 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
         {/* Price Range Filter */}
         <div className={styles.filterGroup}>
           <label htmlFor="priceRange">Price Range</label>
-          <select
-            id="priceRange"
-            value={filters.priceRange}
-            onChange={(e) => handleFilterChange('priceRange', e.target.value)}
-            className={styles.selectInput}
-          >
-            <option value="all">All Prices</option>
-            <option value="0-5">$0 - $5</option>
-            <option value="5-10">$5 - $10</option>
-            <option value="10-15">$10 - $15</option>
-            <option value="15-20">$15 - $20</option>
-            <option value="20+">$20+</option>
-          </select>
+          <div className={styles.priceRangeInputs}>
+            <input
+              type="number"
+              placeholder="Min"
+              min="0"
+              step="0.01"
+              value={filters.minPrice || ''}
+              onChange={(e) => handleFilterChange('minPrice', e.target.value)}
+              className={styles.priceInput}
+              disabled={loading}
+            />
+            <span className={styles.priceSeparator}>to</span>
+            <input
+              type="number"
+              placeholder="Max"
+              min="0"
+              step="0.01"
+              value={filters.maxPrice || ''}
+              onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+              className={styles.priceInput}
+              disabled={loading}
+            />
+          </div>
         </div>
 
         {/* Sort By */}
@@ -124,6 +175,7 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
             value={filters.sortBy}
             onChange={(e) => handleFilterChange('sortBy', e.target.value)}
             className={styles.selectInput}
+            disabled={loading}
           >
             <option value="name">Name</option>
             <option value="price">Price</option>
@@ -141,6 +193,7 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
             value={filters.sortOrder}
             onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
             className={styles.selectInput}
+            disabled={loading}
           >
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
@@ -156,8 +209,12 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
             <span className={styles.filterTag}>
               Search: "{filters.search}"
               <button 
-                onClick={() => handleFilterChange('search', '')}
+                onClick={() => {
+                  setSearchValue('');
+                  handleFilterChange('search', '');
+                }}
                 className={styles.removeFilterBtn}
+                disabled={loading}
               >
                 ×
               </button>
@@ -169,6 +226,7 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
               <button 
                 onClick={() => handleFilterChange('category', '')}
                 className={styles.removeFilterBtn}
+                disabled={loading}
               >
                 ×
               </button>
@@ -180,17 +238,22 @@ const DishFilters = ({ onFiltersChange, currentFilters }) => {
               <button 
                 onClick={() => handleFilterChange('status', 'all')}
                 className={styles.removeFilterBtn}
+                disabled={loading}
               >
                 ×
               </button>
             </span>
           )}
-          {filters.priceRange !== 'all' && (
+          {(filters.minPrice || filters.maxPrice) && (
             <span className={styles.filterTag}>
-              Price: {filters.priceRange}
+              Price: {filters.minPrice ? `${filters.minPrice}` : '0'} - {filters.maxPrice ? `${filters.maxPrice}` : '∞'}
               <button 
-                onClick={() => handleFilterChange('priceRange', 'all')}
+                onClick={() => {
+                  handleFilterChange('minPrice', '');
+                  handleFilterChange('maxPrice', '');
+                }}
                 className={styles.removeFilterBtn}
+                disabled={loading}
               >
                 ×
               </button>

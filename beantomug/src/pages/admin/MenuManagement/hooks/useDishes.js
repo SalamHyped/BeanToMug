@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { getApiConfig } from '../../../../utils/config';
 
-const useDishes = () => {
+const useDishes = (filters = {}) => {
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,6 +27,78 @@ const useDishes = () => {
       setLoading(false);
     }
   }, []);
+
+  // Efficient filtering using useMemo to prevent recalculation
+  const filteredDishes = useMemo(() => {
+    if (!dishes.length) return [];
+    
+    return dishes.filter(dish => {
+      // Search filter
+      if (filters.search && !dish.item_name.toLowerCase().includes(filters.search.toLowerCase())) {
+        return false;
+      }
+      
+      // Category filter
+      if (filters.category && dish.category_id !== parseInt(filters.category)) {
+        return false;
+      }
+      
+      // Status filter
+      if (filters.status !== 'all' && dish.status !== parseInt(filters.status)) {
+        return false;
+      }
+      
+      // Price range filter
+      if (filters.minPrice || filters.maxPrice) {
+        const price = parseFloat(dish.price);
+        const minPrice = filters.minPrice ? parseFloat(filters.minPrice) : 0;
+        const maxPrice = filters.maxPrice ? parseFloat(filters.maxPrice) : Infinity;
+        
+        if (price < minPrice || price > maxPrice) {
+          return false;
+        }
+      }
+      
+      return true;
+    }).sort((a, b) => {
+      // Sorting
+      if (!filters.sortBy || filters.sortBy === 'name') {
+        const aVal = a.item_name.toLowerCase();
+        const bVal = b.item_name.toLowerCase();
+        return filters.sortOrder === 'asc' ? 
+          aVal.localeCompare(bVal) : 
+          bVal.localeCompare(aVal);
+      }
+      
+      if (filters.sortBy === 'price') {
+        const aVal = parseFloat(a.price);
+        const bVal = parseFloat(b.price);
+        return filters.sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      if (filters.sortBy === 'category') {
+        const aVal = a.category_name || '';
+        const bVal = b.category_name || '';
+        return filters.sortOrder === 'asc' ? 
+          aVal.localeCompare(bVal) : 
+          bVal.localeCompare(aVal);
+      }
+      
+      if (filters.sortBy === 'status') {
+        const aVal = a.status ? 1 : 0;
+        const bVal = b.status ? 1 : 0;
+        return filters.sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      if (filters.sortBy === 'created_at') {
+        const aVal = a.item_id; // Using item_id as proxy for creation order
+        const bVal = b.item_id;
+        return filters.sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      return 0;
+    });
+  }, [dishes, filters]);
 
   // Create new dish
   const createDish = async (dishData) => {
@@ -154,10 +226,16 @@ const useDishes = () => {
     getDishById,
     clearError,
     
-    // Computed
+    // Computed - Now based on filtered dishes
+    filteredDishes,
     totalDishes: dishes.length,
     activeDishes: dishes.filter(dish => dish.status).length,
-    inactiveDishes: dishes.filter(dish => !dish.status).length
+    inactiveDishes: dishes.filter(dish => !dish.status).length,
+    
+    // Filtered counts
+    filteredCount: filteredDishes.length,
+    filteredActiveCount: filteredDishes.filter(dish => dish.status).length,
+    filteredInactiveCount: filteredDishes.filter(dish => !dish.status).length
   };
 };
 

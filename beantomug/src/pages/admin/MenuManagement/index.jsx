@@ -13,13 +13,14 @@ const MenuManagement = () => {
     search: '',
     category: '',
     status: 'all',
-    priceRange: 'all',
+    minPrice: '',
+    maxPrice: '',
     sortBy: 'name',
     sortOrder: 'asc'
   });
   
-  // Use the dishes hook for better state management
-  const { fetchDishes } = useDishes();
+  // Use the dishes hook with filters for better state management
+  const { fetchDishes, filteredDishes, loading, error, filteredCount, filteredActiveCount, filteredInactiveCount } = useDishes(filters);
 
   const handleViewChange = (view) => {
     setActiveView(view);
@@ -46,8 +47,7 @@ const MenuManagement = () => {
 
   const handleFiltersChange = (newFilters) => {
     setFilters(newFilters);
-    // Here you would typically apply the filters to the dish list
-    // For now, we'll just update the state
+    // Filters are automatically applied through the useDishes hook
   };
 
   return (
@@ -82,8 +82,17 @@ const MenuManagement = () => {
             <DishFilters 
               onFiltersChange={handleFiltersChange}
               currentFilters={filters}
+              loading={loading}
             />
-            <DishList onEditDish={handleEditDish} />
+            <DishList 
+              onEditDish={handleEditDish}
+              dishes={filteredDishes}
+              loading={loading}
+              error={error}
+              filteredCount={filteredCount}
+              filteredActiveCount={filteredActiveCount}
+              filteredInactiveCount={filteredInactiveCount}
+            />
           </div>
         )}
 

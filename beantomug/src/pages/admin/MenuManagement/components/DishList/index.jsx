@@ -3,16 +3,18 @@ import { useDishes } from '../../hooks';
 import styles from './index.module.css';
 import RoundedPhoto from '../../../../../components/roundedPhoto/RoundedPhoto';
 
-const DishList = ({ onEditDish }) => {
+const DishList = ({ 
+  onEditDish, 
+  dishes = [], 
+  loading = false, 
+  error = null,
+  filteredCount = 0,
+  filteredActiveCount = 0,
+  filteredInactiveCount = 0
+}) => {
   const {
-    dishes,
-    loading,
-    error,
     toggleDishStatus,
-    fetchDishes,
-    totalDishes,
-    activeDishes,
-    inactiveDishes
+    fetchDishes
   } = useDishes();
 
   const handleEdit = (dish) => {
@@ -51,7 +53,7 @@ const DishList = ({ onEditDish }) => {
   if (dishes.length === 0) {
     return (
       <div className={styles.empty}>
-        <p>No dishes found. Add your first dish to get started!</p>
+        <p>No dishes found matching your filters. Try adjusting your search criteria or add your first dish to get started!</p>
       </div>
     );
   }
@@ -60,15 +62,15 @@ const DishList = ({ onEditDish }) => {
     <div className={styles.dishList}>
       <div className={styles.listHeader}>
         <div className={styles.stats}>
-          <h3>Total Dishes: {totalDishes}</h3>
+          <h3>Filtered Results: {filteredCount} dishes</h3>
           <div className={styles.statDetails}>
             <span className={styles.statItem}>
               <span className={styles.statLabel}>Active:</span>
-              <span className={styles.statValue}>{activeDishes}</span>
+              <span className={styles.statValue}>{filteredActiveCount}</span>
             </span>
             <span className={styles.statItem}>
               <span className={styles.statLabel}>Inactive:</span>
-              <span className={styles.statValue}>{inactiveDishes}</span>
+              <span className={styles.statValue}>{filteredInactiveCount}</span>
             </span>
           </div>
         </div>
