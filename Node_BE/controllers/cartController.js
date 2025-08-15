@@ -84,7 +84,7 @@ const addToSessionCart = async (req, res) => {
     // Get item details from database
     const connection = await dbSingleton.getConnection();
     const [items] = await connection.execute(
-      'SELECT item_id, item_name, price FROM dish WHERE item_id = ?',
+      'SELECT item_id, item_name, price, item_photo_url FROM dish WHERE item_id = ?',
       [item_id]
     );
     

@@ -1,9 +1,10 @@
-import { useContext, useEffect, useRef, useState, useMemo } from 'react';
+import React, { useState, useContext, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '../CartContext';
 import { useUser } from '../../../context/UserContext/UserContext';
 import classes from './PayPal.module.css';
 import axios from 'axios';
+import { getApiConfig } from '../../../utils/config';
 
 /**
  * PayPal Component with Guest Checkout Support
@@ -74,8 +75,8 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
       setError(null);
       setIsProcessing(true);
       
-      const response = await axios.post('http://localhost:8801/paypal/create-paypal-order', {}, {
-        withCredentials: true,
+      const response = await axios.post('/paypal/create-paypal-order', {}, {
+        ...getApiConfig(),
         timeout: 15000
       });
       console.log('PayPal order created:', response.data);
@@ -102,12 +103,9 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
   const completeSecurePayment = async (paypalOrderId) => {
     console.log('PayPal SDK onApprove:', paypalOrderId);
     try {
-      const response = await axios.post('http://localhost:8801/paypal/complete-payment', {
+      const response = await axios.post('/paypal/complete-payment', {
         order_id: paypalOrderId
-      }, {
-        withCredentials: true,
-        timeout: 15000
-      });
+      }, getApiConfig());
 
       if (response.data.success) {
         // Clear cart after successful payment

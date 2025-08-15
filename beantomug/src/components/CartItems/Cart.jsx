@@ -1,6 +1,7 @@
-import classes from "./Cart.module.css";
-import { useContext, useState } from "react";
-import { CartContext } from "./CartContext";
+import React, {useState, useContext } from 'react';
+import { CartContext } from './CartContext';
+import classes from './Cart.module.css';
+import RoundedPhoto from '../roundedPhoto/RoundedPhoto';
 
 export default function Cart({ item }) {
   const { removeFromCart, updateQuantity, error } = useContext(CartContext);
@@ -88,10 +89,10 @@ export default function Cart({ item }) {
       )}
 
       <div className={classes.cartImage}>
-        <img
-          className={classes.cartImg}
+        <RoundedPhoto
           src={item.item_photo_url}
           alt={item.item_name}
+          size={80}
         />
       </div>
       <div className={classes.cartDetails}>

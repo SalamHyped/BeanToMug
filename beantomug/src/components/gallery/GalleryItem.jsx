@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import classes from './classes.module.css';
+import { getApiConfig } from '../../utils/config';
 
-const GalleryItem = ({ image, onClick, onDelete, canDelete = false }) => {
+const GalleryItem = ({ image, onImageClick, onDelete, canDelete = false }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
@@ -17,18 +18,27 @@ const GalleryItem = ({ image, onClick, onDelete, canDelete = false }) => {
     const handleDeleteClick = (e) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this image?')) {
-            onDelete();
+            if (onDelete) {
+                onDelete(image.post_id || image.id);
+            }
         }
     };
 
-    const imageUrl = `http://localhost:8801${image['photo-url']}`;
+    const handleImageClick = () => {
+        if (onImageClick) {
+            onImageClick(image);
+        }
+    };
+
+    // Construct full URL using getApiConfig
+    const imageUrl = `${getApiConfig().baseURL}${image['photo-url']}`;
 
     return (
         <div 
             className={classes.item}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            onClick={onClick}
+            onClick={handleImageClick}
         >
             <div className={classes.imageContainer}>
                 {!imageLoaded && !imageError && (

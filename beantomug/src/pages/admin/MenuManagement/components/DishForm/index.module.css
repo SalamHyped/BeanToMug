@@ -121,6 +121,27 @@
   cursor: not-allowed;
 }
 
+.priceInput input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.priceInput input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.priceInput input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
 .removeButton {
   padding: 0.5rem 1rem;
   background: #ef4444;
@@ -139,20 +160,115 @@
 }
 
 .addIngredientButton {
-  padding: 0.75rem 1.5rem;
   background: #10b981;
   color: white;
   border: none;
+  padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  width: fit-content;
+  font-weight: 500;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
 }
 
 .addIngredientButton:hover {
   background: #059669;
+}
+
+/* Ingredient Info */
+.ingredientInfo {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #0369a1;
+}
+
+.ingredientInfo small {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Option Types Styles */
+.optionTypeRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f0f9ff;
+  border-radius: 0.5rem;
+  border: 1px solid #bae6fd;
+}
+
+.optionTypeSelect select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.optionTypeSelect select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.optionTypeCheckboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #3b82f6;
+}
+
+/* Info Messages */
+.infoMessage {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.infoMessage p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.infoMessage:first-child {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+}
+
+.infoMessage:nth-child(2) {
+  background: #dbeafe;
+  border: 1px solid #3b82f6;
+  color: #1e40af;
 }
 
 .error {
@@ -231,4 +347,70 @@
   .submitButton {
     width: 100%;
   }
+}
+
+/* Photo Upload Styles */
+.photoUpload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileInputLabel {
+  display: inline-block;
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.fileInputLabel:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.uploadingText {
+  font-size: 0.75rem;
+  color: #059669;
+  font-style: italic;
+}
+
+.photoPreview {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.previewImage {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.removePhotoBtn {
+  padding: 0.5rem 1rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.removePhotoBtn:hover {
+  background: #dc2626;
 }

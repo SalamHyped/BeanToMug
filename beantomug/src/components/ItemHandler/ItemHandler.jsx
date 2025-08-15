@@ -1,7 +1,8 @@
-import classes from "./itemHandler.module.css";
-import { useState, useContext, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useContext, useEffect, useMemo, useCallback, useRef } from "react";
 import { CartContext } from "../CartItems/CartContext";
 import Modal from "../modal/Modal";
+import classes from "./itemHandler.module.css";
+import RoundedPhoto from '../roundedPhoto/RoundedPhoto';
 
 export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
   if (!item) {
@@ -394,7 +395,11 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     >
       <div className={classes.itemHandler}>
         <div className={classes.itemImage}>
-          <img src={item_photo_url} alt={item_name} />
+          <RoundedPhoto 
+            src={item_photo_url} 
+            alt={item_name} 
+            size={200}
+          />
         </div>
         
         <div className={classes.itemDetails}>

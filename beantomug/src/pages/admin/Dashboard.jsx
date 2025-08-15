@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useOutletContext } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import RealTimeDashboard from "../../components/RealTimeDashboard";
+import { getApiConfig } from '../../utils/config';
 
 const AdminDashboard = () => {
   const { isSidebarCollapsed } = useOutletContext() || { isSidebarCollapsed: false };
@@ -26,9 +27,7 @@ const AdminDashboard = () => {
 
   const fetchTasks = async () => {
     try {
-      const response = await axios.get('http://localhost:8801/tasks', {
-        withCredentials: true
-      });
+      const response = await axios.get('/tasks', getApiConfig());
       setTasks(response.data);
       setLoading(false);
     } catch (error) {
@@ -39,9 +38,7 @@ const AdminDashboard = () => {
 
   const fetchStaffUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:8801/tasks/users/staff', {
-        withCredentials: true
-      });
+      const response = await axios.get('/tasks/users/staff', getApiConfig());
       setStaffUsers(response.data);
     } catch (error) {
       console.error('Error fetching staff users:', error);
@@ -51,9 +48,7 @@ const AdminDashboard = () => {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:8801/tasks', newTask, {
-        withCredentials: true
-      });
+      await axios.post('/tasks', newTask, getApiConfig());
       setNewTask({
         title: '',
         description: '',
@@ -72,12 +67,10 @@ const AdminDashboard = () => {
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       const task = tasks.find(t => t.task_id === taskId);
-      await axios.put(`http://localhost:8801/tasks/${taskId}`, {
+      await axios.put(`/tasks/${taskId}`, {
         ...task,
         status: newStatus
-      }, {
-        withCredentials: true
-      });
+      }, getApiConfig());
       fetchTasks();
     } catch (error) {
       console.error('Error updating task:', error);

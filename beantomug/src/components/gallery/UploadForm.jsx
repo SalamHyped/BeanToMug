@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import classes from './uploadForm.module.css';
 import { useUser } from '../../context/UserContext/UserContext';
+import { getApiConfig } from '../../utils/config';
 
 const UploadForm = ({ onImageUploaded }) => {
     const { user } = useUser();
@@ -113,7 +114,7 @@ const UploadForm = ({ onImageUploaded }) => {
         formData.append('description', description);
 
         try {
-            const response = await fetch('http://localhost:8801/gallery/upload', {
+            const response = await fetch(`${getApiConfig().baseURL}/gallery/upload`, {
                 method: 'POST',
                 body: formData,
                 credentials: 'include', // Include cookies/session

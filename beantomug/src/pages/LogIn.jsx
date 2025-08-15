@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import React, {useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LoginForm from "../components/forms/LogInForm";  
 import CenteredLayout from "../components/CenteredLayout";
@@ -7,6 +7,7 @@ import classes from './login.module.css';
 import { IoAlertCircleOutline } from "react-icons/io5";
 import { useUser } from '../context/UserContext/UserContext';
 import { CartContext } from '../components/CartItems/CartContext';
+import { getApiConfig } from '../utils/config';
 
 export default function LogIn() {
   const navigate = useNavigate();
@@ -39,9 +40,7 @@ export default function LogIn() {
   const handleLoginSuccess = async (formData) => {
     try {
       // Make API call to your backend login endpoint
-      const response = await axios.post('http://localhost:8801/auth/login', formData, {
-        withCredentials: true
-      });
+      const response = await axios.post('/auth/login', formData, getApiConfig());
 
       if (response.data.success) {
         // Update user context with the user data

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useDishes } from '../../hooks';
 import styles from './index.module.css';
+import RoundedPhoto from '../../../../../components/roundedPhoto/RoundedPhoto';
 
 const DishList = ({ onEditDish }) => {
   const {
@@ -89,11 +90,11 @@ const DishList = ({ onEditDish }) => {
             {dishes.map(dish => (
               <tr key={dish.item_id} className={styles.tableRow}>
                 <td className={styles.imageCell}>
-                  {dish.item_photo_url ? (
-                    <img src={dish.item_photo_url} alt={dish.item_name} />
-                  ) : (
-                    <div className={styles.noImage}>No Image</div>
-                  )}
+                  <RoundedPhoto 
+                    src={dish.item_photo_url} 
+                    alt={dish.item_name} 
+                    size={60}
+                  />
                 </td>
                 <td className={styles.nameCell}>
                   <h4>{dish.item_name}</h4>

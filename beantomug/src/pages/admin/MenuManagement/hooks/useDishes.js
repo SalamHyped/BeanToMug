@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { getApiConfig } from '../../../../utils/config';
 
 const useDishes = () => {
   const [dishes, setDishes] = useState([]);
@@ -12,9 +13,7 @@ const useDishes = () => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.get('http://localhost:8801/dishes', {
-        withCredentials: true
-      });
+      const response = await axios.get('/dishes', getApiConfig());
       
       if (response.data.success) {
         setDishes(response.data.dishes);
@@ -34,9 +33,7 @@ const useDishes = () => {
     try {
       setError(null);
       
-      const response = await axios.post('http://localhost:8801/dishes', dishData, {
-        withCredentials: true
-      });
+      const response = await axios.post('/dishes', dishData, getApiConfig());
 
       if (response.data.success) {
         // Refresh the dishes list
@@ -58,9 +55,7 @@ const useDishes = () => {
     try {
       setError(null);
       
-      const response = await axios.put(`http://localhost:8801/dishes/${dishId}`, dishData, {
-        withCredentials: true
-      });
+      const response = await axios.put(`/dishes/${dishId}`, dishData, getApiConfig());
 
       if (response.data.success) {
         // Refresh the dishes list
@@ -82,11 +77,9 @@ const useDishes = () => {
     try {
       setError(null);
       
-      const response = await axios.patch(`http://localhost:8801/dishes/${dishId}/status`, {
+      const response = await axios.patch(`/dishes/${dishId}/status`, {
         status: !currentStatus
-      }, {
-        withCredentials: true
-      });
+      }, getApiConfig());
 
       if (response.data.success) {
         // Update local state immediately for better UX
@@ -114,9 +107,7 @@ const useDishes = () => {
     try {
       setError(null);
       
-      const response = await axios.delete(`http://localhost:8801/dishes/${dishId}`, {
-        withCredentials: true
-      });
+      const response = await axios.delete(`/dishes/${dishId}`, getApiConfig());
 
       if (response.data.success) {
         // Remove from local state

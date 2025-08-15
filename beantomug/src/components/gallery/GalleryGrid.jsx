@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import classes from './galleryGrid.module.css';
 import GalleryItem from './GalleryItem';
+import Modal from '../modal/Modal';
+import { getApiConfig } from '../../utils/config';
 
-const GalleryGrid = ({ images, onImageDeleted, canDelete = false }) => {
+const GalleryGrid = ({ images, onDelete, canDelete = false }) => {
     const [selectedImage, setSelectedImage] = useState(null);
 
     const handleImageClick = (image) => {
@@ -15,7 +17,7 @@ const GalleryGrid = ({ images, onImageDeleted, canDelete = false }) => {
 
     const handleDelete = async (imageId) => {
         try {
-            const response = await fetch(`http://localhost:8801/gallery/${imageId}`, {
+            const response = await fetch(`${getApiConfig().baseURL}/gallery/${imageId}`, {
                 method: 'DELETE',
                 credentials: 'include', // Include cookies/session
             });
@@ -23,7 +25,7 @@ const GalleryGrid = ({ images, onImageDeleted, canDelete = false }) => {
             const data = await response.json();
 
             if (data.success) {
-                onImageDeleted(imageId);
+                onDelete && onDelete(imageId);
                 if (selectedImage && selectedImage.post_id === imageId) {
                     setSelectedImage(null);
                 }
@@ -54,7 +56,7 @@ const GalleryGrid = ({ images, onImageDeleted, canDelete = false }) => {
                     <GalleryItem
                         key={image.post_id}
                         image={image}
-                        onClick={() => handleImageClick(image)}
+                        onImageClick={handleImageClick}
                         onDelete={() => handleDelete(image.post_id)}
                         canDelete={canDelete}
                     />
@@ -68,7 +70,7 @@ const GalleryGrid = ({ images, onImageDeleted, canDelete = false }) => {
                             ×
                         </button>
                         <img
-                            src={`http://localhost:8801${selectedImage['photo-url']}`}
+                            src={`${getApiConfig().baseURL}${selectedImage['photo-url']}`}
                             alt={selectedImage.description || 'Gallery image'}
                             className={classes.modalImage}
                             loading="lazy"

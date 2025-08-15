@@ -1,6 +1,7 @@
 // CartContext.js
-import { createContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import { getApiConfig } from '../../utils/config';
 
 export const CartContext = createContext();
 
@@ -17,9 +18,7 @@ console.log(cartItems)
 
   const fetchCart = async () => {
     try {
-      const res = await axios.get('http://localhost:8801/cart', {
-        withCredentials: true,
-      });
+      const res = await axios.get('/cart', getApiConfig());
       setCartItems(res.data.items || []);
       setOrderType(res.data.orderType || 'Dine In');
       setError(null);
@@ -110,9 +109,7 @@ console.log(cartItems)
 
   const addToCart = async (cartData) => {
     try {
-      await axios.post('http://localhost:8801/cart/add', cartData, {
-        withCredentials: true
-      });
+      await axios.post('/cart/add', cartData, getApiConfig());
 
       // Fetch updated cart after adding item
       await fetchCart();
@@ -126,12 +123,13 @@ console.log(cartItems)
   const removeFromCart = async (itemToRemove) => {
     try {
       console.log("itemToRemove", itemToRemove)
-      await axios.delete('http://localhost:8801/cart/remove', {
+      await axios.delete('/cart/remove', {
+        ...getApiConfig(),
         data: {
           item_id: itemToRemove.item_id,
-          options: itemToRemove.options
-        },
-        withCredentials: true
+          options: itemToRemove.options,
+          orderType: orderType
+        }
       });
 
       // Fetch updated cart after removing item
@@ -145,18 +143,17 @@ console.log(cartItems)
 
   const updateQuantity = async (itemId, newQuantity, options) => {
     try {
-      // Find the item in cart to get its full details
-      const item = cartItems.find(i => i.item_id === itemId);
-      if (!item) {
-        setError('Item not found in cart');
+      if (newQuantity <= 0) {
+        await removeFromCart({ item_id: itemId });
         return;
       }
 
-      await axios.put('http://localhost:8801/cart/update-quantity', {
+      await axios.put('/cart/update-quantity', {
         item_id: itemId,
         quantity: newQuantity,
-        options,
-      }, { withCredentials: true });
+        options: options,
+        orderType: orderType
+      }, getApiConfig());
 
       // Fetch updated cart after updating quantity
       await fetchCart();
@@ -169,9 +166,9 @@ console.log(cartItems)
 
   const updateOrderType = async (newOrderType) => {
     try {
-      await axios.put('http://localhost:8801/cart/order-type', {
+      await axios.put('/cart/order-type', {
         orderType: newOrderType
-      }, { withCredentials: true });
+      }, getApiConfig());
 
       setOrderType(newOrderType);
       setError(null);
@@ -183,11 +180,10 @@ console.log(cartItems)
 
   const clearCart = async () => {
     try {
-      await axios.delete('http://localhost:8801/cart/clear', {
-        withCredentials: true
-      });
+      await axios.delete('/cart/clear', getApiConfig());
 
       setCartItems([]);
+      setOrderType('dine-in');
       setError(null);
     } catch (err) {
       console.error('Error clearing cart:', err);
@@ -197,6 +193,7 @@ console.log(cartItems)
 
   const contextValue = {
     cartItems,
+    setCartItems, // Add this so components can clear cart
     orderType,
     error,
     cartTotals,

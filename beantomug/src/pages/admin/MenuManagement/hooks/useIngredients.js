@@ -1,23 +1,24 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
+import axios from 'axios'; 
+import { getApiConfig } from '../../../../utils/config';
 
 const useIngredients = () => {
-  const [ingredients, setIngredients] = useState([]);
+  const [groupedIngredients, setGroupedIngredients] = useState({});
+  const [ingredientTypes, setIngredientTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch all ingredients
+  // Fetch all ingredients (now pre-grouped from backend)
   const fetchIngredients = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await axios.get('http://localhost:8801/dishes/ingredients', {
-        withCredentials: true
-      });
+      const response = await axios.get('/dishes/ingredients', getApiConfig());
       
       if (response.data.success) {
-        setIngredients(response.data.ingredients);
+        setGroupedIngredients(response.data.groupedIngredients);
+        setIngredientTypes(response.data.ingredientTypes || []);
       } else {
         setError('Failed to fetch ingredients');
       }
@@ -29,22 +30,16 @@ const useIngredients = () => {
     }
   }, []);
 
-  // Group ingredients by category for better organization
-  const groupedIngredients = useMemo(() => {
-    return ingredients.reduce((acc, ingredient) => {
-      const category = ingredient.category_name || 'Uncategorized';
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(ingredient);
-      return acc;
-    }, {});
-  }, [ingredients]);
-
-  // Get ingredient by ID
+  // Get ingredient by ID (search through all groups)
   const getIngredientById = useCallback((ingredientId) => {
-    return ingredients.find(ingredient => ingredient.ingredient_id === ingredientId);
-  }, [ingredients]);
+    for (const category in groupedIngredients) {
+      for (const type in groupedIngredients[category]) {
+        const ingredient = groupedIngredients[category][type].find(ing => ing.ingredient_id === ingredientId);
+        if (ingredient) return ingredient;
+      }
+    }
+    return null;
+  }, [groupedIngredients]);
 
   // Get ingredient name by ID
   const getIngredientName = useCallback((ingredientId) => {
@@ -54,26 +49,39 @@ const useIngredients = () => {
 
   // Get ingredients by category
   const getIngredientsByCategory = useCallback((categoryName) => {
-    return groupedIngredients[categoryName] || [];
+    if (!groupedIngredients[categoryName]) return [];
+    
+    // Flatten all types within the category
+    const allIngredients = [];
+    for (const type in groupedIngredients[categoryName]) {
+      allIngredients.push(...groupedIngredients[categoryName][type]);
+    }
+    return allIngredients;
   }, [groupedIngredients]);
 
-  
-  // NEW: Get types available within a specific category
+  // Get types available within a specific category
   const getTypesByCategory = useCallback((categoryName) => {
-    const categoryIngredients = groupedIngredients[categoryName] || [];
-    const types = [...new Set(categoryIngredients.map(ing => ing.type_name))];
-    return types.filter(type => type); // Filter out null/undefined types
+    if (!groupedIngredients[categoryName]) return [];
+    return Object.keys(groupedIngredients[categoryName]);
   }, [groupedIngredients]);
 
-  // NEW: Get ingredients by type name
+  // Get ingredients by type name (search through all categories)
   const getIngredientsByType = useCallback((typeName) => {
-    return ingredients.filter(ing => ing.type_name === typeName);
-  }, [ingredients]);
+    const allIngredients = [];
+    for (const category in groupedIngredients) {
+      if (groupedIngredients[category][typeName]) {
+        allIngredients.push(...groupedIngredients[category][typeName]);
+      }
+    }
+    return allIngredients;
+  }, [groupedIngredients]);
 
-  // NEW: Get ingredients by category AND type
+  // Get ingredients by category AND type
   const getIngredientsByCategoryAndType = useCallback((categoryName, typeName) => {
-    const categoryIngredients = groupedIngredients[categoryName] || [];
-    return categoryIngredients.filter(ing => ing.type_name === typeName);
+    if (!groupedIngredients[categoryName] || !groupedIngredients[categoryName][typeName]) {
+      return [];
+    }
+    return groupedIngredients[categoryName][typeName];
   }, [groupedIngredients]);
 
   // Get all category names
@@ -81,22 +89,113 @@ const useIngredients = () => {
     return Object.keys(groupedIngredients);
   }, [groupedIngredients]);
 
+  // Get all ingredients (flattened for search)
+  const allIngredients = useMemo(() => {
+    const ingredients = [];
+    for (const category in groupedIngredients) {
+      for (const type in groupedIngredients[category]) {
+        ingredients.push(...groupedIngredients[category][type]);
+      }
+    }
+    return ingredients;
+  }, [groupedIngredients]);
+
   // Filter ingredients by search term
   const searchIngredients = useCallback((searchTerm) => {
-    if (!searchTerm) return ingredients;
+    if (!searchTerm) return allIngredients;
     
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return ingredients.filter(ingredient => 
-      ingredient.ingredient_name.toLowerCase().includes(lowerSearchTerm) ||
-      ingredient.category_name?.toLowerCase().includes(lowerSearchTerm) ||
-      ingredient.type_name?.toLowerCase().includes(lowerSearchTerm)
+    return allIngredients.filter(ingredient => 
+      ingredient.ingredient_name.toLowerCase().includes(lowerSearchTerm)
     );
-  }, [ingredients]);
+  }, [allIngredients]);
 
   // Clear error
   const clearError = () => {
     setError(null);
   };
+
+  // Ingredient selection management for forms
+  const [selectedIngredients, setSelectedIngredients] = useState([]);
+
+  const addIngredient = useCallback(() => {
+    const newIngredient = {
+      ingredient_id: '',
+      quantity_required: '',
+      category: '',
+      type: '',
+      type_id: '',
+      unit: ''
+    };
+    setSelectedIngredients(prev => [...prev, newIngredient]);
+  }, []);
+
+  const updateIngredient = useCallback((index, field, value) => {
+    setSelectedIngredients(prev => {
+      const updated = prev.map((ing, i) => {
+        if (i === index) {
+          const newIng = { ...ing, [field]: value };
+          
+          // Reset dependent fields when category or type changes
+          if (field === 'category') {
+            newIng.type = '';
+            newIng.type_id = '';
+            newIng.ingredient_id = '';
+          } else if (field === 'type') {
+            newIng.type_id = '';
+            newIng.ingredient_id = '';
+            // Find type_id from the grouped ingredients data
+            if (newIng.category && groupedIngredients[newIng.category] && groupedIngredients[newIng.category][value]) {
+              const firstIngredient = groupedIngredients[newIng.category][value][0];
+              if (firstIngredient) {
+                newIng.type_id = firstIngredient.type_id;
+              }
+            }
+          } else if (field === 'ingredient_id') {
+            // When ingredient is selected, lock the type and category
+            // Don't allow changes to type or category after ingredient selection
+            newIng.type = ing.type; // Keep existing type
+            newIng.type_id = ing.type_id; // Keep existing type_id
+            newIng.category = ing.category; // Keep existing category
+          }
+          
+          return newIng;
+        }
+        return ing;
+      });
+      return updated;
+    });
+  }, [groupedIngredients]);
+
+  const removeIngredient = useCallback((index) => {
+    setSelectedIngredients(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const clearIngredients = useCallback(() => {
+    setSelectedIngredients([]);
+  }, []);
+
+  const getValidIngredients = useCallback(() => {
+    return selectedIngredients
+      .filter(ing => ing.ingredient_id) // Only require ingredient_id
+      .map(ing => {
+        const baseIngredient = {
+          ingredient_id: parseInt(ing.ingredient_id)
+        };
+        
+        // Check if this ingredient type is physical by looking at the ingredientTypes data
+        const ingredientType = ingredientTypes.find(type => type.type_id === ing.type_id);
+        
+        // Only add quantity_required for physical ingredient types
+        if (ingredientType && ingredientType.is_physical) {
+          if (ing.quantity_required) {
+            baseIngredient.quantity_required = parseFloat(ing.quantity_required);
+          }
+        }
+        
+        return baseIngredient;
+      });
+  }, [selectedIngredients, ingredientTypes]);
 
   // Initial fetch
   useEffect(() => {
@@ -105,7 +204,8 @@ const useIngredients = () => {
 
   return {
     // State
-    ingredients,
+    groupedIngredients,
+    ingredientTypes,
     loading,
     error,
     
@@ -121,12 +221,19 @@ const useIngredients = () => {
     clearError,
     
     // Computed
-    totalIngredients: ingredients.length,
-    groupedIngredients,
+    totalIngredients: allIngredients.length,
     categoryNames,
     
     // Active ingredients only
-    activeIngredients: ingredients.filter(ing => ing.status === 1)
+    activeIngredients: allIngredients.filter(ing => ing.status === 1),
+
+    // Ingredient selection management
+    selectedIngredients,
+    addIngredient,
+    updateIngredient,
+    removeIngredient,
+    clearIngredients,
+    getValidIngredients
   };
 };
 

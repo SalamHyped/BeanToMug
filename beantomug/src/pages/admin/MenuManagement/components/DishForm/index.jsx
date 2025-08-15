@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
-import { useCategories, useIngredients, useDishes } from '../../hooks';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import useCategories from '../../hooks/useCategories';
+import useIngredients from '../../hooks/useIngredients';
+import useDishes from '../../hooks/useDishes';
+import useOptionTypes from '../../hooks/useOptionTypes';
 import styles from './index.module.css';
+import RoundedPhoto from '../../../../../components/roundedPhoto/RoundedPhoto';
+import { getApiConfig } from '../../../../../utils/config';
 
 const DishForm = ({ onDishCreated, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -10,9 +15,10 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     item_photo_url: ''
   });
 
-  const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Use hooks for data fetching
   const { categories } = useCategories();
@@ -20,9 +26,53 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     groupedIngredients, 
     categoryNames, 
     getTypesByCategory, 
-    getIngredientsByCategoryAndType 
+    getIngredientsByCategoryAndType, 
+    ingredientTypes,
+    selectedIngredients,
+    addIngredient,
+    updateIngredient,
+    removeIngredient,
+    clearIngredients,
+    getValidIngredients
   } = useIngredients();
   const { createDish } = useDishes();
+  const { 
+    relevantOptionTypes
+  } = useOptionTypes(ingredientTypes, selectedIngredients);
+
+  // Helper function to check if an ingredient type is physical
+  const isIngredientTypePhysical = useCallback((typeId) => {
+    const type = ingredientTypes.find(t => t.type_id === typeId);
+    return type ? type.is_physical : false;
+  }, [ingredientTypes]);
+
+  // Simple derived state for option type slots based on unique ingredient types
+  const optionTypeSlots = useMemo(() => {
+    const uniqueTypeIds = [...new Set(selectedIngredients.map(ing => ing.type_id).filter(Boolean))];
+    return Array.from({ length: uniqueTypeIds.length }, (_, index) => ({
+      type_id: '',
+      is_required: false,
+      is_multiple: false
+    }));
+  }, [selectedIngredients]);
+
+  // Simple state for option types that gets reset when slots change
+  const [optionTypes, setOptionTypes] = useState([]);
+
+  // Reset option types when slots change
+  useEffect(() => {
+    setOptionTypes(optionTypeSlots);
+  }, [optionTypeSlots]);
+
+  const updateOptionType = useCallback((index, field, value) => {
+    setOptionTypes(prev => prev.map((option, i) => 
+      i === index ? { ...option, [field]: value } : option
+    ));
+  }, []);
+
+  const getValidOptionTypes = useCallback(() => {
+    return optionTypes.filter(option => option.type_id);
+  }, [optionTypes]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -32,48 +82,117 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     }));
   };
 
-  const handleAddIngredient = () => {
-    const newIngredient = {
-      ingredient_id: '',
-      quantity_required: '',
-      category: '',
-      type: '',
-      unit: ''
-    };
-    setSelectedIngredients(prev => [...prev, newIngredient]);
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Please select a valid image file (JPEG, PNG, GIF, WebP)');
+        return;
+      }
+      
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        return;
+      }
+      
+      setPhotoFile(file);
+      setError('');
+    }
   };
 
-  const handleIngredientChange = (index, field, value) => {
-    setSelectedIngredients(prev => {
-      const updated = prev.map((ing, i) => {
-        if (i === index) {
-          const newIng = { ...ing, [field]: value };
-          
-          // Reset dependent fields when category or type changes
-          if (field === 'category') {
-            newIng.type = '';
-            newIng.ingredient_id = '';
-          } else if (field === 'type') {
-            newIng.ingredient_id = '';
-          }
-          
-          return newIng;
-        }
-        return ing;
+  const uploadPhoto = async () => {
+    if (!photoFile) return null;
+    
+    setUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('photo', photoFile);
+      
+      const response = await fetch(`${getApiConfig().baseURL}/dishes/upload-photo`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
       });
-      return updated;
-    });
-  };
-
-  const handleRemoveIngredient = (index) => {
-    setSelectedIngredients(prev => prev.filter((_, i) => i !== index));
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        const photoUrl = data.data.photo_url;
+        // Update form data to show the uploaded photo
+        setFormData(prev => ({ ...prev, item_photo_url: photoUrl }));
+        return photoUrl;
+      } else {
+        throw new Error(data.message || 'Failed to upload photo');
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      setError('Failed to upload photo: ' + error.message);
+      return null;
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Basic required field validation
     if (!formData.item_name || !formData.price || !formData.category_id) {
-      setError('Please fill in all required fields');
+      setError('Please fill in all required fields (Dish Name, Price, and Category)');
+      return;
+    }
+
+    // Validate price is a positive number
+    if (isNaN(formData.price) || parseFloat(formData.price) <= 0) {
+      setError('Please enter a valid positive price');
+      return;
+    }
+
+    // Validate that at least one ingredient is selected
+    if (selectedIngredients.length === 0) {
+      setError('Please add at least one ingredient to the dish');
+      return;
+    }
+
+    // Validate that all selected ingredients are complete
+    const incompleteIngredients = selectedIngredients.filter(ingredient => 
+      !ingredient.category || !ingredient.type || !ingredient.ingredient_id
+    );
+    
+    if (incompleteIngredients.length > 0) {
+      setError('Please complete all ingredient selections (Category, Type, and Ingredient)');
+      return;
+    }
+
+    // Validate that physical ingredient types have quantities
+    const hasInvalidIngredients = selectedIngredients.some(ingredient => {
+      if (!ingredient.ingredient_id) return false; // Skip incomplete ingredients
+      
+      // If ingredient type is physical, quantity is required
+      if (ingredient.type_id && isIngredientTypePhysical(ingredient.type_id)) {
+        if (!ingredient.quantity_required || ingredient.quantity_required <= 0) {
+          return true; // Invalid - physical ingredient type missing quantity
+        }
+      }
+      
+      return false; // Valid
+    });
+
+    if (hasInvalidIngredients) {
+      setError('Please provide valid quantities (greater than 0) for all physical ingredient types');
+      return;
+    }
+
+    // Validate option types if any are selected
+    const invalidOptionTypes = optionTypes.filter(option => 
+      option.type_id && (!option.type_id || option.type_id === '')
+    );
+    
+    if (invalidOptionTypes.length > 0) {
+      setError('Please complete all option type selections or remove incomplete ones');
       return;
     }
 
@@ -81,15 +200,22 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     setError(null);
 
     try {
+      // Upload photo first if one is selected
+      let photoUrl = formData.item_photo_url;
+      if (photoFile) {
+        photoUrl = await uploadPhoto();
+        if (!photoUrl) {
+          setLoading(false);
+          return; // Error already set by uploadPhoto
+        }
+      }
+
       const dishData = {
         ...formData,
         price: parseFloat(formData.price),
-        ingredients: selectedIngredients
-          .filter(ing => ing.ingredient_id && ing.quantity_required)
-          .map(ing => ({
-            ingredient_id: parseInt(ing.ingredient_id),
-            quantity_required: parseFloat(ing.quantity_required)
-          }))
+        item_photo_url: photoUrl,
+        ingredients: getValidIngredients(),
+        optionTypes: getValidOptionTypes()
       };
 
       const result = await createDish(dishData);
@@ -102,8 +228,10 @@ const DishForm = ({ onDishCreated, onCancel }) => {
           category_id: '',
           item_photo_url: ''
         });
-        setSelectedIngredients([]);
-        
+        clearIngredients();
+        setOptionTypes([]);
+        setPhotoFile(null);
+       
         if (onDishCreated) {
           onDishCreated(result.dish_id);
         }
@@ -174,15 +302,57 @@ const DishForm = ({ onDishCreated, onCancel }) => {
             </div>
             
             <div className={styles.formGroup}>
-              <label htmlFor="item_photo_url">Photo URL</label>
-              <input
-                type="url"
-                id="item_photo_url"
-                name="item_photo_url"
-                value={formData.item_photo_url}
-                onChange={handleInputChange}
-                placeholder="https://example.com/photo.jpg"
-              />
+              <label htmlFor="item_photo">Dish Photo</label>
+              <div className={styles.photoUpload}>
+                <input
+                  type="file"
+                  id="item_photo"
+                  name="item_photo"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className={styles.fileInput}
+                />
+                <label htmlFor="item_photo" className={styles.fileInputLabel}>
+                  {photoFile ? photoFile.name : 'Choose Photo'}
+                </label>
+                {uploadingPhoto && <span className={styles.uploadingText}>Uploading...</span>}
+              </div>
+              
+              {/* Photo preview */}
+              {photoFile && (
+                <div className={styles.photoPreview}>
+                  <img 
+                    src={URL.createObjectURL(photoFile)} 
+                    alt="Preview" 
+                    className={styles.previewImage}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setPhotoFile(null)}
+                    className={styles.removePhotoBtn}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+              
+              {/* Show uploaded photo URL if available */}
+              {formData.item_photo_url && !photoFile && (
+                <div className={styles.photoPreview}>
+                  <RoundedPhoto 
+                    src={formData.item_photo_url}
+                    alt="Uploaded Photo" 
+                    size={150}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setFormData(prev => ({ ...prev, item_photo_url: '' }))}
+                    className={styles.removePhotoBtn}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -190,7 +360,11 @@ const DishForm = ({ onDishCreated, onCancel }) => {
         <div className={styles.formSection}>
           <h3>Ingredients</h3>
           <p className={styles.sectionDescription}>
-            Add the ingredients required for this dish
+            Add the ingredients required for this dish. 
+            <br />
+            <span style={{ fontSize: '0.9em', color: '#666' }}>
+              📦 Physical ingredient types (flour, milk, etc.) require quantities | ⚙️ Non-physical ingredient types (cooking methods, temperatures) don't need quantities
+            </span>
           </p>
           
           {selectedIngredients.map((ingredient, index) => (
@@ -199,8 +373,9 @@ const DishForm = ({ onDishCreated, onCancel }) => {
               <div className={styles.ingredientSelect}>
                 <select
                   value={ingredient.category}
-                  onChange={(e) => handleIngredientChange(index, 'category', e.target.value)}
+                  onChange={(e) => updateIngredient(index, 'category', e.target.value)}
                   required
+                  disabled={!!ingredient.ingredient_id} // Disable if ingredient is selected
                 >
                   <option value="">Select Category</option>
                   {categoryNames.map(category => (
@@ -215,9 +390,9 @@ const DishForm = ({ onDishCreated, onCancel }) => {
               <div className={styles.ingredientSelect}>
                 <select
                   value={ingredient.type}
-                  onChange={(e) => handleIngredientChange(index, 'type', e.target.value)}
+                  onChange={(e) => updateIngredient(index, 'type', e.target.value)}
                   required
-                  disabled={!ingredient.category}
+                  disabled={!ingredient.category || !!ingredient.ingredient_id} // Disable if no category or ingredient is selected
                 >
                   <option value="">Select Type</option>
                   {ingredient.category && getTypesByCategory(ingredient.category).map(type => (
@@ -232,7 +407,7 @@ const DishForm = ({ onDishCreated, onCancel }) => {
               <div className={styles.ingredientSelect}>
                 <select
                   value={ingredient.ingredient_id}
-                  onChange={(e) => handleIngredientChange(index, 'ingredient_id', e.target.value)}
+                  onChange={(e) => updateIngredient(index, 'ingredient_id', e.target.value)}
                   required
                   disabled={!ingredient.type}
                 >
@@ -240,29 +415,32 @@ const DishForm = ({ onDishCreated, onCancel }) => {
                   {ingredient.category && ingredient.type && 
                     getIngredientsByCategoryAndType(ingredient.category, ingredient.type).map(ing => (
                       <option key={ing.ingredient_id} value={ing.ingredient_id}>
-                        {ing.ingredient_name} ({ing.unit})
+                        {ing.ingredient_name} ({ing.unit}) {isIngredientTypePhysical(ingredient.type_id) ? '📦' : '⚙️'}
                       </option>
                     ))
                   }
                 </select>
               </div>
               
-              <div className={styles.quantityInput}>
-                <input
-                  type="number"
-                  placeholder="Quantity"
-                  value={ingredient.quantity_required}
-                  onChange={(e) => handleIngredientChange(index, 'quantity_required', e.target.value)}
-                  step="0.01"
-                  min="0"
-                  required
-                  disabled={!ingredient.ingredient_id}
-                />
-              </div>
+              {/* Quantity Input - Only show for physical ingredient types */}
+              {ingredient.type_id && isIngredientTypePhysical(ingredient.type_id) && (
+                <div className={styles.quantityInput}>
+                  <input
+                    type="number"
+                    placeholder="Quantity"
+                    value={ingredient.quantity_required}
+                    onChange={(e) => updateIngredient(index, 'quantity_required', e.target.value)}
+                    step="0.01"
+                    min="0"
+                    required
+                    disabled={!ingredient.ingredient_id}
+                  />
+                </div>
+              )}
               
               <button
                 type="button"
-                onClick={() => handleRemoveIngredient(index)}
+                onClick={() => removeIngredient(index)}
                 className={styles.removeButton}
               >
                 Remove
@@ -272,11 +450,88 @@ const DishForm = ({ onDishCreated, onCancel }) => {
           
           <button
             type="button"
-            onClick={handleAddIngredient}
+            onClick={addIngredient}
             className={styles.addIngredientButton}
           >
             + Add Ingredient
           </button>
+        </div>
+
+        {/* Option Types Section */}
+        <div className={styles.formSection}>
+          <h3>Customer Options</h3>
+          <p className={styles.sectionDescription}>
+            Define what options customers can choose when ordering this dish (e.g., temperature, size, milk alternatives).
+            <br />
+            <span style={{ fontSize: '0.9em', color: '#666' }}>
+              ℹ️ Option type slots are automatically created based on unique ingredient types to avoid duplicates
+            </span>
+          </p>
+          
+          {selectedIngredients.length === 0 && (
+            <div className={styles.infoMessage}>
+              <p>⚠️ Add ingredients first to see relevant customer options</p>
+            </div>
+          )}
+          
+          {optionTypes.map((option, index) => (
+            <div key={index} className={styles.optionTypeRow}>
+              <div className={styles.optionTypeSelect}>
+                <select
+                  value={option.type_id}
+                  onChange={(e) => updateOptionType(index, 'type_id', e.target.value)}
+                  required
+                >
+                  <option value="">Select Option Type</option>
+                  {relevantOptionTypes.map(type => (
+                    <option key={type.type_id} value={type.type_id}>
+                      {type.name} ({type.option_group})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className={styles.optionTypeCheckboxes}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={option.is_required}
+                    onChange={(e) => updateOptionType(index, 'is_required', e.target.checked)}
+                  />
+                  Required
+                </label>
+                
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={option.is_multiple}
+                    onChange={(e) => updateOptionType(index, 'is_multiple', e.target.checked)}
+                  />
+                  Multiple Selection
+                </label>
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => setOptionTypes(prev => prev.filter((_, i) => i !== index))}
+                className={styles.removeButton}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          
+          {relevantOptionTypes.length === 0 && selectedIngredients.length > 0 && (
+            <div className={styles.infoMessage}>
+              <p>ℹ️ No relevant option types found for the selected ingredients</p>
+            </div>
+          )}
+          
+          {selectedIngredients.length > 0 && (
+            <div className={styles.infoMessage}>
+              <p>ℹ️ {optionTypes.length} option type slots created for {[...new Set(selectedIngredients.map(ing => ing.type_id).filter(Boolean))].length} unique ingredient types</p>
+            </div>
+          )}
         </div>
 
         {error && (

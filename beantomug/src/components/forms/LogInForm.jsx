@@ -1,8 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { UserContext } from '../../context/UserContext/UserContext';
 import classes from './LogInForm.module.css';
 import axios from 'axios';
+import { getApiConfig } from '../../utils/config';
 
-export default function LoginForm({ onLoginSuccess, onSignupSuccess }) {
+export default function LogInForm({ onLoginSuccess, onSignupSuccess }) {
     const [signIn, toggle] = useState(true);
     const [loginFormData, setLoginFormData] = useState({
         username: "",
@@ -112,13 +115,11 @@ export default function LoginForm({ onLoginSuccess, onSignupSuccess }) {
         // Handle signup submission - using the basic signup endpoint
         setIsSubmitting(true);
         
-        axios.post('http://localhost:8801/auth/signup', {
+        axios.post('/auth/signup', {
             username: signupFormData.username,
             password: signupFormData.password,
             email: signupFormData.email 
-        }, {
-            withCredentials: true
-        })
+        }, getApiConfig())
         .then(response => {
             console.log("Signup successful:", response.data);
             

@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import classes from './menu.module.css';
 import Category from '../components/category/Category';
+import CategoryItem from '../components/category/CategoryItem';
 import{Link} from 'react-router-dom';
 import CenteredLayout from '../components/CenteredLayout';  
-import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useParams } from 'react-router-dom';
-import CategoryItem from '../components/category/CategoryItem';
+import { getApiConfig } from '../utils/config';
 
 export default function Menu() {
   const [categoryItems, setCategoryItems] = useState([]);
@@ -21,9 +21,7 @@ export default function Menu() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get('http://localhost:8801/menu', {
-          withCredentials: true
-        });
+        const res = await axios.get('/menu', getApiConfig());
         setCategoryItems(res.data);
       } catch (err) {
         console.error('Error fetching categories:', err);
@@ -40,7 +38,7 @@ export default function Menu() {
       setLoading(true);
       try {
         if (selectedCategory) {
-          const res = await axios.get(`http://localhost:8801/menu/${selectedCategory}`);
+          const res = await axios.get(`/menu/${selectedCategory}`, getApiConfig());
           setDishes(res.data);
         } else {
           setDishes([]); // Clear dishes when no category selected

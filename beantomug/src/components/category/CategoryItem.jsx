@@ -1,10 +1,12 @@
-import RoundedPhoto from "../roundedPhoto/RoundedPhoto";
-import classes from './CategoryItem.module.css';
-import {Link} from 'react-router-dom';
-import { useState } from "react";
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
+import classes from './categoryItem.module.css';
+import RoundedPhoto from '../roundedPhoto/RoundedPhoto';
 import Modal from "../modal/Modal";
 import ItemHandler from "../ItemHandler/ItemHandler";
-import axios from "axios";
+
+import { getApiConfig } from "../../utils/config";
 
 export default function CategoryItem({items=[], category}) {
   const [selectedItem, setSelectedItem] = useState(null);
@@ -15,7 +17,7 @@ export default function CategoryItem({items=[], category}) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:8801/menu/items/${item.item_id}`);
+      const res = await axios.get(`/menu/items/${item.item_id}`, getApiConfig());
       setSelectedItem(res.data);
     } catch (err) {
       alert(err.message);

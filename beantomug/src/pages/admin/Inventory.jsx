@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import socketService from '../../services/socketService';
 import styles from './Inventory.module.css';
+import { getApiConfig } from '../../utils/config';
 
 export default function Inventory() {
   const [ingredients, setIngredients] = useState([]);
@@ -35,9 +36,9 @@ export default function Inventory() {
     try {
       setLoading(true);
       const [stockResponse, alertsResponse, movementsResponse] = await Promise.all([
-        axios.get('http://localhost:8801/inventory/stock', { withCredentials: true }),
-        axios.get('http://localhost:8801/inventory/alerts', { withCredentials: true }),
-        axios.get('http://localhost:8801/inventory/movements', { withCredentials: true })
+        axios.get('/inventory/stock', getApiConfig()),
+        axios.get('/inventory/alerts', getApiConfig()),
+        axios.get('/inventory/movements', getApiConfig())
       ]);
 
       setIngredients(stockResponse.data.ingredients);
@@ -126,9 +127,9 @@ export default function Inventory() {
     
     try {
       const response = await axios.put(
-        `http://localhost:8801/inventory/stock/${selectedIngredient.ingredient_id}`,
+        `/inventory/stock/${selectedIngredient.ingredient_id}`,
         updateForm,
-        { withCredentials: true }
+        getApiConfig()
       );
 
       if (response.data.success) {
