@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCategories } from '../../hooks';
 import RoundedPhoto from '../../../../../components/roundedPhoto/RoundedPhoto';
+import { uploadPhoto as uploadPhotoService } from '../../../../../services/photoUploadService';
 import styles from './index.module.css';
 
 const CategoryManager = () => {
@@ -10,11 +11,12 @@ const CategoryManager = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [formData, setFormData] = useState({
     category_name: '',
-    category_description: '',
     category_photo_url: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -28,12 +30,39 @@ const CategoryManager = () => {
     }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      // Create a preview URL for the selected file
+      const previewUrl = URL.createObjectURL(file);
+      setFormData(prev => ({
+        ...prev,
+        category_photo_url: previewUrl
+      }));
+    }
+  };
+
+  const uploadCategoryPhoto = async (file) => {
+    try {
+      setUploadingPhoto(true);
+      // Use the unified upload service with 'category' content type
+      const photoUrl = await uploadPhotoService(file, 'category');
+      return photoUrl;
+    } catch (error) {
+      console.error('Error uploading category photo:', error);
+      throw error;
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       category_name: '',
-      category_description: '',
       category_photo_url: ''
     });
+    setPhotoFile(null);
     setEditingCategory(null);
     setIsAdding(false);
     setError(null);
@@ -51,9 +80,21 @@ const CategoryManager = () => {
     setError(null);
 
     try {
+      let finalPhotoUrl = formData.category_photo_url;
+
+      // If we have a new photo file, upload it first
+      if (photoFile && !formData.category_photo_url.startsWith('http') && !formData.category_photo_url.startsWith('/uploads')) {
+        finalPhotoUrl = await uploadCategoryPhoto(photoFile);
+      }
+
+      const submitData = {
+        category_name: formData.category_name,
+        category_photo_url: finalPhotoUrl
+      };
+
       if (editingCategory) {
         // Update existing category
-        const result = await updateCategory(editingCategory.category_id, formData);
+        const result = await updateCategory(editingCategory.category_id, submitData);
         if (result.success) {
           resetForm();
         } else {
@@ -61,7 +102,7 @@ const CategoryManager = () => {
         }
       } else {
         // Create new category
-        const result = await createCategory(formData);
+        const result = await createCategory(submitData);
         if (result.success) {
           resetForm();
         } else {
@@ -70,19 +111,23 @@ const CategoryManager = () => {
       }
     } catch (err) {
       console.error('Error saving category:', err);
-      setError('An error occurred while saving the category');
+      setError(err.message || 'An error occurred while saving the category');
     } finally {
       setLoading(false);
     }
   };
 
   const handleEdit = (category) => {
+    console.log('Editing category:', category);
+    console.log('Category photo URL:', category.category_photo_url);
+    console.log('Display URL:', category.category_photo_url);
+    
     setEditingCategory(category);
     setFormData({
       category_name: category.category_name,
-      category_description: category.category_description || '',
       category_photo_url: category.category_photo_url || ''
     });
+    setPhotoFile(null);
     setIsAdding(false);
   };
 
@@ -110,10 +155,18 @@ const CategoryManager = () => {
     setEditingCategory(null);
     setFormData({
       category_name: '',
-      category_description: '',
       category_photo_url: ''
     });
+    setPhotoFile(null);
     setError(null);
+  };
+
+  const removePhoto = () => {
+    setPhotoFile(null);
+    setFormData(prev => ({
+      ...prev,
+      category_photo_url: ''
+    }));
   };
 
   return (
@@ -150,31 +203,33 @@ const CategoryManager = () => {
               </div>
               
               <div className={styles.formGroup}>
-                <label htmlFor="category_description">Description</label>
-                <input
-                  type="text"
-                  id="category_description"
-                  name="category_description"
-                  value={formData.category_description}
-                  onChange={handleInputChange}
-                  placeholder="Optional description"
-                  className={styles.textInput}
-                />
-              </div>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="category_photo_url">Photo URL</label>
-                <input
-                  type="url"
-                  id="category_photo_url"
-                  name="category_photo_url"
-                  value={formData.category_photo_url}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com/photo.jpg"
-                  className={styles.textInput}
-                />
+                <label htmlFor="category_photo">Category Photo</label>
+                <div className={styles.photoInputGroup}>
+                  <input
+                    type="file"
+                    id="category_photo"
+                    name="category_photo"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className={styles.fileInput}
+                    disabled={uploadingPhoto}
+                  />
+                  {formData.category_photo_url && (
+                    <button
+                      type="button"
+                      onClick={removePhoto}
+                      className={styles.removePhotoBtn}
+                      disabled={uploadingPhoto}
+                    >
+                      Remove Photo
+                    </button>
+                  )}
+                </div>
+                {uploadingPhoto && (
+                  <div className={styles.uploadingIndicator}>
+                    📤 Uploading photo...
+                  </div>
+                )}
                 {formData.category_photo_url && (
                   <div className={styles.photoPreview}>
                     <label>Preview:</label>
@@ -199,14 +254,14 @@ const CategoryManager = () => {
                 type="button"
                 onClick={resetForm}
                 className={styles.cancelButton}
-                disabled={loading}
+                disabled={loading || uploadingPhoto}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 className={styles.submitButton}
-                disabled={loading}
+                disabled={loading || uploadingPhoto}
               >
                 {loading ? 'Saving...' : (editingCategory ? 'Update Category' : 'Create Category')}
               </button>
@@ -246,12 +301,6 @@ const CategoryManager = () => {
                     </button>
                   </div>
                 </div>
-                
-                {category.category_description && (
-                  <p className={styles.categoryDescription}>
-                    {category.category_description}
-                  </p>
-                )}
                 
                 {category.category_photo_url && (
                   <div className={styles.categoryPhoto}>

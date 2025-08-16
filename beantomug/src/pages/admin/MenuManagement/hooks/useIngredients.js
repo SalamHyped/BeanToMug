@@ -51,7 +51,6 @@ const useIngredients = () => {
   const getIngredientsByCategory = useCallback((categoryName) => {
     if (!groupedIngredients[categoryName]) return [];
     
-    // Flatten all types within the category
     const allIngredients = [];
     for (const type in groupedIngredients[categoryName]) {
       allIngredients.push(...groupedIngredients[categoryName][type]);
@@ -59,13 +58,13 @@ const useIngredients = () => {
     return allIngredients;
   }, [groupedIngredients]);
 
-  // Get types available within a specific category
+  // Get types by category
   const getTypesByCategory = useCallback((categoryName) => {
     if (!groupedIngredients[categoryName]) return [];
     return Object.keys(groupedIngredients[categoryName]);
   }, [groupedIngredients]);
 
-  // Get ingredients by type name (search through all categories)
+  // Get ingredients by type (across all categories)
   const getIngredientsByType = useCallback((typeName) => {
     const allIngredients = [];
     for (const category in groupedIngredients) {
@@ -76,7 +75,7 @@ const useIngredients = () => {
     return allIngredients;
   }, [groupedIngredients]);
 
-  // Get ingredients by category AND type
+  // Get ingredients by both category and type
   const getIngredientsByCategoryAndType = useCallback((categoryName, typeName) => {
     if (!groupedIngredients[categoryName] || !groupedIngredients[categoryName][typeName]) {
       return [];
@@ -153,10 +152,9 @@ const useIngredients = () => {
             }
           } else if (field === 'ingredient_id') {
             // When ingredient is selected, lock the type and category
-            // Don't allow changes to type or category after ingredient selection
-            newIng.type = ing.type; // Keep existing type
-            newIng.type_id = ing.type_id; // Keep existing type_id
-            newIng.category = ing.category; // Keep existing category
+            newIng.type = ing.type;
+            newIng.type_id = ing.type_id;
+            newIng.category = ing.category;
           }
           
           return newIng;
@@ -229,6 +227,7 @@ const useIngredients = () => {
 
     // Ingredient selection management
     selectedIngredients,
+    setSelectedIngredients,
     addIngredient,
     updateIngredient,
     removeIngredient,

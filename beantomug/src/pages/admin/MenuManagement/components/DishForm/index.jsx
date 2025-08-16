@@ -1,13 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import useCategories from '../../hooks/useCategories';
-import useIngredients from '../../hooks/useIngredients';
-import useDishes from '../../hooks/useDishes';
-import useOptionTypes from '../../hooks/useOptionTypes';
-import styles from './index.module.css';
+import { useIngredients } from '../../hooks';
+import { useOptionTypes } from '../../hooks';
+import { useCategories } from '../../hooks';
+import { useDishes } from '../../hooks';
+import useDishEditor from '../../hooks/useDishEditor';
 import RoundedPhoto from '../../../../../components/roundedPhoto/RoundedPhoto';
 import { getApiConfig } from '../../../../../utils/config';
+import { uploadPhoto as uploadPhotoService } from '../../../../../services/photoUploadService';
+import styles from './index.module.css';
 
-const DishForm = ({ onDishCreated, onCancel }) => {
+const DishForm = ({ 
+  onDishCreated, 
+  onCancel, 
+  editingDishId = null, // New prop for editing mode
+  onDishUpdated = null // New prop for edit completion
+}) => {
   const [formData, setFormData] = useState({
     item_name: '',
     price: '',
@@ -20,9 +27,19 @@ const DishForm = ({ onDishCreated, onCancel }) => {
   const [photoFile, setPhotoFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
+  // Determine if we're in edit mode
+  const isEditMode = !!editingDishId;
+
   // Use hooks for data fetching
   const { categories } = useCategories();
-  const { 
+  const { createDish } = useDishes();
+  
+  // Use either editing hook or regular ingredients hook
+  const dishEditor = useDishEditor(editingDishId);
+  const regularIngredients = useIngredients();
+  
+  // Choose which ingredient management to use based on mode
+  const {
     groupedIngredients, 
     categoryNames, 
     getTypesByCategory, 
@@ -34,8 +51,16 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     removeIngredient,
     clearIngredients,
     getValidIngredients
-  } = useIngredients();
-  const { createDish } = useDishes();
+  } = isEditMode ? {
+    ...regularIngredients,
+    selectedIngredients: dishEditor.selectedIngredients,
+    addIngredient: dishEditor.addIngredient,
+    updateIngredient: dishEditor.updateIngredient,
+    removeIngredient: dishEditor.removeIngredient,
+    clearIngredients: dishEditor.clearIngredients,
+    getValidIngredients: dishEditor.getValidIngredients
+  } : regularIngredients;
+
   const { 
     relevantOptionTypes
   } = useOptionTypes(ingredientTypes, selectedIngredients);
@@ -45,6 +70,48 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     const type = ingredientTypes.find(t => t.type_id === typeId);
     return type ? type.is_physical : false;
   }, [ingredientTypes]);
+
+  // Populate form when editing dish is loaded
+  useEffect(() => {
+    if (isEditMode && dishEditor.editingDish) {
+      const dish = dishEditor.editingDish;
+      setFormData({
+        item_name: dish.item_name || '',
+        price: dish.price?.toString() || '',
+        category_id: dish.category_id?.toString() || '',
+        item_photo_url: dish.item_photo_url || ''
+      });
+      
+      // Populate existing option types if available, or create slots for ingredient types
+      if (dish.optionTypes && dish.optionTypes.length > 0) {
+        setOptionTypes(dish.optionTypes.map(opt => ({
+          type_id: opt.type_id?.toString() || '',
+          is_required: opt.is_required || false,
+          is_multiple: opt.is_multiple || false
+        })));
+      } else {
+        // If no saved option types, create slots based on ingredient types
+        setTimeout(() => {
+          const ingredientTypeIds = [...new Set(dish.ingredients?.map(ing => ing.type_id).filter(Boolean) || [])];
+          const slots = ingredientTypeIds.map(() => ({
+            type_id: '',
+            is_required: false,
+            is_multiple: false
+          }));
+          if (slots.length > 0) {
+            setOptionTypes(slots);
+          }
+        }, 100); // Small delay to ensure ingredients are loaded
+      }
+      
+      // Set error from editor if any
+      if (dishEditor.error) {
+        setError(dishEditor.error);
+      }
+      
+      console.log('📝 Form populated with dish data:', dish);
+    }
+  }, [isEditMode, dishEditor.editingDish, dishEditor.error]);
 
   // Simple derived state for option type slots based on unique ingredient types
   const optionTypeSlots = useMemo(() => {
@@ -59,10 +126,13 @@ const DishForm = ({ onDishCreated, onCancel }) => {
   // Simple state for option types that gets reset when slots change
   const [optionTypes, setOptionTypes] = useState([]);
 
-  // Reset option types when slots change
+  // Reset option types when slots change (but not when editing and we have existing option types)
   useEffect(() => {
-    setOptionTypes(optionTypeSlots);
-  }, [optionTypeSlots]);
+    // Don't override existing option types when editing
+    if (!isEditMode || !dishEditor.editingDish?.optionTypes?.length) {
+      setOptionTypes(optionTypeSlots);
+    }
+  }, [optionTypeSlots, isEditMode, dishEditor.editingDish?.optionTypes?.length]);
 
   const updateOptionType = useCallback((index, field, value) => {
     setOptionTypes(prev => prev.map((option, i) => 
@@ -70,7 +140,7 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     ));
   }, []);
 
-  const getValidOptionTypes = useCallback(() => {
+  const getValidOptionTypes = useMemo(() => {
     return optionTypes.filter(option => option.type_id);
   }, [optionTypes]);
 
@@ -108,25 +178,12 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     
     setUploadingPhoto(true);
     try {
-      const formData = new FormData();
-      formData.append('photo', photoFile);
+      // Use the unified upload service with 'dish' content type
+      const photoUrl = await uploadPhotoService(photoFile, 'dish');
       
-      const response = await fetch(`${getApiConfig().baseURL}/dishes/upload-photo`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        const photoUrl = data.data.photo_url;
-        // Update form data to show the uploaded photo
-        setFormData(prev => ({ ...prev, item_photo_url: photoUrl }));
-        return photoUrl;
-      } else {
-        throw new Error(data.message || 'Failed to upload photo');
-      }
+      // Update form data to show the uploaded photo
+      setFormData(prev => ({ ...prev, item_photo_url: photoUrl }));
+      return photoUrl;
     } catch (error) {
       console.error('Error uploading photo:', error);
       setError('Failed to upload photo: ' + error.message);
@@ -215,10 +272,18 @@ const DishForm = ({ onDishCreated, onCancel }) => {
         price: parseFloat(formData.price),
         item_photo_url: photoUrl,
         ingredients: getValidIngredients(),
-        optionTypes: getValidOptionTypes()
+        optionTypes: getValidOptionTypes
       };
 
-      const result = await createDish(dishData);
+      let result;
+      
+      if (isEditMode) {
+        // Update existing dish
+        result = await dishEditor.saveDish(dishData, getValidOptionTypes);
+      } else {
+        // Create new dish
+        result = await createDish(dishData);
+      }
 
       if (result.success) {
         // Reset form
@@ -232,11 +297,13 @@ const DishForm = ({ onDishCreated, onCancel }) => {
         setOptionTypes([]);
         setPhotoFile(null);
        
-        if (onDishCreated) {
+        if (isEditMode && onDishUpdated) {
+          onDishUpdated();
+        } else if (!isEditMode && onDishCreated) {
           onDishCreated(result.dish_id);
         }
       } else {
-        setError(result.error || 'Failed to create dish');
+        setError(result.error || `Failed to ${isEditMode ? 'update' : 'create'} dish`);
       }
     } catch (err) {
       console.error('Error creating dish:', err);
@@ -250,7 +317,7 @@ const DishForm = ({ onDishCreated, onCancel }) => {
     <div className={styles.dishForm}>
       <form onSubmit={handleSubmit}>
         <div className={styles.formSection}>
-          <h3>Basic Information</h3>
+          <h3>{isEditMode ? 'Edit Dish' : 'Create New Dish'}</h3>
           
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
@@ -406,7 +473,7 @@ const DishForm = ({ onDishCreated, onCancel }) => {
               {/* Ingredient Selection */}
               <div className={styles.ingredientSelect}>
                 <select
-                  value={ingredient.ingredient_id}
+                  value={ingredient.ingredient_id || ''}
                   onChange={(e) => updateIngredient(index, 'ingredient_id', e.target.value)}
                   required
                   disabled={!ingredient.type}
@@ -554,7 +621,10 @@ const DishForm = ({ onDishCreated, onCancel }) => {
             className={styles.submitButton}
             disabled={loading}
           >
-            {loading ? 'Creating...' : 'Create Dish'}
+            {loading ? 
+              (isEditMode ? 'Updating...' : 'Creating...') : 
+              (isEditMode ? 'Update Dish' : 'Create Dish')
+            }
           </button>
         </div>
       </form>

@@ -80,6 +80,15 @@
   background: #f9fafb;
 }
 
+.tableRow.inactiveDish {
+  opacity: 0.6;
+  background: #f9fafb;
+}
+
+.tableRow.inactiveDish:hover {
+  background: #f3f4f6;
+}
+
 .imageCell {
   width: 80px;
 }
@@ -190,6 +199,8 @@
 .statusButton.deactivate:hover {
   background: #dc2626;
 }
+
+
 
 .loading,
 .error,

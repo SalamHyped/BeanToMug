@@ -1,0 +1,199 @@
+.filtersContainer {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filtersHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.filtersHeader h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.25rem;
+}
+
+.statsContainer {
+  display: flex;
+  gap: 1rem;
+}
+
+.stat {
+  padding: 0.25rem 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.filtersRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filterGroup label {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.875rem;
+}
+
+.filterGroup input,
+.filterGroup select {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.filterGroup input:focus,
+.filterGroup select:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.filterGroup input:disabled,
+.filterGroup select:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.searchInput {
+  position: relative;
+}
+
+.sortRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid #eee;
+  flex-wrap: wrap;
+}
+
+.sortLabel {
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+}
+
+.sortButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sortButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sortButton:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #0066cc;
+}
+
+.sortButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.activeSortButton {
+  background: #0066cc;
+  color: white;
+  border-color: #0066cc;
+}
+
+.activeSortButton:hover:not(:disabled) {
+  background: #0052a3;
+}
+
+.sortDirection {
+  font-weight: bold;
+  margin-left: 0.25rem;
+}
+
+.clearFiltersRow {
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: center;
+}
+
+.clearFiltersButton {
+  padding: 0.75rem 1.5rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.clearFiltersButton:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.clearFiltersButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .filtersHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .statsContainer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filtersRow {
+    grid-template-columns: 1fr;
+  }
+
+  .sortRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .sortButtons {
+    justify-content: flex-start;
+  }
+}

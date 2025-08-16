@@ -10,7 +10,7 @@ export default function Category({items=[]}) {
          <div className={classes.item_wrapper} key={item.category_id}>
            <Link to={`/menu/${item.category_name}`}>
              <RoundedPhoto 
-               src={null} // No category photos yet
+               src={item.category_photo_url} 
                alt={item.category_name} 
                size={150} 
                borderWidth={3} 

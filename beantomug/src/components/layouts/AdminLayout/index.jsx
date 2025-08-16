@@ -14,7 +14,8 @@ import {
   FaChartBar,
   FaSignOutAlt,
   FaUserCog,
-  FaPlus
+  FaPlus,
+  FaLeaf
 
 } from 'react-icons/fa';
 import { RiMenuAddFill } from "react-icons/ri";
@@ -31,7 +32,8 @@ const ADMIN_NAV_ITEMS = [
     subItems: [
       { to: "/admin/orders/queue", label: "Order Queue", icon: FaClock },
       { to: "/admin/orders/analytics", label: "Analytics", icon: FaChartBar },
-      { to: "/admin/orders/settings", label: "Add Menu", icon: RiMenuAddFill }
+      { to: "/admin/menuManagement/menuSettings", label: "Menu Settings", icon: RiMenuAddFill },
+      { to: "/admin/menuManagement/ingredients", label: "Ingredients", icon: FaLeaf }
     ]
   },
   { to: "/admin/users", label: "Users Management", icon: FaUsers },

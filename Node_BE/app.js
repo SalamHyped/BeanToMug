@@ -26,12 +26,14 @@ const galleryRouter = require('./Routes/gallery');
 const inventoryRouter = require('./Routes/inventory');
 const adminRouter = require('./Routes/admin');
 const dishesRouter = require('./Routes/dishes');
+const uploadRouter = require('./Routes/upload');
+const ingredientsRouter = require('./Routes/ingredients');
 
 app.use(express.json());
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:8080'],  // Allow more ports
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
@@ -120,6 +122,8 @@ app.use('/gallery', galleryRouter);  // Gallery routes
 app.use('/inventory', inventoryRouter);  // Inventory management routes
 app.use('/admin', adminRouter);  // Admin management routes
 app.use('/dishes', dishesRouter);  // Dish management routes
+app.use('/upload', uploadRouter); // Upload routes
+app.use('/ingredients', ingredientsRouter); // Ingredient management routes
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

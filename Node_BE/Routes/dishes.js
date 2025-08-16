@@ -1,51 +1,8 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roleMiddleware');
+const { getDishDetails } = require('../services/dishService');
 const router = express.Router();
-
-// Ensure dish photos directory exists
-const uploadsDir = path.join(__dirname, '../uploads');
-const dishPhotosDir = path.join(uploadsDir, 'dish-photos');
-
-if (!fs.existsSync(dishPhotosDir)) {
-    fs.mkdirSync(dishPhotosDir, { recursive: true });
-}
-
-// Configure multer for dish photo uploads
-const dishPhotoStorage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, dishPhotosDir);
-    },
-    filename: function (req, file, cb) {
-        // Generate unique filename with timestamp
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'dish-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-// File filter for dish photos
-const dishPhotoFilter = (req, file, cb) => {
-    const allowedImageTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = path.extname(file.originalname).toLowerCase();
-    const isImage = allowedImageTypes.test(extname) && allowedImageTypes.test(file.mimetype);
-
-    if (isImage) {
-        return cb(null, true);
-    } else {
-        cb(new Error('Only image files are allowed for dish photos!'), false);
-    }
-};
-
-const uploadDishPhoto = multer({
-    storage: dishPhotoStorage,
-    limits: {
-        fileSize: 5 * 1024 * 1024 // 5MB limit for dish photos
-    },
-    fileFilter: dishPhotoFilter
-});
 
 /**
  * GET /dishes
@@ -114,6 +71,184 @@ router.get('/categories', authenticateToken, requireRole(['admin']), async (req,
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch categories' 
+    });
+  }
+});
+
+/**
+ * POST /dishes/categories
+ * Create a new category (Admin only)
+ */
+router.post('/categories', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { category_name, category_photo_url } = req.body;
+    
+    // Validate required fields
+    if (!category_name || !category_name.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Category name is required'
+      });
+    }
+    
+    // Check if category name already exists
+    const [existingCategories] = await req.db.execute(
+      'SELECT category_id FROM category WHERE category_name = ?',
+      [category_name.trim()]
+    );
+    
+    if (existingCategories.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Category name already exists'
+      });
+    }
+    
+    // Insert new category
+    const [result] = await req.db.execute(`
+      INSERT INTO category (category_name, category_photo_url)
+      VALUES (?, ?)
+    `, [category_name.trim(), category_photo_url || '']);
+    
+    // Get the newly created category
+    const [newCategory] = await req.db.execute(`
+      SELECT category_id, category_name, category_photo_url
+      FROM category WHERE category_id = ?
+    `, [result.insertId]);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Category created successfully',
+      category: newCategory[0]
+    });
+    
+  } catch (error) {
+    console.error('Error creating category:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create category'
+    });
+  }
+});
+
+/**
+ * PUT /dishes/categories/:categoryId
+ * Update an existing category (Admin only)
+ */
+router.put('/categories/:categoryId', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { category_name, category_photo_url } = req.body;
+    
+    // Validate required fields
+    if (!category_name || !category_name.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Category name is required'
+      });
+    }
+    
+    // Check if category exists
+    const [existingCategory] = await req.db.execute(
+      'SELECT category_id FROM category WHERE category_id = ?',
+      [categoryId]
+    );
+    
+    if (existingCategory.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Category not found'
+      });
+    }
+    
+    // Check if new name conflicts with existing categories (excluding current category)
+    const [conflictingCategories] = await req.db.execute(
+      'SELECT category_id FROM category WHERE category_name = ? AND category_id != ?',
+      [category_name.trim(), categoryId]
+    );
+    
+    if (conflictingCategories.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Category name already exists'
+      });
+    }
+    
+    // Update category
+    await req.db.execute(`
+      UPDATE category 
+      SET category_name = ?, category_photo_url = ?
+      WHERE category_id = ?
+    `, [category_name.trim(), category_photo_url || '', categoryId]);
+    
+    // Get the updated category
+    const [updatedCategory] = await req.db.execute(`
+      SELECT category_id, category_name, category_photo_url
+      FROM category WHERE category_id = ?
+    `, [categoryId]);
+    
+    res.json({
+      success: true,
+      message: 'Category updated successfully',
+      category: updatedCategory[0]
+    });
+    
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update category'
+    });
+  }
+});
+
+/**
+ * DELETE /dishes/categories/:categoryId
+ * Delete a category (Admin only)
+ */
+router.delete('/categories/:categoryId', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    
+    // Check if category exists
+    const [existingCategory] = await req.db.execute(
+      'SELECT category_id FROM category WHERE category_id = ?',
+      [categoryId]
+    );
+    
+    if (existingCategory.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Category not found'
+      });
+    }
+    
+    // Check if category has associated dishes
+    const [associatedDishes] = await req.db.execute(
+      'SELECT item_id FROM dish WHERE category_id = ? LIMIT 1',
+      [categoryId]
+    );
+    
+    if (associatedDishes.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete category: it has associated dishes. Please reassign or delete the dishes first.'
+      });
+    }
+    
+    // Delete category
+    await req.db.execute('DELETE FROM category WHERE category_id = ?', [categoryId]);
+    
+    res.json({
+      success: true,
+      message: 'Category deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete category'
     });
   }
 });
@@ -251,6 +386,42 @@ router.get('/ingredients', authenticateToken, requireRole(['admin']), async (req
 });
 
 /**
+ * GET /dishes/:id
+ * Get a single dish with its ingredients and option types (Admin only)
+ * Uses shared dishService to avoid duplication
+ */
+router.get('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Use shared service with admin view options
+    const result = await getDishDetails(req.db, id, {
+      adminView: true         // Get admin-friendly data structure
+    });
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        message: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      dish: result.dish
+    });
+
+  } catch (error) {
+    console.error('Error fetching dish:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch dish',
+      error: error.message
+    });
+  }
+});
+
+/**
  * POST /dishes
  * Create a new dish with ingredients and option types (Admin only)
  */
@@ -310,64 +481,129 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
 });
 
 /**
- * POST /dishes/upload-photo
- * Upload a photo for a dish (Admin only)
+ * PUT /dishes/:id
+ * Update an existing dish with ingredients and option types (Admin only)
  */
-router.post('/upload-photo', authenticateToken, requireRole(['admin']), uploadDishPhoto.single('photo'), async (req, res) => {
+router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
-    if (!req.file) {
+    const { id } = req.params;
+    const { 
+      item_name, 
+      price, 
+      category_id, 
+      item_photo_url = null,
+      ingredients = [], // Array of {ingredient_id, quantity_required}
+      optionTypes = [] // Array of {type_id, is_required, is_multiple}
+    } = req.body;
+
+    // Validate required fields
+    if (!item_name || !price || !category_id) {
       return res.status(400).json({
         success: false,
-        message: 'No photo file provided'
+        message: 'item_name, price, and category_id are required'
       });
     }
 
-    // Generate the URL path for the uploaded photo
-    const photoUrl = `/uploads/dish-photos/${req.file.filename}`;
+    // Check if dish exists
+    const [existingDish] = await req.db.execute(`
+      SELECT item_id FROM dish WHERE item_id = ?
+    `, [id]);
 
-    res.json({
-      success: true,
-      message: 'Dish photo uploaded successfully',
-      data: {
-        photo_url: photoUrl,
-        filename: req.file.filename,
-        original_name: req.file.originalname,
-        file_size: req.file.size,
-        mime_type: req.file.mimetype
+    if (existingDish.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dish not found'
+      });
+    }
+
+    // Start transaction for data consistency
+    await req.db.beginTransaction();
+
+    try {
+      // 1. Update the dish basic information
+      await req.db.execute(`
+        UPDATE dish 
+        SET item_name = ?, price = ?, category_id = ?, item_photo_url = ?
+        WHERE item_id = ?
+      `, [item_name, price, category_id, item_photo_url, id]);
+
+      // 2. Delete existing ingredient relationships
+      await req.db.execute(`
+        DELETE FROM ingredients_in_item WHERE item_id = ?
+      `, [id]);
+
+      // 3. Delete existing option type relationships
+      await req.db.execute(`
+        DELETE FROM item_option_type WHERE item_id = ?
+      `, [id]);
+
+      // 4. Add new ingredient relationships
+      if (ingredients && ingredients.length > 0) {
+        for (const ing of ingredients) {
+          await req.db.execute(`
+            INSERT INTO ingredients_in_item (item_id, ingredient_id, quantity_required)
+            VALUES (?, ?, ?)
+          `, [id, ing.ingredient_id, ing.quantity_required]);
+        }
       }
-    });
+
+      // 5. Add new option type relationships
+      if (optionTypes && optionTypes.length > 0) {
+        for (const option of optionTypes) {
+          await req.db.execute(`
+            INSERT INTO item_option_type (item_id, type_id, is_required, is_multiple)
+            VALUES (?, ?, ?, ?)
+          `, [id, option.type_id, option.is_required || 0, option.is_multiple || 0]);
+        }
+      }
+
+      // Commit transaction
+      await req.db.commit();
+
+      res.json({
+        success: true,
+        message: 'Dish updated successfully'
+      });
+
+    } catch (error) {
+      // Rollback on error
+      await req.db.rollback();
+      throw error;
+    }
 
   } catch (error) {
-    console.error('Error uploading dish photo:', error);
+    console.error('Error updating dish:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to upload dish photo',
+      message: 'Failed to update dish',
       error: error.message
     });
   }
 });
 
 /**
- * PUT /dishes/:id/photo
- * Update photo URL for an existing dish (Admin only)
+ * PATCH /dishes/:id/status
+ * Toggle dish status (activate/deactivate) (Admin only)
  */
-router.put('/:id/photo', authenticateToken, requireRole(['admin']), async (req, res) => {
+router.patch('/:id/status', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
-    const { item_photo_url } = req.body;
+    const { status } = req.body;
 
-    if (!item_photo_url) {
+    // Validate status value
+    if (status !== 0 && status !== 1) {
       return res.status(400).json({
         success: false,
-        message: 'Photo URL is required'
+        message: 'Status must be 0 (inactive) or 1 (active)'
       });
     }
 
+    // Update dish status
     const [result] = await req.db.execute(`
       UPDATE dish 
-      SET item_photo_url = ?
+      SET status = ?
       WHERE item_id = ?
-    `, [item_photo_url, id]);
+    `, [status, id]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
@@ -376,32 +612,52 @@ router.put('/:id/photo', authenticateToken, requireRole(['admin']), async (req, 
       });
     }
 
+    const statusText = status === 1 ? 'activated' : 'deactivated';
+    
     res.json({
       success: true,
-      message: 'Dish photo updated successfully',
+      message: `Dish ${statusText} successfully`,
       data: {
         item_id: id,
-        item_photo_url: item_photo_url
+        status: status
       }
     });
 
   } catch (error) {
-    console.error('Error updating dish photo:', error);
+    console.error('Error updating dish status:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to update dish photo',
+      message: 'Failed to update dish status',
       error: error.message
     });
   }
 });
 
 /**
- * DELETE /dishes/:id
- * Delete a dish and its ingredient relationships (Admin only)
+ * DELETE /dishes/:id - DISABLED
+ * This route has been disabled to prevent accidental data loss.
+ * Use the PATCH /dishes/:id/status route to deactivate dishes instead.
+ * 
+ * If permanent deletion is absolutely necessary, it can be done via direct database access.
  */
+/*
 router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
+
+    // First, get the dish info to find the photo URL
+    const [dishInfo] = await req.db.execute(`
+      SELECT item_photo_url FROM dish WHERE item_id = ?
+    `, [id]);
+
+    if (dishInfo.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Dish not found'
+      });
+    }
+
+    const photoUrl = dishInfo[0].item_photo_url;
 
     // Start a transaction to ensure data consistency
     await req.db.beginTransaction();
@@ -413,7 +669,13 @@ router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res
         WHERE dish_id = ?
       `, [id]);
 
-      // 2. Delete the dish
+      // 2. Delete option type relationships
+      await req.db.execute(`
+        DELETE FROM option_types_for_items 
+        WHERE item_id = ?
+      `, [id]);
+
+      // 3. Delete the dish
       const [result] = await req.db.execute(`
         DELETE FROM dish 
         WHERE item_id = ?
@@ -430,9 +692,26 @@ router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res
       // Commit the transaction
       await req.db.commit();
 
+      // 4. Clean up photo file if it exists and is a local upload
+      if (photoUrl && photoUrl.startsWith('/uploads/dish-photos/')) {
+        try {
+          const fs = require('fs');
+          const path = require('path');
+          const photoPath = path.join(__dirname, '..', photoUrl);
+          
+          if (fs.existsSync(photoPath)) {
+            fs.unlinkSync(photoPath);
+            console.log('🗑️ Deleted dish photo:', photoPath);
+          }
+        } catch (photoError) {
+          console.error('Warning: Could not delete photo file:', photoError);
+          // Don't fail the entire operation if photo deletion fails
+        }
+      }
+
       res.json({
         success: true,
-        message: 'Dish deleted successfully'
+        message: 'Dish and associated data deleted successfully'
       });
 
     } catch (error) {
@@ -450,6 +729,7 @@ router.delete('/:id', authenticateToken, requireRole(['admin']), async (req, res
     });
   }
 });
+*/
 
 module.exports = router;
 

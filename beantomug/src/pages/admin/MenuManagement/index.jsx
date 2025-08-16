@@ -4,11 +4,13 @@ import DishList from './components/DishList';
 import DishForm from './components/DishForm';
 import DishFilters from './components/DishFilters';
 import CategoryManager from './components/CategoryManager';
+import DishEditModal from './components/DishEditModal';
 import { useDishes } from './hooks';
 
 const MenuManagement = () => {
-  const [activeView, setActiveView] = useState('list'); // 'list', 'add', 'edit', 'categories'
-  const [selectedDish, setSelectedDish] = useState(null);
+  const [activeView, setActiveView] = useState('list'); // 'list', 'add', 'categories'
+  const [editingDishId, setEditingDishId] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     category: '',
@@ -25,13 +27,14 @@ const MenuManagement = () => {
   const handleViewChange = (view) => {
     setActiveView(view);
     if (view === 'list') {
-      setSelectedDish(null);
+      setEditingDishId(null);
+      setIsEditModalOpen(false);
     }
   };
 
   const handleEditDish = (dish) => {
-    setSelectedDish(dish);
-    setActiveView('edit');
+    setEditingDishId(dish.item_id);
+    setIsEditModalOpen(true);
   };
 
   const handleDishCreated = async (dishId) => {
@@ -42,7 +45,20 @@ const MenuManagement = () => {
 
   const handleCancel = () => {
     setActiveView('list');
-    setSelectedDish(null);
+    setEditingDishId(null);
+    setIsEditModalOpen(false);
+  };
+
+  const handleDishUpdated = async () => {
+    // Refresh the dish list and close modal
+    await fetchDishes();
+    setEditingDishId(null);
+    setIsEditModalOpen(false);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingDishId(null);
+    setIsEditModalOpen(false);
   };
 
   const handleFiltersChange = (newFilters) => {
@@ -105,12 +121,13 @@ const MenuManagement = () => {
           </div>
         )}
 
-        {activeView === 'edit' && selectedDish && (
-          <div className={styles.editView}>
-            <h2>Edit Dish: {selectedDish.item_name}</h2>
-            <p>Edit form component will go here</p>
-          </div>
-        )}
+        {/* Edit Modal */}
+        <DishEditModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          dishId={editingDishId}
+          onDishUpdated={handleDishUpdated}
+        />
 
         {activeView === 'categories' && (
           <div className={styles.categoriesView}>

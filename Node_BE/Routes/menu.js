@@ -1,5 +1,6 @@
 const express = require('express');
 const dbSingleton = require('../dbSingleton');
+const { getDishDetails } = require('../services/dishService');
 const router = express.Router();
 
 /**
@@ -47,6 +48,37 @@ router.get('/', async (req, res) => {
  * 
  * @param {string} id - The item ID from the URL parameter
  */
+router.get("/items/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Validate that the ID parameter exists and is a valid number
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: "Invalid item ID" });
+    }
+
+    // Use shared service with public menu options
+    const result = await getDishDetails(req.db, id, {
+      adminView: false         // Public-friendly data structure with stock checking
+    });
+
+    if (!result.success) {
+      const statusCode = result.error === 'Dish not found' ? 404 : 500;
+      return res.status(statusCode).json({ error: result.error });
+    }
+
+    res.json(result.dish);
+
+  } catch (err) {
+    console.error("Error fetching item:", err);
+    res.status(500).json({ 
+      error: "Internal server error",
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+/* OLD CODE - REPLACED WITH SHARED SERVICE
 router.get("/items/:id", async (req, res) => {
   const { id } = req.params;
 

@@ -1,0 +1,352 @@
+.listContainer {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.loadingContainer,
+.errorContainer,
+.emptyContainer {
+  padding: 3rem;
+  text-align: center;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #0066cc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.errorMessage {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.ingredientsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ingredientsTable th {
+  background: #f8f9fa;
+  padding: 1rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+}
+
+.ingredientsTable td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: top;
+}
+
+.ingredientRow:hover {
+  background: #f8f9fa;
+}
+
+.nameCell {
+  min-width: 200px;
+}
+
+.nameContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ingredientName {
+  font-weight: 500;
+  color: #333;
+}
+
+.lowStockBadge,
+.outOfStockBadge {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+
+.lowStockBadge {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.outOfStockBadge {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.priceCell {
+  font-weight: 500;
+  color: #28a745;
+}
+
+.stockCell {
+  min-width: 200px;
+}
+
+.stockContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stockDisplay {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stockAmount {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.stockAmount.in-stock {
+  color: #28a745;
+}
+
+.stockAmount.low-stock {
+  color: #ffc107;
+}
+
+.stockAmount.out-of-stock {
+  color: #dc3545;
+}
+
+.stockThreshold {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.stockUpdate {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.stockInput {
+  width: 80px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.stockInput:focus {
+  outline: none;
+  border-color: #0066cc;
+}
+
+.stockButtons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.setStockButton,
+.addStockButton {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.setStockButton {
+  background: #007bff;
+  color: white;
+}
+
+.setStockButton:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.addStockButton {
+  background: #28a745;
+  color: white;
+}
+
+.addStockButton:hover:not(:disabled) {
+  background: #1e7e34;
+}
+
+.setStockButton:disabled,
+.addStockButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dateCell {
+  white-space: nowrap;
+}
+
+.statusCell {
+  text-align: center;
+}
+
+.statusButton {
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-transform: uppercase;
+}
+
+.activeStatus {
+  background: #28a745;
+  color: white;
+}
+
+.activeStatus:hover {
+  background: #1e7e34;
+}
+
+.inactiveStatus {
+  background: #6c757d;
+  color: white;
+}
+
+.inactiveStatus:hover {
+  background: #545b62;
+}
+
+.actionsCell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.editButton {
+  padding: 0.375rem 0.75rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.editButton:hover {
+  background: #0056b3;
+}
+
+.paginationContainer {
+  padding: 1rem;
+  border-top: 1px solid #dee2e6;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.paginationInfo {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.paginationButtons {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.paginationButton {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #dee2e6;
+  background: white;
+  color: #007bff;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.paginationButton:disabled {
+  color: #6c757d;
+  cursor: not-allowed;
+  background: #f8f9fa;
+}
+
+.activePage {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.activePage:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .stockUpdate {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .stockButtons {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .ingredientsTable {
+    font-size: 0.75rem;
+  }
+  
+  .ingredientsTable th,
+  .ingredientsTable td {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .paginationContainer {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .stockContainer {
+    min-width: 150px;
+  }
+  
+  .stockInput {
+    width: 60px;
+  }
+}

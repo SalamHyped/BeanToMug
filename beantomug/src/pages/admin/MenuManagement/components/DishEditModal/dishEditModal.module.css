@@ -1,0 +1,10 @@
+.modalContent {
+  padding: 1rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Ensure the form fits well in the modal */
+.modalContent .dishForm {
+  margin: 0;
+}

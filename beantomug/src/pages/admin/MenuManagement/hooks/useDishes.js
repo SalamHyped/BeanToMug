@@ -1,34 +1,27 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { getApiConfig } from '../../../../utils/config';
+import { useCrudOperations } from './useSharedHookUtils';
 
 const useDishes = (filters = {}) => {
-  const [dishes, setDishes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Fetch all dishes
-  const fetchDishes = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await axios.get('/dishes', getApiConfig());
-      
-      if (response.data.success) {
-        setDishes(response.data.dishes);
-      } else {
-        setError('Failed to fetch dishes');
-      }
-    } catch (err) {
-      console.error('Error fetching dishes:', err);
-      setError('Failed to fetch dishes. Please try again.');
-    } finally {
-      setLoading(false);
+  // Use shared CRUD operations for basic functionality
+  const {
+    data: dishes,
+    loading,
+    error,
+    clearError,
+    fetchItems: fetchDishes,
+    createItem: createDish,
+    updateItem: updateDish,
+    toggleItemStatus: toggleDishStatus
+  } = useCrudOperations('/dishes', { 
+    itemKey: 'dish',
+    onSuccess: (operation, result) => {
+      console.log(`Dish ${operation} successful:`, result);
     }
-  }, []);
+  });
 
-  // Efficient filtering using useMemo to prevent recalculation
+  // Client-side filtering and sorting using shared utility
   const filteredDishes = useMemo(() => {
     if (!dishes.length) return [];
     
@@ -61,7 +54,7 @@ const useDishes = (filters = {}) => {
       
       return true;
     }).sort((a, b) => {
-      // Sorting
+      // Sorting logic
       if (!filters.sortBy || filters.sortBy === 'name') {
         const aVal = a.item_name.toLowerCase();
         const bVal = b.item_name.toLowerCase();
@@ -100,111 +93,34 @@ const useDishes = (filters = {}) => {
     });
   }, [dishes, filters]);
 
-  // Create new dish
-  const createDish = async (dishData) => {
-    try {
-      setError(null);
-      
-      const response = await axios.post('/dishes', dishData, getApiConfig());
-
-      if (response.data.success) {
-        // Refresh the dishes list
-        await fetchDishes();
-        return { success: true, dish_id: response.data.dish_id };
-      } else {
-        setError('Failed to create dish');
-        return { success: false, error: 'Failed to create dish' };
-      }
-    } catch (err) {
-      console.error('Error creating dish:', err);
-      setError('Failed to create dish. Please try again.');
-      return { success: false, error: 'Failed to create dish' };
-    }
-  };
-
-  // Update dish
-  const updateDish = async (dishId, dishData) => {
-    try {
-      setError(null);
-      
-      const response = await axios.put(`/dishes/${dishId}`, dishData, getApiConfig());
-
-      if (response.data.success) {
-        // Refresh the dishes list
-        await fetchDishes();
-        return { success: true };
-      } else {
-        setError('Failed to update dish');
-        return { success: false, error: 'Failed to update dish' };
-      }
-    } catch (err) {
-      console.error('Error updating dish:', err);
-      setError('Failed to update dish. Please try again.');
-      return { success: false, error: 'Failed to update dish' };
-    }
-  };
-
-  // Toggle dish status (activate/deactivate)
-  const toggleDishStatus = async (dishId, currentStatus) => {
-    try {
-      setError(null);
-      
-      const response = await axios.patch(`/dishes/${dishId}/status`, {
-        status: !currentStatus
-      }, getApiConfig());
-
-      if (response.data.success) {
-        // Update local state immediately for better UX
-        setDishes(prevDishes => 
-          prevDishes.map(dish => 
-            dish.item_id === dishId 
-              ? { ...dish, status: !currentStatus }
-              : dish
-          )
-        );
-        return { success: true };
-      } else {
-        setError('Failed to update dish status');
-        return { success: false, error: 'Failed to update dish status' };
-      }
-    } catch (err) {
-      console.error('Error updating dish status:', err);
-      setError('Failed to update dish status. Please try again.');
-      return { success: false, error: 'Failed to update dish status' };
-    }
-  };
-
-  // Delete dish
-  const deleteDish = async (dishId) => {
-    try {
-      setError(null);
-      
-      const response = await axios.delete(`/dishes/${dishId}`, getApiConfig());
-
-      if (response.data.success) {
-        // Remove from local state
-        setDishes(prevDishes => prevDishes.filter(dish => dish.item_id !== dishId));
-        return { success: true };
-      } else {
-        setError('Failed to delete dish');
-        return { success: false, error: 'Failed to delete dish' };
-      }
-    } catch (err) {
-      console.error('Error deleting dish:', err);
-      setError('Failed to delete dish. Please try again.');
-      return { success: false, error: 'Failed to delete dish' };
-    }
-  };
-
-  // Get dish by ID
+  // Dish-specific utility functions
   const getDishById = useCallback((dishId) => {
     return dishes.find(dish => dish.item_id === dishId);
   }, [dishes]);
 
-  // Clear error
-  const clearError = () => {
-    setError(null);
-  };
+  const getDishName = useCallback((dishId) => {
+    const dish = getDishById(dishId);
+    return dish ? dish.item_name : 'Unknown';
+  }, [getDishById]);
+
+  // Fetch single dish with full details for editing
+  const fetchDishForEdit = useCallback(async (dishId) => {
+    try {
+      const response = await axios.get(`${getApiConfig().baseURL}/dishes/${dishId}`, {
+        withCredentials: true
+      });
+
+      if (response.data.success) {
+        return { success: true, dish: response.data.dish };
+      } else {
+        return { success: false, error: 'Failed to fetch dish details' };
+      }
+    } catch (err) {
+      console.error('Error fetching dish for edit:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to fetch dish details. Please try again.';
+      return { success: false, error: errorMessage };
+    }
+  }, []);
 
   // Initial fetch
   useEffect(() => {
@@ -212,21 +128,22 @@ const useDishes = (filters = {}) => {
   }, [fetchDishes]);
 
   return {
-    // State
+    // State (from shared hook)
     dishes,
     loading,
     error,
     
-    // Actions
+    // Actions (from shared hook + custom)
     fetchDishes,
     createDish,
     updateDish,
     toggleDishStatus,
-    deleteDish,
+    fetchDishForEdit,
     getDishById,
+    getDishName,
     clearError,
     
-    // Computed - Now based on filtered dishes
+    // Computed - Filtered data
     filteredDishes,
     totalDishes: dishes.length,
     activeDishes: dishes.filter(dish => dish.status).length,

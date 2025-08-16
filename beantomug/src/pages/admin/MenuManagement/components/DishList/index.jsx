@@ -31,6 +31,9 @@ const DishList = ({
     }
   };
 
+
+
+
   if (loading) {
     return (
       <div className={styles.loading}>
@@ -90,7 +93,7 @@ const DishList = ({
           </thead>
           <tbody>
             {dishes.map(dish => (
-              <tr key={dish.item_id} className={styles.tableRow}>
+              <tr key={dish.item_id} className={`${styles.tableRow} ${!dish.status ? styles.inactiveDish : ''}`}>
                 <td className={styles.imageCell}>
                   <RoundedPhoto 
                     src={dish.item_photo_url} 
@@ -116,12 +119,14 @@ const DishList = ({
                   <button 
                     onClick={() => handleEdit(dish)}
                     className={styles.editButton}
+                    title="Edit dish details"
                   >
                     Edit
                   </button>
                   <button 
                     onClick={() => handleToggleStatus(dish.item_id, dish.status)}
                     className={`${styles.statusButton} ${styles[dish.status ? 'deactivate' : 'activate']}`}
+                    title={dish.status ? 'Hide from menu' : 'Show in menu'}
                   >
                     {dish.status ? 'Deactivate' : 'Activate'}
                   </button>

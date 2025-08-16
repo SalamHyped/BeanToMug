@@ -1014,4 +1014,7 @@ class CartService {
 
 // Create and export a single instance
 const cartService = new CartService();
-module.exports = cartService; 
+
+// Export both the service instance and the standalone function
+module.exports = cartService;
+module.exports.getAvailableIngredients = getAvailableIngredients; 

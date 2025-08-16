@@ -39,6 +39,8 @@ const MenuOrdersContainer = lazy(() => import('./layouts/StaffLayout/menuOrders/
 const UsersManagement = lazy(() => import('../pages/admin/UsersManagement/index'));
 // Import Menu Management component
 const MenuManagement = lazy(() => import('../pages/admin/MenuManagement/index'));
+// Import Ingredient Management component
+const IngredientManagement = lazy(() => import('../pages/admin/IngredientManagement'));
 
 // Loading component for page content only
 const PageLoader = () => (
@@ -114,9 +116,14 @@ export default function MyRoutes(){
                         <UsersManagement />
                       </Suspense>
                     } />
-                    <Route path="menu" element={
+                    <Route path="menuManagement/menuSettings" element={
                       <Suspense fallback={<PageLoader />}>
                         <MenuManagement />
+                      </Suspense>
+                    } />
+                    <Route path="menuManagement/ingredients" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <IngredientManagement />
                       </Suspense>
                     } />
                     <Route path="gallery" element={
