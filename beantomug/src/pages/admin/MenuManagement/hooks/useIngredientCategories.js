@@ -12,7 +12,11 @@ const useIngredientCategories = (filters = {}) => {
     clearError,
     createItem: createCategory,
     updateItem: updateCategory,
-    deleteItem: deleteCategory
+    deleteItem: deleteCategory,
+    fetchItems: fetchItemsFromShared,
+    setData: setCategoriesData,
+    setLoading,
+    setError
   } = useCrudOperations('/ingredient-categories', { 
     itemKey: 'category',
     onSuccess: (operation, result) => {
@@ -89,6 +93,9 @@ const useIngredientCategories = (filters = {}) => {
   // Fetch ingredient categories with server-side filtering
   const fetchCategories = useCallback(async (filtersToApply = {}) => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const params = new URLSearchParams();
       
       // Add server-side filters
@@ -101,13 +108,18 @@ const useIngredientCategories = (filters = {}) => {
       const response = await axios.get(url, getApiConfig());
       
       if (response.data.success) {
-        // Use the shared hook's setData method
-        categories.splice(0, categories.length, ...response.data.categories);
+        // Use the shared hook's setData method properly
+        setCategoriesData(response.data.categories || []);
+      } else {
+        setError('Failed to fetch ingredient categories');
       }
     } catch (err) {
       console.error('Error fetching ingredient categories:', err);
+      setError('Failed to fetch ingredient categories. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  }, [categories]);
+  }, [setLoading, setError, setCategoriesData]);
 
   // Get category by ID
   const getCategoryById = useCallback((categoryId) => {
@@ -216,9 +228,17 @@ const useIngredientCategories = (filters = {}) => {
 
   // Initial fetch
   useEffect(() => {
-    fetchCategories();
+    // Use shared hook for basic fetch if no complex filters
+    const hasFilters = Object.keys(filters).some(key => filters[key] && filters[key] !== '');
+    
+    if (hasFilters) {
+      fetchCategories(filters);
+    } else {
+      fetchItemsFromShared();
+    }
+    
     fetchAvailableTypes();
-  }, []);
+  }, [fetchItemsFromShared, fetchCategories, fetchAvailableTypes, filters]);
 
   return {
     // State
@@ -257,7 +277,7 @@ const useIngredientCategories = (filters = {}) => {
     
     // Statistics
     averageIngredientsPerCategory: categories.length > 0 
-      ? (categories.reduce((sum, cat) => sum + (cat.ingredient_count || 0), 0) / categories.length).toFixed(1)
+      ? (categories.reduce((sum, cat) => sum + (cat.ingredient_count || 0), 0) / categories.length)
       : 0,
     categoriesWithIngredients: categories.filter(cat => (cat.ingredient_count || 0) > 0).length,
     categoriesWithoutIngredients: categories.filter(cat => (cat.ingredient_count || 0) === 0).length,

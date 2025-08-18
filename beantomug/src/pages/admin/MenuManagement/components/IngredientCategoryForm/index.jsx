@@ -11,7 +11,7 @@ const IngredientCategoryForm = ({
 }) => {
   const [formData, setFormData] = useState({
     name: '',
-    type_id: ''
+    type_ids: []
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,12 +21,12 @@ const IngredientCategoryForm = ({
     if (category && isEditing) {
       setFormData({
         name: category.category_name || '',
-        type_id: category.type_id || ''
+        type_ids: category.type_id ? [category.type_id] : []
       });
     } else {
       setFormData({
         name: '',
-        type_id: ''
+        type_ids: []
       });
     }
     setErrors({});
@@ -42,6 +42,24 @@ const IngredientCategoryForm = ({
     }
   };
 
+  // Handle type selection (toggle)
+  const handleTypeToggle = (typeId) => {
+    const currentIds = formData.type_ids || [];
+    const isSelected = currentIds.includes(typeId) || currentIds.includes(typeId.toString());
+    
+    let newTypeIds;
+    // Allow multiple selection for both creating and editing
+    if (isSelected) {
+      // Remove from selection
+      newTypeIds = currentIds.filter(id => id != typeId);
+    } else {
+      // Add to selection
+      newTypeIds = [...currentIds, typeId];
+    }
+    
+    handleChange('type_ids', newTypeIds);
+  };
+
   // Validate form
   const validateForm = () => {
     const newErrors = {};
@@ -55,9 +73,9 @@ const IngredientCategoryForm = ({
       newErrors.name = 'Category name must be less than 50 characters';
     }
 
-    // Type ID validation
-    if (!formData.type_id) {
-      newErrors.type_id = 'Ingredient type is required';
+    // Type IDs validation
+    if (!formData.type_ids || formData.type_ids.length === 0) {
+      newErrors.type_ids = 'At least one ingredient type is required';
     }
 
     setErrors(newErrors);
@@ -76,7 +94,7 @@ const IngredientCategoryForm = ({
     try {
       const submitData = {
         name: formData.name.trim(),
-        type_id: parseInt(formData.type_id)
+        type_ids: formData.type_ids.map(id => parseInt(id))
       };
 
       const result = await onSubmit(submitData);
@@ -87,7 +105,7 @@ const IngredientCategoryForm = ({
           if (result.error.includes('name')) {
             setErrors({ name: result.error });
           } else if (result.error.includes('type')) {
-            setErrors({ type_id: result.error });
+            setErrors({ type_ids: result.error });
           } else {
             setErrors({ general: result.error });
           }
@@ -109,7 +127,9 @@ const IngredientCategoryForm = ({
   };
 
   const isFormDisabled = loading || isSubmitting;
-  const selectedType = availableTypes.find(type => type.id === parseInt(formData.type_id));
+  const selectedTypes = availableTypes.filter(type => 
+    formData.type_ids.includes(type.type_id) || formData.type_ids.includes(type.type_id.toString())
+  );
 
   return (
     <div className={styles.formContainer}>
@@ -117,8 +137,8 @@ const IngredientCategoryForm = ({
         <h2>{isEditing ? 'Edit Ingredient Category' : 'Add New Ingredient Category'}</h2>
         <p className={styles.formDescription}>
           {isEditing ? 
-            'Modify the details of this ingredient category. Note that changing the linked type will affect ingredient organization.' :
-            'Create a new ingredient category by linking it to an available ingredient type. This creates a one-to-one relationship.'
+            'Modify this category. You can change the name and add/remove ingredient types. Selecting multiple types will expand this category to cover all selected types.' :
+            'Create a new ingredient category by selecting one or more ingredient types. This will create separate category records for each selected type with the same name.'
           }
         </p>
       </div>
@@ -155,60 +175,80 @@ const IngredientCategoryForm = ({
 
         {/* Ingredient Type Selection */}
         <div className={styles.formGroup}>
-          <label htmlFor="type_id" className={styles.label}>
-            Linked Ingredient Type *
+          <label className={styles.label}>
+            Linked Ingredient Types *
           </label>
-          <select
-            id="type_id"
-            value={formData.type_id}
-            onChange={(e) => handleChange('type_id', e.target.value)}
-            className={`${styles.select} ${errors.type_id ? styles.inputError : ''}`}
-            disabled={isFormDisabled}
-          >
-            <option value="">Select an ingredient type...</option>
-            {availableTypes.map(type => (
-              <option key={type.id} value={type.id}>
-                {type.name} ({type.option_group}) - {type.is_physical ? 'Physical' : 'Non-Physical'}
-              </option>
-            ))}
-          </select>
-          {errors.type_id && (
-            <span className={styles.errorText}>{errors.type_id}</span>
-          )}
-          <div className={styles.inputHelp}>
-            Choose an unassigned ingredient type to link to this category
+          <div className={styles.typeSelectionContainer}>
+            {availableTypes.length > 0 ? (
+              <div className={styles.typeCheckboxList}>
+                {availableTypes.map(type => {
+                  const isSelected = formData.type_ids.includes(type.type_id) || 
+                                   formData.type_ids.includes(type.type_id.toString());
+                  return (
+                    <div key={type.type_id} className={styles.typeCheckboxItem}>
+                      <label className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleTypeToggle(type.type_id)}
+                          disabled={isFormDisabled}
+                          className={styles.checkbox}
+                        />
+                        <span className={styles.checkboxText}>
+                          <strong>{type.type_name}</strong> ({type.option_group})
+                          <br />
+                          <small className={styles.typeDetails}>
+                            {type.is_physical ? 'Physical' : 'Non-Physical'}
+                            {type.category_count > 0 ? ` • ${type.category_count} existing categories` : ' • No existing categories'}
+                          </small>
+                        </span>
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.noTypesWarning}>
+                <span className={styles.warningIcon}>⚠️</span>
+                <span className={styles.warningText}>
+                  No ingredient types available. Please create ingredient types first.
+                </span>
+              </div>
+            )}
           </div>
           
-          {availableTypes.length === 0 && (
-            <div className={styles.noTypesWarning}>
-              <span className={styles.warningIcon}>⚠️</span>
-              <span className={styles.warningText}>
-                No unassigned ingredient types available. All types already have categories assigned.
-              </span>
+          {errors.type_ids && (
+            <span className={styles.errorText}>{errors.type_ids}</span>
+          )}
+          <div className={styles.inputHelp}>
+            Select one or more ingredient types for this category. Multiple types will create separate records with the same category name.
+          </div>
+          
+          {formData.type_ids.length > 0 && (
+            <div className={styles.selectedTypesInfo}>
+              <strong>Selected:</strong> {formData.type_ids.length} type{formData.type_ids.length > 1 ? 's' : ''}
             </div>
           )}
         </div>
 
-        {/* Selected Type Preview */}
-        {selectedType && (
+        {/* Selected Types Preview */}
+        {selectedTypes.length > 0 && (
           <div className={styles.typePreview}>
-            <h4>Selected Type Details</h4>
-            <div className={styles.typeDetails}>
-              <div className={styles.typeDetail}>
-                <strong>Name:</strong> {selectedType.name}
-              </div>
-              <div className={styles.typeDetail}>
-                <strong>Option Group:</strong> {selectedType.option_group}
-              </div>
-              <div className={styles.typeDetail}>
-                <strong>Type:</strong> 
-                <span className={`${styles.typeBadge} ${styles[selectedType.is_physical ? 'physical' : 'nonPhysical']}`}>
-                  {selectedType.is_physical ? 'Physical' : 'Non-Physical'}
-                </span>
-              </div>
-              <div className={styles.typeDetail}>
-                <strong>Current Ingredients:</strong> {selectedType.ingredient_count || 0}
-              </div>
+            <h4>Selected Types Summary ({selectedTypes.length})</h4>
+            <div className={styles.selectedTypesList}>
+              {selectedTypes.map(type => (
+                <div key={type.type_id} className={styles.selectedTypeItem}>
+                  <div className={styles.typeHeader}>
+                    <strong>{type.type_name}</strong>
+                    <span className={`${styles.typeBadge} ${styles[type.is_physical ? 'physical' : 'nonPhysical']}`}>
+                      {type.is_physical ? 'Physical' : 'Non-Physical'}
+                    </span>
+                  </div>
+                  <div className={styles.typeSubInfo}>
+                    Option Group: {type.option_group} • Existing Categories: {type.category_count || 0}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -248,13 +288,13 @@ const IngredientCategoryForm = ({
             <strong>Purpose:</strong> Categories provide a organized way to group ingredient types
           </div>
           <div className={styles.infoItem}>
-            <strong>One-to-One Relationship:</strong> Each category links to exactly one ingredient type
+            <strong>Flexible Relationship:</strong> Multiple categories can be linked to the same ingredient type
           </div>
           <div className={styles.infoItem}>
-            <strong>Ingredient Organization:</strong> All ingredients of the linked type belong to this category
+            <strong>Ingredient Organization:</strong> All ingredients of the linked type can belong to multiple categories
           </div>
           <div className={styles.infoItem}>
-            <strong>Unlinking:</strong> Deleting a category unlinks the type, making it available for other categories
+            <strong>Flexibility:</strong> You can create specialized categories for different use cases of the same ingredient type
           </div>
         </div>
       </div>

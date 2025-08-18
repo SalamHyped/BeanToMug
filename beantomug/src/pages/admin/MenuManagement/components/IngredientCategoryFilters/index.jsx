@@ -41,7 +41,7 @@ const IngredientCategoryFilters = ({
           <span className={styles.stat}>Total: {totalCount}</span>
           <span className={styles.stat}>Showing: {filteredCount}</span>
           <span className={styles.stat}>Physical: {physicalCount}</span>
-          <span className={styles.stat}>Avg Ingredients: {averageIngredients.toFixed(1)}</span>
+          <span className={styles.stat}>Avg Ingredients: {typeof averageIngredients === 'number' && averageIngredients > 0 ? averageIngredients.toFixed(1) : 'N/A'}</span>
         </div>
       </div>
 

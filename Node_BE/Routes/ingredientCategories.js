@@ -11,7 +11,7 @@ const {
 router.use(authenticateToken, requireRole(['admin']));
 
 // Constants for ingredient category routes
-const INGREDIENT_CATEGORY_REQUIRED_FIELDS = ['name', 'type_id'];
+const INGREDIENT_CATEGORY_REQUIRED_FIELDS = ['name']; // type_id or type_ids will be validated separately
 const INGREDIENT_CATEGORY_SORT_FIELDS = ['name', 'type_name'];
 
 /**
@@ -64,11 +64,36 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 /**
+ * GET /ingredient-categories/available-types
+ * Get all ingredient types (now supports multiple categories per type)
+ */
+router.get('/available-types', asyncHandler(async (req, res) => {
+  const availableTypes = await getRecords(req.db, `
+    SELECT 
+      it.id as type_id,
+      it.name as type_name,
+      it.option_group,
+      it.is_physical,
+      COUNT(ic.id) as category_count
+    FROM ingredient_type it
+    LEFT JOIN ingredient_category ic ON ic.type_id = it.id
+    GROUP BY it.id, it.name, it.option_group, it.is_physical
+    ORDER BY it.option_group, it.name
+  `);
+
+  sendSuccess(res, { availableTypes });
+}));
+
+/**
  * GET /ingredient-categories/:id
  * Get a specific ingredient category by ID
  */
 router.get('/:id', asyncHandler(async (req, res) => {
-  const categoryId = validateId(req.params.id, 'category_id');
+  const categoryIdError = validateId(req.params.id);
+  if (categoryIdError) {
+    return handleError(res, categoryIdError, 400);
+  }
+  const categoryId = parseInt(req.params.id);
   
   const categories = await getRecords(req.db, `
     SELECT 
@@ -98,42 +123,52 @@ router.get('/:id', asyncHandler(async (req, res) => {
  * Create a new ingredient category
  */
 router.post('/', asyncHandler(async (req, res) => {
-  const { name, type_id } = req.body;
+  const { name, type_id, type_ids } = req.body;
   
-  // Validate required fields
-  validateRequiredFields(req.body, INGREDIENT_CATEGORY_REQUIRED_FIELDS);
+  // Support both single type_id and multiple type_ids
+  const typeIds = type_ids ? (Array.isArray(type_ids) ? type_ids : [type_ids]) : [type_id];
   
-  // Check if ingredient type exists
-  await checkRecordExists(req.db, 'ingredient_type', 'id', type_id, 'Ingredient type not found');
+  // Validate required fields (name is required, at least one type must be provided)
+  if (!name || !name.trim()) {
+    return handleError(res, 'Category name is required', 400);
+  }
   
-  // Check if category name already exists for this type
+  if (!typeIds || typeIds.length === 0 || typeIds.some(id => !id)) {
+    return handleError(res, 'At least one ingredient type is required', 400);
+  }
+  
+  // Check if all ingredient types exist
+  for (const currentTypeId of typeIds) {
+    const typeExists = await checkRecordExists(req.db, 'ingredient_type', 'id', currentTypeId);
+    if (!typeExists) {
+      return handleError(res, `Ingredient type with ID ${currentTypeId} not found`, 404);
+    }
+  }
+  
+  // Check if category name already exists for any of these types
   const existingCategories = await getRecords(req.db, `
-    SELECT id FROM ingredient_category 
-    WHERE name = ? AND type_id = ?
-  `, [name, type_id]);
+    SELECT type_id FROM ingredient_category 
+    WHERE name = ? AND type_id IN (${typeIds.map(() => '?').join(',')})
+  `, [name, ...typeIds]);
   
   if (existingCategories.length > 0) {
-    return handleError(res, 'A category with this name already exists for this ingredient type', 400);
+    const conflictingTypeIds = existingCategories.map(cat => cat.type_id);
+    return handleError(res, `A category with this name already exists for type ID(s): ${conflictingTypeIds.join(', ')}`, 400);
   }
   
-  // Check if type already has a category (one-to-one relationship)
-  const existingTypeCategories = await getRecords(req.db, `
-    SELECT id FROM ingredient_category WHERE type_id = ?
-  `, [type_id]);
+  // Insert multiple category records (one for each type)
+  const createdCategories = [];
   
-  if (existingTypeCategories.length > 0) {
-    return handleError(res, 'This ingredient type already has a category assigned', 400);
+  for (const currentTypeId of typeIds) {
+    const [result] = await req.db.execute(`
+      INSERT INTO ingredient_category (name, type_id)
+      VALUES (?, ?)
+    `, [name.trim(), currentTypeId]);
+    
+    createdCategories.push(result.insertId);
   }
   
-  // Insert new ingredient category
-  const [result] = await req.db.execute(`
-    INSERT INTO ingredient_category (name, type_id)
-    VALUES (?, ?)
-  `, [name, type_id]);
-  
-  const newCategoryId = result.insertId;
-  
-  // Get the created category with full details
+  // Get all created categories with full details
   const categories = await getRecords(req.db, `
     SELECT 
       ic.id as category_id,
@@ -146,13 +181,15 @@ router.post('/', asyncHandler(async (req, res) => {
     FROM ingredient_category ic
     LEFT JOIN ingredient_type it ON ic.type_id = it.id
     LEFT JOIN ingredient i ON i.type_id = it.id
-    WHERE ic.id = ?
+    WHERE ic.id IN (${createdCategories.map(() => '?').join(',')})
     GROUP BY ic.id, it.id
-  `, [newCategoryId]);
+    ORDER BY it.option_group, it.name
+  `, createdCategories);
   
   sendSuccess(res, { 
-    category: categories[0],
-    message: 'Ingredient category created successfully'
+    categories: categories,
+    category: categories[0], // For backward compatibility
+    message: `Ingredient category created successfully with ${typeIds.length} type${typeIds.length > 1 ? 's' : ''}`
   }, 201);
 }));
 
@@ -161,65 +198,129 @@ router.post('/', asyncHandler(async (req, res) => {
  * Update an existing ingredient category
  */
 router.put('/:id', asyncHandler(async (req, res) => {
-  const categoryId = validateId(req.params.id, 'category_id');
-  const { name, type_id } = req.body;
+  const categoryIdError = validateId(req.params.id);
+  if (categoryIdError) {
+    return handleError(res, categoryIdError, 400);
+  }
+  const categoryId = parseInt(req.params.id);
+  const { name, type_id, type_ids } = req.body;
+  
+  // Support both single type_id and multiple type_ids for updates
+  const typeIds = type_ids ? (Array.isArray(type_ids) ? type_ids : [type_ids]) : [type_id];
   
   // Validate required fields
-  validateRequiredFields(req.body, INGREDIENT_CATEGORY_REQUIRED_FIELDS);
+  if (!name || !name.trim()) {
+    return handleError(res, 'Category name is required', 400);
+  }
+  
+  if (!typeIds || typeIds.length === 0 || typeIds.some(id => !id)) {
+    return handleError(res, 'At least one ingredient type is required', 400);
+  }
   
   // Check if category exists
-  await checkRecordExists(req.db, 'ingredient_category', 'id', categoryId, 'Ingredient category not found');
-  
-  // Check if ingredient type exists
-  await checkRecordExists(req.db, 'ingredient_type', 'id', type_id, 'Ingredient type not found');
-  
-  // Check if updated name conflicts with existing categories (excluding current category)
-  const existingCategories = await getRecords(req.db, `
-    SELECT id FROM ingredient_category 
-    WHERE name = ? AND type_id = ? AND id != ?
-  `, [name, type_id, categoryId]);
-  
-  if (existingCategories.length > 0) {
-    return handleError(res, 'A category with this name already exists for this ingredient type', 400);
+  const categoryExists = await checkRecordExists(req.db, 'ingredient_category', 'id', categoryId);
+  if (!categoryExists) {
+    return handleError(res, 'Ingredient category not found', 404);
   }
   
-  // Check if the new type already has a different category (unless it's the same category)
-  const existingTypeCategories = await getRecords(req.db, `
-    SELECT id FROM ingredient_category WHERE type_id = ? AND id != ?
-  `, [type_id, categoryId]);
-  
-  if (existingTypeCategories.length > 0) {
-    return handleError(res, 'This ingredient type already has a different category assigned', 400);
+  // For multiple types, we'll delete the current category and create new ones
+  if (typeIds.length > 1) {
+    // Get the current category name for comparison
+    const currentCategory = await getRecords(req.db, `
+      SELECT name FROM ingredient_category WHERE id = ?
+    `, [categoryId]);
+    
+    // Delete the current category
+    await req.db.execute('DELETE FROM ingredient_category WHERE id = ?', [categoryId]);
+    
+    // Create new categories for each type
+    const createdCategories = [];
+    for (const currentTypeId of typeIds) {
+      const typeExists = await checkRecordExists(req.db, 'ingredient_type', 'id', currentTypeId);
+      if (!typeExists) {
+        return handleError(res, `Ingredient type with ID ${currentTypeId} not found`, 404);
+      }
+      
+      const [result] = await req.db.execute(`
+        INSERT INTO ingredient_category (name, type_id)
+        VALUES (?, ?)
+      `, [name.trim(), currentTypeId]);
+      
+      createdCategories.push(result.insertId);
+    }
+    
+    // Get all created categories
+    const categories = await getRecords(req.db, `
+      SELECT 
+        ic.id as category_id,
+        ic.name as category_name,
+        ic.type_id,
+        it.name as type_name,
+        it.option_group as type_option_group,
+        it.is_physical as type_is_physical,
+        COUNT(i.ingredient_id) as ingredient_count
+      FROM ingredient_category ic
+      LEFT JOIN ingredient_type it ON ic.type_id = it.id
+      LEFT JOIN ingredient i ON i.type_id = it.id
+      WHERE ic.id IN (${createdCategories.map(() => '?').join(',')})
+      GROUP BY ic.id, it.id
+      ORDER BY it.option_group, it.name
+    `, createdCategories);
+    
+    return sendSuccess(res, { 
+      categories: categories,
+      category: categories[0], // For backward compatibility
+      message: `Category updated and expanded to ${typeIds.length} types`
+    });
+  } else {
+    // Single type update (original behavior)
+    const typeId = typeIds[0];
+    
+    // Check if ingredient type exists
+    const typeExists = await checkRecordExists(req.db, 'ingredient_type', 'id', typeId);
+    if (!typeExists) {
+      return handleError(res, 'Ingredient type not found', 404);
+    }
+    
+    // Check if updated name conflicts with existing categories (excluding current category)
+    const existingCategories = await getRecords(req.db, `
+      SELECT id FROM ingredient_category 
+      WHERE name = ? AND type_id = ? AND id != ?
+    `, [name, typeId, categoryId]);
+    
+    if (existingCategories.length > 0) {
+      return handleError(res, 'A category with this name already exists for this ingredient type', 400);
+    }
+    
+    // Update ingredient category
+    await req.db.execute(`
+      UPDATE ingredient_category 
+      SET name = ?, type_id = ?
+      WHERE id = ?
+    `, [name.trim(), typeId, categoryId]);
+    
+    // Get updated category with full details
+    const categories = await getRecords(req.db, `
+      SELECT 
+        ic.id as category_id,
+        ic.name as category_name,
+        ic.type_id,
+        it.name as type_name,
+        it.option_group as type_option_group,
+        it.is_physical as type_is_physical,
+        COUNT(i.ingredient_id) as ingredient_count
+      FROM ingredient_category ic
+      LEFT JOIN ingredient_type it ON ic.type_id = it.id
+      LEFT JOIN ingredient i ON i.type_id = it.id
+      WHERE ic.id = ?
+      GROUP BY ic.id, it.id
+    `, [categoryId]);
+    
+    return sendSuccess(res, { 
+      category: categories[0],
+      message: 'Ingredient category updated successfully'
+    });
   }
-  
-  // Update ingredient category
-  await req.db.execute(`
-    UPDATE ingredient_category 
-    SET name = ?, type_id = ?
-    WHERE id = ?
-  `, [name, type_id, categoryId]);
-  
-  // Get updated category with full details
-  const categories = await getRecords(req.db, `
-    SELECT 
-      ic.id as category_id,
-      ic.name as category_name,
-      ic.type_id,
-      it.name as type_name,
-      it.option_group as type_option_group,
-      it.is_physical as type_is_physical,
-      COUNT(i.ingredient_id) as ingredient_count
-    FROM ingredient_category ic
-    LEFT JOIN ingredient_type it ON ic.type_id = it.id
-    LEFT JOIN ingredient i ON i.type_id = it.id
-    WHERE ic.id = ?
-    GROUP BY ic.id, it.id
-  `, [categoryId]);
-  
-  sendSuccess(res, { 
-    category: categories[0],
-    message: 'Ingredient category updated successfully'
-  });
 }));
 
 /**
@@ -227,7 +328,11 @@ router.put('/:id', asyncHandler(async (req, res) => {
  * Delete an ingredient category (only if no ingredients are using the related type)
  */
 router.delete('/:id', asyncHandler(async (req, res) => {
-  const categoryId = validateId(req.params.id, 'category_id');
+  const categoryIdError = validateId(req.params.id);
+  if (categoryIdError) {
+    return handleError(res, categoryIdError, 400);
+  }
+  const categoryId = parseInt(req.params.id);
   
   // Check if category exists and get its type_id
   const categories = await getRecords(req.db, `
@@ -255,24 +360,6 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   sendSuccess(res, { message: 'Ingredient category deleted successfully' });
 }));
 
-/**
- * GET /ingredient-categories/available-types
- * Get ingredient types that don't have categories assigned yet
- */
-router.get('/available-types', asyncHandler(async (req, res) => {
-  const availableTypes = await getRecords(req.db, `
-    SELECT 
-      it.id as type_id,
-      it.name as type_name,
-      it.option_group,
-      it.is_physical
-    FROM ingredient_type it
-    LEFT JOIN ingredient_category ic ON ic.type_id = it.id
-    WHERE ic.id IS NULL
-    ORDER BY it.option_group, it.name
-  `);
 
-  sendSuccess(res, { availableTypes });
-}));
 
 module.exports = router;
