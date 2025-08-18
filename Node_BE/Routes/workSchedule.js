@@ -160,7 +160,7 @@ async function checkShiftStaffing(db, shiftId, scheduleDate, excludeScheduleId =
  * GET /shifts
  * Get all shifts with optional filtering
  */
-router.get('/shifts', requireRole(['admin', 'manager']), asyncHandler(async (req, res) => {
+router.get('/shifts', requireRole(['admin']), asyncHandler(async (req, res) => {
   const { search, is_active, sort_by = 'shift_name', sort_order = 'asc' } = req.query;
   
   // Build WHERE clause for filtering
@@ -208,7 +208,7 @@ router.get('/shifts', requireRole(['admin', 'manager']), asyncHandler(async (req
  * GET /shifts/:id
  * Get a specific shift by ID
  */
-router.get('/shifts/:id', requireRole(['admin', 'manager']), asyncHandler(async (req, res) => {
+router.get('/shifts/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
   const shiftId = req.params.id;
   
   const validationError = validateId(shiftId);
@@ -373,7 +373,7 @@ router.delete('/shifts/:id', requireRole(['admin']), asyncHandler(async (req, re
  * GET /schedules
  * Get all work schedules with optional filtering
  */
-router.get('/schedules', requireRole(['admin', 'manager', 'staff']), asyncHandler(async (req, res) => {
+router.get('/schedules', requireRole(['admin', 'staff']), asyncHandler(async (req, res) => {
   const { 
     search, user_id, shift_id, schedule_date, status, 
     date_from, date_to, sort_by = 'schedule_date', sort_order = 'asc' 
@@ -468,7 +468,7 @@ router.get('/schedules', requireRole(['admin', 'manager', 'staff']), asyncHandle
  * GET /schedules/:id
  * Get a specific schedule by ID
  */
-router.get('/schedules/:id', requireRole(['admin', 'manager', 'staff']), asyncHandler(async (req, res) => {
+router.get('/schedules/:id', requireRole(['admin', 'staff']), asyncHandler(async (req, res) => {
   const scheduleId = req.params.id;
   
   const validationError = validateId(scheduleId);
@@ -521,7 +521,7 @@ router.get('/schedules/:id', requireRole(['admin', 'manager', 'staff']), asyncHa
  * POST /schedules
  * Create a new work schedule
  */
-router.post('/schedules', requireRole(['admin', 'manager']), asyncHandler(async (req, res) => {
+router.post('/schedules', requireRole(['admin']), asyncHandler(async (req, res) => {
   const { user_id, shift_id, schedule_date, notes } = req.body;
   const created_by = req.user.userId;
 
@@ -625,7 +625,7 @@ router.post('/schedules', requireRole(['admin', 'manager']), asyncHandler(async 
  * PUT /schedules/:id
  * Update a work schedule
  */
-router.put('/schedules/:id', requireRole(['admin', 'manager']), asyncHandler(async (req, res) => {
+router.put('/schedules/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
   const scheduleId = req.params.id;
   const { user_id, shift_id, schedule_date, status, completed_at, notes } = req.body;
 
@@ -743,7 +743,7 @@ router.put('/schedules/:id', requireRole(['admin', 'manager']), asyncHandler(asy
  * DELETE /schedules/:id
  * Delete a work schedule (or mark as cancelled)
  */
-router.delete('/schedules/:id', requireRole(['admin', 'manager']), asyncHandler(async (req, res) => {
+router.delete('/schedules/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
   const scheduleId = req.params.id;
   const { soft_delete = true } = req.query;
 
@@ -777,7 +777,7 @@ router.delete('/schedules/:id', requireRole(['admin', 'manager']), asyncHandler(
  * GET /availability
  * Get available staff for a specific shift and date
  */
-router.get('/availability', requireRole(['admin', 'manager']), asyncHandler(async (req, res) => {
+router.get('/availability', requireRole(['admin']), asyncHandler(async (req, res) => {
   const { shift_id, schedule_date } = req.query;
 
   if (!shift_id || !schedule_date) {
@@ -796,7 +796,7 @@ router.get('/availability', requireRole(['admin', 'manager']), asyncHandler(asyn
   // Get all active staff
   const allStaff = await getRecords(req.db, `
     SELECT id, username, role FROM users 
-    WHERE is_active = 1 AND role IN ('staff', 'manager')
+    WHERE is_active = 1 AND role = 'staff'
     ORDER BY username
   `, []);
 
@@ -870,7 +870,7 @@ router.get('/availability', requireRole(['admin', 'manager']), asyncHandler(asyn
  * POST /schedules/bulk
  * Create multiple schedules at once (e.g., for weekly scheduling)
  */
-router.post('/schedules/bulk', requireRole(['admin', 'manager']), asyncHandler(async (req, res) => {
+router.post('/schedules/bulk', requireRole(['admin']), asyncHandler(async (req, res) => {
   const { schedules } = req.body; // Array of schedule objects
   const created_by = req.user.userId;
 
@@ -964,9 +964,9 @@ router.post('/schedules/bulk', requireRole(['admin', 'manager']), asyncHandler(a
 /**
  * PUT /schedules/:id/attendance
  * Mark attendance for a specific schedule (complete/absent)
- * Staff can mark their own attendance, managers/admins can mark anyone's
+ * Staff can mark their own attendance, admins can mark anyone's
  */
-router.put('/schedules/:id/attendance', requireRole(['admin', 'manager', 'staff']), asyncHandler(async (req, res) => {
+router.put('/schedules/:id/attendance', requireRole(['admin', 'staff']), asyncHandler(async (req, res) => {
   const scheduleId = req.params.id;
   const { status, notes } = req.body; // status should be 'completed' or 'absent'
   const userRole = req.user.role;
@@ -1068,7 +1068,7 @@ router.put('/schedules/:id/attendance', requireRole(['admin', 'manager', 'staff'
  * GET /reports/attendance
  * Get attendance reports with filtering
  */
-router.get('/reports/attendance', requireRole(['admin', 'manager']), asyncHandler(async (req, res) => {
+router.get('/reports/attendance', requireRole(['admin']), asyncHandler(async (req, res) => {
   const { 
     user_id, date_from, date_to, status, 
     sort_by = 'schedule_date', sort_order = 'desc' 
