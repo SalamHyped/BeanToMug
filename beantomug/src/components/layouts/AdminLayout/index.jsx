@@ -19,7 +19,8 @@ import {
   FaTags,
   FaFolder,
   FaExchangeAlt,
-  FaCogs
+  FaCogs,
+  FaCalendarAlt
 
 } from 'react-icons/fa';
 import { RiMenuAddFill } from "react-icons/ri";
@@ -51,6 +52,7 @@ const ADMIN_NAV_ITEMS = [
     ]
   },
   { to: "/admin/users", label: "Users Management", icon: FaUsers },
+  { to: "/admin/work-schedule", label: "Work Schedule", icon: FaCalendarAlt },
   { to: "/admin/inventory", label: "Inventory", icon: FaBoxes },
   { to: "/admin/gallery", label: "Gallery", icon: FaImages },
   { to: "/admin/profile", label: "Profile", icon: FaUserCog }
