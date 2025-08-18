@@ -1,0 +1,44 @@
+/* Import base styles from ingredient type list */
+@import '../IngredientTypeList/ingredientTypeList.module.css';
+
+/* Override colors for category theme (green) */
+.editButton {
+  background: #28a745;
+  color: white;
+}
+
+.editButton:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+/* Specific additions for category list */
+.footerNote {
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-style: italic;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.footerNote strong {
+  color: #495057;
+}
+
+/* Override empty icon for categories */
+.emptyIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+/* Ensure proper styling inheritance */
+.listContainer {
+  background: white;
+}
+
+.categoriesTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+

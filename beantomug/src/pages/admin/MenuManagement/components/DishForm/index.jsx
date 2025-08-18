@@ -82,27 +82,7 @@ const DishForm = ({
         item_photo_url: dish.item_photo_url || ''
       });
       
-      // Populate existing option types if available, or create slots for ingredient types
-      if (dish.optionTypes && dish.optionTypes.length > 0) {
-        setOptionTypes(dish.optionTypes.map(opt => ({
-          type_id: opt.type_id?.toString() || '',
-          is_required: opt.is_required || false,
-          is_multiple: opt.is_multiple || false
-        })));
-      } else {
-        // If no saved option types, create slots based on ingredient types
-        setTimeout(() => {
-          const ingredientTypeIds = [...new Set(dish.ingredients?.map(ing => ing.type_id).filter(Boolean) || [])];
-          const slots = ingredientTypeIds.map(() => ({
-            type_id: '',
-            is_required: false,
-            is_multiple: false
-          }));
-          if (slots.length > 0) {
-            setOptionTypes(slots);
-          }
-        }, 100); // Small delay to ensure ingredients are loaded
-      }
+      // Option types will be handled by the separate useEffect that manages initialization
       
       // Set error from editor if any
       if (dishEditor.error) {
@@ -116,8 +96,8 @@ const DishForm = ({
   // Simple derived state for option type slots based on unique ingredient types
   const optionTypeSlots = useMemo(() => {
     const uniqueTypeIds = [...new Set(selectedIngredients.map(ing => ing.type_id).filter(Boolean))];
-    return Array.from({ length: uniqueTypeIds.length }, (_, index) => ({
-      type_id: '',
+    return uniqueTypeIds.map(typeId => ({
+      type_id: typeId.toString(),
       is_required: false,
       is_multiple: false
     }));
@@ -126,13 +106,56 @@ const DishForm = ({
   // Simple state for option types that gets reset when slots change
   const [optionTypes, setOptionTypes] = useState([]);
 
-  // Reset option types when slots change (but not when editing and we have existing option types)
+  // Reset option types when slots change (but only initially when editing)
+  const [hasInitializedOptionTypes, setHasInitializedOptionTypes] = useState(false);
+  
+  // Preserve existing option type settings when updating slots
+  const updateOptionTypesWithPreservation = useCallback((newSlots, currentTypes) => {
+    return newSlots.map(newSlot => {
+      const existingSlot = currentTypes.find(existing => existing.type_id === newSlot.type_id);
+      return existingSlot ? {
+        ...newSlot,
+        is_required: existingSlot.is_required,
+        is_multiple: existingSlot.is_multiple
+      } : newSlot;
+    });
+  }, []);
+
   useEffect(() => {
-    // Don't override existing option types when editing
-    if (!isEditMode || !dishEditor.editingDish?.optionTypes?.length) {
+    // For new dishes, always update slots
+    if (!isEditMode) {
       setOptionTypes(optionTypeSlots);
+      return;
     }
-  }, [optionTypeSlots, isEditMode, dishEditor.editingDish?.optionTypes?.length]);
+    
+    // For editing: only initialize once, then allow updates when ingredient types change
+    if (isEditMode && dishEditor.editingDish) {
+      if (!hasInitializedOptionTypes) {
+        // First time: use existing option types or create new slots
+        if (dishEditor.editingDish.optionTypes?.length > 0) {
+          setOptionTypes(dishEditor.editingDish.optionTypes.map(opt => ({
+            type_id: opt.type_id?.toString() || '',
+            is_required: opt.is_required || false,
+            is_multiple: opt.is_multiple || false
+          })));
+        } else {
+          setOptionTypes(optionTypeSlots);
+        }
+        setHasInitializedOptionTypes(true);
+      } else {
+        // After initialization: update slots when ingredient types change
+        // Preserve existing is_required and is_multiple settings for matching type_ids
+        setOptionTypes(currentTypes => updateOptionTypesWithPreservation(optionTypeSlots, currentTypes));
+      }
+    }
+  }, [optionTypeSlots, isEditMode, dishEditor.editingDish, hasInitializedOptionTypes, updateOptionTypesWithPreservation]);
+  
+  // Reset initialization flag when switching dishes
+  useEffect(() => {
+    if (isEditMode && editingDishId) {
+      setHasInitializedOptionTypes(false);
+    }
+  }, [editingDishId, isEditMode]);
 
   const updateOptionType = useCallback((index, field, value) => {
     setOptionTypes(prev => prev.map((option, i) => 

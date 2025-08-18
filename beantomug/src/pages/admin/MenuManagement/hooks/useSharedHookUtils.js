@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { getApiConfig } from '../../../../utils/config';
 
@@ -84,8 +84,10 @@ export const useCrudOperations = (endpoint, { itemKey = 'item', onSuccess } = {}
         const dataKey = itemKey === 'dish' ? 'dishes' : 
                        itemKey === 'category' ? 'categories' :
                        itemKey === 'ingredient' ? 'ingredients' :
+                       itemKey === 'type' ? 'types' :
+                       itemKey === 'effect' ? 'effects' :
                        itemKey + 's';
-        setData(response.data[dataKey] || response.data.data || []);
+        setData(response.data[dataKey] || response.data?.data || []);
       } else {
         setError(`Failed to fetch ${itemKey}s`);
       }
@@ -109,13 +111,13 @@ export const useCrudOperations = (endpoint, { itemKey = 'item', onSuccess } = {}
         if (onSuccess) onSuccess('create', response.data);
         return { success: true, data: response.data };
       } else {
-        const errorMsg = response.data.message || `Failed to create ${itemKey}`;
+        const errorMsg = response.data.message || response.data.error || `Failed to create ${itemKey}`;
         setError(errorMsg);
         return { success: false, error: errorMsg };
       }
     } catch (err) {
       console.error(`Error creating ${itemKey}:`, err);
-      const errorMsg = err.response?.data?.message || `Failed to create ${itemKey}. Please try again.`;
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || `Failed to create ${itemKey}. Please try again.`;
       setError(errorMsg);
       return { success: false, error: errorMsg };
     }
@@ -157,13 +159,13 @@ export const useCrudOperations = (endpoint, { itemKey = 'item', onSuccess } = {}
         if (onSuccess) onSuccess('delete', response.data);
         return { success: true };
       } else {
-        const errorMsg = response.data.message || `Failed to delete ${itemKey}`;
+        const errorMsg = response.data.message || response.data.error || `Failed to delete ${itemKey}`;
         setError(errorMsg);
         return { success: false, error: errorMsg };
       }
     } catch (err) {
       console.error(`Error deleting ${itemKey}:`, err);
-      const errorMsg = err.response?.data?.message || `Failed to delete ${itemKey}. Please try again.`;
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || `Failed to delete ${itemKey}. Please try again.`;
       setError(errorMsg);
       return { success: false, error: errorMsg };
     }
@@ -231,7 +233,7 @@ export const useCrudOperations = (endpoint, { itemKey = 'item', onSuccess } = {}
  * @returns {Array} - Filtered and sorted items
  */
 export const useFilterSort = (items = [], filters = {}, sortConfig = {}) => {
-  return useState(() => {
+  return useMemo(() => {
     if (!items.length) return [];
     
     let filtered = items.filter(item => {
@@ -294,7 +296,7 @@ export const useFilterSort = (items = [], filters = {}, sortConfig = {}) => {
     }
     
     return filtered;
-  })[0];
+  }, [items, filters, sortConfig]);
 };
 
 /**

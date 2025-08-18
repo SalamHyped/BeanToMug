@@ -251,7 +251,7 @@
 }
 
 .dropdownMenu.show {
-  max-height: 300px;
+  max-height: none;
 }
 
 .dropdownItem {

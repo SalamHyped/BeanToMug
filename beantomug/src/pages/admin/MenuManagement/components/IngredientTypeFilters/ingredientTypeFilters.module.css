@@ -1,0 +1,258 @@
+/* Filters Container */
+.filtersContainer {
+  padding: 2rem;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+/* Header */
+.filtersHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.filtersHeader h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.statsContainer {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.stat {
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #495057;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Filter Controls */
+.filtersRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.searchInput,
+.filterSelect {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.searchInput:focus,
+.filterSelect:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.searchInput:disabled,
+.filterSelect:disabled {
+  background-color: #f8f9fa;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.searchInput::placeholder {
+  color: #6c757d;
+}
+
+/* Sort Options */
+.sortRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.sortLabel {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.sortButtons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sortButton {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e9ecef;
+  background: white;
+  color: #495057;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sortButton:hover:not(:disabled) {
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.sortButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.activeSortButton {
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.sortDirection {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+}
+
+/* Clear Filters */
+.clearFiltersRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #ffc107;
+  margin-bottom: 1.5rem;
+}
+
+.clearFiltersButton {
+  padding: 0.5rem 1.5rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clearFiltersButton:hover:not(:disabled) {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.clearFiltersButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.filterSummary {
+  font-size: 0.85rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+/* Filter Info */
+.filterInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.filterInfoItem {
+  font-size: 0.85rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+.filterInfoItem strong {
+  color: #495057;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .filtersRow {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .clearFiltersRow {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .filterInfo {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .filtersContainer {
+    padding: 1rem;
+  }
+  
+  .filtersHeader {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .statsContainer {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .sortRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .sortButtons {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .sortButtons {
+    flex-direction: column;
+  }
+  
+  .sortButton {
+    width: 100%;
+  }
+}
+

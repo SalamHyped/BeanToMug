@@ -62,11 +62,49 @@ class StockService {
       const ingredientDeductions = new Map();
       const ingredientData = new Map();
 
+      // Get selected options for effects calculation
+      const [selectedOptions] = await connection.execute(`
+        SELECT 
+          oi.order_item_id,
+          oi.item_id,
+          oii.ingredient_id as option_id
+        FROM order_item oi
+        LEFT JOIN order_item_ingredient oii ON oi.order_item_id = oii.order_item_id
+        LEFT JOIN ingredient i ON oii.ingredient_id = i.ingredient_id
+        LEFT JOIN ingredient_type it ON i.type_id = it.id
+        WHERE oi.order_id = ? AND it.is_physical = 0
+      `, [orderId]);
+
+      // Get ingredient effects
+      const selectedOptionIds = [...new Set(selectedOptions.map(opt => opt.option_id).filter(Boolean))];
+      const [effects] = selectedOptionIds.length > 0 ? await connection.execute(`
+        SELECT 
+          ie.target_ingredient_id,
+          ie.multiplier,
+          ie.item_id
+        FROM ingredient_effects ie
+        WHERE ie.option_ingredient_id IN (${selectedOptionIds.map(() => '?').join(',')})
+      `, selectedOptionIds) : [[], []];
+
       for (const item of orderItems) {
         if (item.ingredient_id) {
           const key = item.ingredient_id;
           const currentDeduction = ingredientDeductions.get(key) || 0;
-          const deduction = parseFloat(item.quantity_required || 0) * item.item_quantity;
+          
+          // Calculate base deduction
+          let deduction = parseFloat(item.quantity_required || 0) * item.item_quantity;
+          
+          // Apply ingredient effects if any
+          const applicableEffects = effects.filter(effect => 
+            effect.target_ingredient_id === item.ingredient_id && 
+            effect.item_id === item.item_id
+          );
+          
+          // Multiply by effects (multiple effects are multiplicative)
+          for (const effect of applicableEffects) {
+            deduction *= parseFloat(effect.multiplier);
+          }
+          
           ingredientDeductions.set(key, currentDeduction + deduction);
           
           // Store ingredient data once

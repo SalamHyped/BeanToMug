@@ -41,6 +41,14 @@ const UsersManagement = lazy(() => import('../pages/admin/UsersManagement/index'
 const MenuManagement = lazy(() => import('../pages/admin/MenuManagement/index'));
 // Import Ingredient Management component
 const IngredientManagement = lazy(() => import('../pages/admin/IngredientManagement'));
+// Import Ingredient Types Management component
+const IngredientTypesManagement = lazy(() => import('../pages/admin/IngredientTypesManagement'));
+// Import Ingredient Categories Management component
+const IngredientCategoriesManagement = lazy(() => import('../pages/admin/IngredientCategoriesManagement'));
+// Import Ingredient Effects Management component
+const IngredientEffectsManagement = lazy(() => import('../pages/admin/IngredientEffectsManagement'));
+// Import Configuration Dashboard component
+const ConfigurationDashboard = lazy(() => import('../pages/admin/ConfigurationDashboard'));
 
 // Loading component for page content only
 const PageLoader = () => (
@@ -124,6 +132,26 @@ export default function MyRoutes(){
                     <Route path="menuManagement/ingredients" element={
                       <Suspense fallback={<PageLoader />}>
                         <IngredientManagement />
+                      </Suspense>
+                    } />
+                    <Route path="menuManagement/configuration" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <ConfigurationDashboard />
+                      </Suspense>
+                    } />
+                    <Route path="menuManagement/ingredient-types" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <IngredientTypesManagement />
+                      </Suspense>
+                    } />
+                    <Route path="menuManagement/ingredient-categories" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <IngredientCategoriesManagement />
+                      </Suspense>
+                    } />
+                    <Route path="menuManagement/ingredient-effects" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <IngredientEffectsManagement />
                       </Suspense>
                     } />
                     <Route path="gallery" element={

@@ -450,7 +450,7 @@ router.post('/', authenticateToken, requireRole(['admin']), async (req, res) => 
         await req.db.execute(`
           INSERT INTO ingredients_in_item (item_id, ingredient_id, quantity_required)
           VALUES (?, ?, ?)
-        `, [dishId, ing.ingredient_id, ing.quantity_required]);
+        `, [dishId, ing.ingredient_id || null, ing.quantity_required || null]);
       }
     }
 
@@ -543,7 +543,7 @@ router.put('/:id', authenticateToken, requireRole(['admin']), async (req, res) =
           await req.db.execute(`
             INSERT INTO ingredients_in_item (item_id, ingredient_id, quantity_required)
             VALUES (?, ?, ?)
-          `, [id, ing.ingredient_id, ing.quantity_required]);
+          `, [id, ing.ingredient_id || null, ing.quantity_required || null]);
         }
       }
 

@@ -4,4 +4,6 @@ export { default as useIngredients } from './useIngredients';
 export { default as useOptionTypes } from './useOptionTypes';
 export { default as useDishEditor } from './useDishEditor';
 export { default as useIngredientsManagement } from './useIngredientsManagement';
+export { default as useIngredientTypes } from './useIngredientTypes';
+export { default as useIngredientCategories } from './useIngredientCategories';
 export { default as useSharedHookUtils } from './useSharedHookUtils';

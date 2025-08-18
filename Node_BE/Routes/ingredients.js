@@ -208,7 +208,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
     WHERE ingredient_id = ?
   `, [
     ingredient_name, price, brand, expiration, unit,
-    supplier_id, quantity_in_stock, low_stock_threshold, type_id, status, id
+    supplier_id || null, quantity_in_stock, low_stock_threshold, type_id, status, id
   ]);
 
   sendSuccess(res, {}, 'Ingredient updated successfully');
@@ -303,7 +303,8 @@ router.patch('/:id/stock', asyncHandler(async (req, res) => {
 
 /**
  * GET /ingredients/types/all
- * Get all ingredient types
+ * Get all ingredient types (DEPRECATED - use /ingredient-types/ instead)
+ * Kept for backward compatibility with existing frontend code
  */
 router.get('/types/all', asyncHandler(async (req, res) => {
   const types = await getRecords(req.db, `
@@ -323,7 +324,8 @@ router.get('/types/all', asyncHandler(async (req, res) => {
 
 /**
  * GET /ingredients/categories/all
- * Get all ingredient categories
+ * Get all ingredient categories (DEPRECATED - use /ingredient-categories/ instead)
+ * Kept for backward compatibility with existing frontend code
  */
 router.get('/categories/all', asyncHandler(async (req, res) => {
   const categories = await getRecords(req.db, `
