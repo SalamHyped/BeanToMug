@@ -8,7 +8,7 @@ const useSchedules = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [availability, setAvailability] = useState({});
+
   const [filters, setFilters] = useState({
     search: '',
     user_id: '',
@@ -130,27 +130,19 @@ const useSchedules = () => {
     }
   }, [fetchSchedules]);
 
-  // Check user availability for a specific date and shift
-  const checkAvailability = useCallback(async (userId, shiftId, scheduleDate) => {
+  // Check shift availability and staffing info
+  const checkAvailability = useCallback(async (shiftId, scheduleDate) => {
     try {
       const params = new URLSearchParams({
-        user_id: userId,
         shift_id: shiftId,
         schedule_date: scheduleDate
       });
       
-      const response = await axios.get(`/work-schedule/schedules/availability?${params}`, apiConfig);
-      const isAvailable = response.data.available;
-      
-      setAvailability(prev => ({
-        ...prev,
-        [`${userId}-${shiftId}-${scheduleDate}`]: isAvailable
-      }));
-      
-      return isAvailable;
+      const response = await axios.get(`/work-schedule/availability?${params}`, apiConfig);
+      return response.data;
     } catch (err) {
-      console.error('Error checking availability:', err);
-      return false;
+      console.error('Error checking shift availability:', err);
+      throw err;
     }
   }, []);
 
@@ -184,7 +176,6 @@ const useSchedules = () => {
     schedules,
     shifts,
     users,
-    availability,
     loading,
     error,
     filters,

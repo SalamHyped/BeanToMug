@@ -61,7 +61,8 @@ const ScheduleCalendar = ({
   const schedulesByDate = useMemo(() => {
     const grouped = {};
     schedules.forEach(schedule => {
-      const dateKey = schedule.schedule_date;
+      // Convert datetime to simple date string (YYYY-MM-DD)
+      const dateKey = new Date(schedule.schedule_date).toISOString().split('T')[0];
       if (!grouped[dateKey]) {
         grouped[dateKey] = [];
       }

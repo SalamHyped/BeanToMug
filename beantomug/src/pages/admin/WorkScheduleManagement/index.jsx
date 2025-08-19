@@ -12,7 +12,7 @@ const WorkScheduleManagement = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingScheduleId, setEditingScheduleId] = useState(null);
 
-  // Use the schedules hook for state management (filters now managed internally)
+  // Use the schedules hook for state management (filters managed internally)
   const { 
     schedules, 
     shifts, 

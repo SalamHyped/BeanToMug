@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { getApiConfig } from '../../../../utils/config';
 
-const API_BASE_URL = 'http://localhost:8801/work-schedule';
-
 const useShifts = () => {
   const [shifts, setShifts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,7 +15,7 @@ const useShifts = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/shifts`, apiConfig);
+      const response = await axios.get('/work-schedule/shifts', apiConfig);
       setShifts(response.data.shifts || []);
     } catch (err) {
       console.error('Error fetching shifts:', err);
@@ -33,7 +31,7 @@ const useShifts = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.post(`${API_BASE_URL}/shifts`, shiftData, apiConfig);
+      const response = await axios.post('/work-schedule/shifts', shiftData, apiConfig);
       await fetchShifts(); // Refresh list
       return response.data.shift;
     } catch (err) {
@@ -51,7 +49,7 @@ const useShifts = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.put(`${API_BASE_URL}/shifts/${shiftId}`, shiftData, apiConfig);
+      const response = await axios.put(`/work-schedule/shifts/${shiftId}`, shiftData, apiConfig);
       await fetchShifts(); // Refresh list
       return response.data.shift;
     } catch (err) {
@@ -69,7 +67,7 @@ const useShifts = () => {
     setLoading(true);
     setError(null);
     try {
-      await axios.delete(`${API_BASE_URL}/shifts/${shiftId}`, apiConfig);
+      await axios.delete(`/work-schedule/shifts/${shiftId}`, apiConfig);
       await fetchShifts(); // Refresh list
       return true;
     } catch (err) {
@@ -87,7 +85,7 @@ const useShifts = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/shifts/${shiftId}`, apiConfig);
+      const response = await axios.get(`/work-schedule/shifts/${shiftId}`, apiConfig);
       return response.data.shift;
     } catch (err) {
       console.error('Error fetching shift:', err);

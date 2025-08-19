@@ -523,11 +523,16 @@ router.get('/schedules/:id', requireRole(['admin', 'staff']), asyncHandler(async
  */
 router.post('/schedules', requireRole(['admin']), asyncHandler(async (req, res) => {
   const { user_id, shift_id, schedule_date, notes } = req.body;
-  const created_by = req.user.userId;
+  const created_by = req.user?.userId || req.user?.id;
 
   const validationError = validateRequiredFields(req.body, SCHEDULE_REQUIRED_FIELDS);
   if (validationError) {
     return handleError(res, validationError, 400);
+  }
+
+  // Ensure we have a valid created_by value
+  if (!created_by) {
+    return handleError(res, 'Unable to identify user for audit trail', 401);
   }
 
   // Validate schedule date constraints
@@ -577,7 +582,7 @@ router.post('/schedules', requireRole(['admin']), asyncHandler(async (req, res) 
   const result = await req.db.execute(`
     INSERT INTO work_schedule (user_id, shift_id, schedule_date, notes, created_by)
     VALUES (?, ?, ?, ?, ?)
-  `, [user_id, shift_id, schedule_date, notes, created_by]);
+  `, [user_id, shift_id, schedule_date, notes || null, created_by]);
 
   const newScheduleId = result[0].insertId;
 
@@ -796,7 +801,7 @@ router.get('/availability', requireRole(['admin']), asyncHandler(async (req, res
   // Get all active staff
   const allStaff = await getRecords(req.db, `
     SELECT id, username, role FROM users 
-    WHERE is_active = 1 AND role = 'staff'
+    WHERE status = 1 AND role = 'staff'
     ORDER BY username
   `, []);
 
@@ -872,7 +877,7 @@ router.get('/availability', requireRole(['admin']), asyncHandler(async (req, res
  */
 router.post('/schedules/bulk', requireRole(['admin']), asyncHandler(async (req, res) => {
   const { schedules } = req.body; // Array of schedule objects
-  const created_by = req.user.userId;
+  const created_by = req.user?.userId || req.user?.id;
 
   if (!Array.isArray(schedules) || schedules.length === 0) {
     return handleError(res, 'schedules array is required and must not be empty', 400);
@@ -930,7 +935,7 @@ router.post('/schedules/bulk', requireRole(['admin']), asyncHandler(async (req, 
       const result = await req.db.execute(`
         INSERT INTO work_schedule (user_id, shift_id, schedule_date, notes, created_by)
         VALUES (?, ?, ?, ?, ?)
-      `, [user_id, shift_id, schedule_date, notes, created_by]);
+      `, [user_id, shift_id, schedule_date, notes || null, created_by]);
 
       results.push({
         index: i,
