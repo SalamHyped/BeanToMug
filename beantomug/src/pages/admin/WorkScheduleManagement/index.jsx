@@ -87,8 +87,6 @@ const WorkScheduleManagement = () => {
       case 'attendance':
         return (
           <AttendancePanel
-            schedules={schedules}
-            onMarkAttendance={markAttendance}
             onBack={() => setActiveView('calendar')}
           />
         );
