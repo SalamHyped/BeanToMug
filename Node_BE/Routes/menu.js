@@ -1,6 +1,6 @@
 const express = require('express');
 const dbSingleton = require('../dbSingleton');
-const { getDishDetails } = require('../services/dishService');
+const { getDishDetails, enhanceDishesArray } = require('../services/dishService');
 const router = express.Router();
 
 /**
@@ -296,8 +296,14 @@ router.get('/:category', async (req, res) => {
       [categoryId]
     );
 
-    // Return the list of dishes in the category
-    res.json(dishesResult);
+    // Step 3: Enhance dishes with VAT prices for accurate customer pricing
+    const enhancedDishes = await enhanceDishesArray(req.db, dishesResult, {
+      includeVAT: true,          // Calculate VAT-inclusive prices
+      includeAvailability: false // Don't check availability for category listing (performance)
+    });
+
+    // Return the list of dishes with VAT-inclusive prices
+    res.json(enhancedDishes);
   } catch (err) {
     console.error('Error fetching category or dishes:', err);
     res.status(500).json({ error: 'Internal server error' });

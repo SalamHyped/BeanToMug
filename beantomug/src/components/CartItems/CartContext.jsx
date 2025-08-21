@@ -30,33 +30,14 @@ console.log(cartItems)
     }
   };
 
-  // Unified price calculation function
+  // Simple price calculation for backward compatibility (now just returns backend values)
   const calculateItemPrice = (item, options, includeVAT = false) => {
-    let totalPrice = parseFloat(item.price || 0);
-    
-    // Add prices from selected options if they exist
-    if (options && typeof options === 'object') {
-      Object.entries(options).forEach(([key, option]) => {
-        if (option && option.selected && option.price) {
-          totalPrice += parseFloat(option.price || 0);
-        }
-      });
-    }
-
-    // If VAT is requested and backend provides it, use backend calculation
-    if (includeVAT && item.priceWithVAT !== undefined && item.priceWithVAT !== null) {
-      return parseFloat(item.priceWithVAT);
-    }
-    
-    // If VAT is requested but backend doesn't provide it, calculate locally
     if (includeVAT) {
-      const FALLBACK_VAT_RATE = 15.00; // Fallback VAT rate
-      const vatAmount = (totalPrice * FALLBACK_VAT_RATE) / 100;
-      return totalPrice + vatAmount;
+      // Return backend-calculated VAT price if available
+      return parseFloat(item.priceWithVAT || item.price_with_vat || item.price || 0);
     }
-    
     // Return base price without VAT
-    return totalPrice;
+    return parseFloat(item.price || 0);
   };
 
   // Helper function for VAT amount calculation
@@ -64,41 +45,45 @@ console.log(cartItems)
     return (subtotal * vatRate) / 100;
   };
 
-  // Memoized cart totals calculation - only recalculates when cartItems change
+  // Memoized cart totals calculation - now uses backend-calculated totals
   const cartTotals = useMemo(() => {
-    let subtotal = 0;
-    let subtotalWithVAT = 0;
-    let totalVATAmount = 0;
+    // Default empty totals
+    let totals = {
+      subtotal: 0,
+      subtotalWithVAT: 0,
+      vatAmount: 0,
+      vatRate: 15.00, // Fallback rate, actual rate comes from backend
+      totalWithVAT: 0
+    };
 
-    // Calculate subtotal for all items
+    // Calculate totals from cart items (backend should provide these values)
     if (cartItems && Array.isArray(cartItems)) {
       cartItems.forEach(item => {
         if (item && typeof item === 'object') {
-          const itemBasePrice = calculateItemPrice(item, item.options || {}, false); // No VAT
-          const itemPriceWithVAT = calculateItemPrice(item, item.options || {}, true); // With VAT
           const quantity = parseInt(item.quantity) || 1;
           
-          subtotal += itemBasePrice * quantity;
-          subtotalWithVAT += itemPriceWithVAT * quantity;
+          // Use backend-calculated prices when available
+          const itemSubtotal = (item.price || 0) * quantity;
+          const itemVATAmount = (item.vatAmount || item.vat_amount || 0) * quantity;
+          const itemTotalWithVAT = (item.priceWithVAT || item.price_with_vat || 0) * quantity;
           
-          // If backend provides VAT amount, use it for more accurate calculation
-          if (item.vatAmount !== undefined && item.vatAmount !== null) {
-            totalVATAmount += parseFloat(item.vatAmount) * quantity;
-          }
+          totals.subtotal += itemSubtotal;
+          totals.vatAmount += itemVATAmount;
+          totals.totalWithVAT += itemTotalWithVAT;
         }
       });
+      
+      // Calculate subtotalWithVAT (subtotal + VAT)
+      totals.subtotalWithVAT = totals.subtotal + totals.vatAmount;
     }
 
-    // Use backend VAT amount if available, otherwise calculate from difference
-    const vatAmount = totalVATAmount > 0 ? totalVATAmount : (subtotalWithVAT - subtotal);
-    const totalWithVAT = subtotalWithVAT;
-
+    // Round to 2 decimal places to prevent floating point issues
     return {
-      subtotal: subtotal,
-      subtotalWithVAT: subtotalWithVAT,
-      vatAmount: vatAmount,
-      vatRate: 15.00, // Fallback rate, actual rate comes from backend
-      totalWithVAT: totalWithVAT
+      subtotal: Math.round(totals.subtotal * 100) / 100,
+      subtotalWithVAT: Math.round(totals.subtotalWithVAT * 100) / 100,
+      vatAmount: Math.round(totals.vatAmount * 100) / 100,
+      vatRate: totals.vatRate,
+      totalWithVAT: Math.round(totals.totalWithVAT * 100) / 100
     };
   }, [cartItems]); // Only recalculate when cartItems change
 

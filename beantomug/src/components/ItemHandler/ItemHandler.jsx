@@ -9,7 +9,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     return null;
   }
 
-  const { item_name, item_photo_url, price, isAvailable } = item;
+  const { item_name, item_photo_url, price, priceWithVAT, isAvailable } = item;
   
   const { addToCart, error } = useContext(CartContext);
 
@@ -93,11 +93,13 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
     return extra;
   }, [item?.options, selectedOptions]);
 
-  // Memoize total price calculation
-  const totalPrice = useMemo(() => {
-    const perItemPrice = parseFloat(price || 0) + optionExtraPrice;
+  // Calculate display price for button - backend will calculate final VAT
+  const estimatedTotalPrice = useMemo(() => {
+    // Use VAT-inclusive base price if available, otherwise fallback to base price
+    const basePrice = parseFloat(priceWithVAT || price || 0);
+    const perItemPrice = basePrice + optionExtraPrice;
     return perItemPrice * quantity;
-  }, [price, optionExtraPrice, quantity]);
+  }, [priceWithVAT, price, optionExtraPrice, quantity]);
 
   // Optimized initialization with better data structure
   useEffect(() => {
@@ -404,7 +406,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
         
         <div className={classes.itemDetails}>
           <h2 className={classes.itemName}>{item_name}</h2>
-          <p className={classes.itemPrice}>${Number(price || 0).toFixed(2)}</p>
+          <p className={classes.itemPrice}>${Number(priceWithVAT || price || 0).toFixed(2)}</p>
           
           {/* Error Messages */}
           {errorDisplay}
@@ -438,7 +440,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
             className={classes.addToCartBtn}
             disabled={!isAvailable}
           >
-            {isAvailable ? `Add to Cart - $${totalPrice.toFixed(2)}` : 'Currently Unavailable'}
+            {isAvailable ? `Add to Cart - $${estimatedTotalPrice.toFixed(2)}` : 'Currently Unavailable'}
           </button>
         </div>
       </div>

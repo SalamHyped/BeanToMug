@@ -52,25 +52,13 @@ export default function Cart({ item }) {
   };
 
   const calculateItemTotal = () => {
-    // Use item_price if available (from backend), otherwise calculate from base price
-    let itemPrice;
-    if (item.item_price !== undefined && item.item_price !== null) {
-      itemPrice = parseFloat(item.item_price);
-    } else {
-      let totalPrice = parseFloat(item.price || 0);
-      
-      // Add prices from selected options if they exist
-      if (item.options && typeof item.options === 'object') {
-        Object.entries(item.options).forEach(([key, option]) => {
-          if (option && option.selected && option.price) {
-            totalPrice += parseFloat(option.price || 0);
-          }
-        });
-      }
-      itemPrice = totalPrice;
+    // Use backend-calculated price with VAT when available
+    if (item.priceWithVAT !== undefined && item.priceWithVAT !== null) {
+      return parseFloat(item.priceWithVAT) * item.quantity;
     }
-
-    return itemPrice * item.quantity;
+    
+    // Fallback to base price calculation (should rarely happen now)
+    return parseFloat(item.price || 0) * item.quantity;
   };
 
   return (
@@ -104,22 +92,10 @@ export default function Cart({ item }) {
         )}
         <div className={classes.cartPrice}>
           <span className={classes.unitPrice}>
-            ${Number(item.item_price || item.price || 0).toFixed(2)} base
-            {/* Show VAT-inclusive price if available */}
-            {item.priceWithVAT && item.priceWithVAT !== (item.item_price || item.price) && (
-              <span className={classes.vatPrice}>
-                {' '}({Number(item.priceWithVAT).toFixed(2)})
-              </span>
-            )}
+            ${Number(item.priceWithVAT || item.price || 0).toFixed(2)} per item
           </span>
           <span className={classes.totalPrice}>
             Total: ${calculateItemTotal().toFixed(2)}
-            {/* Show VAT-inclusive total if available */}
-            {item.priceWithVAT && item.priceWithVAT !== (item.item_price || item.price) && (
-              <span className={classes.vatTotal}>
-                {' '}({Number(item.priceWithVAT * item.quantity).toFixed(2)})
-              </span>
-            )}
           </span>
         </div>
       </div>

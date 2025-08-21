@@ -1,106 +1,70 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { getApiConfig } from '../../../../utils/config';
+import useApiBase from './useApiBase';
 
 const useShifts = () => {
   const [shifts, setShifts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Use the existing API config
-  const apiConfig = getApiConfig();
+  
+  // Get API functions from useApiBase (these are stable)
+  const { loading, error, get, post, put, delete: del } = useApiBase();
 
   // Fetch all shifts
   const fetchShifts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const response = await axios.get('/work-schedule/shifts', apiConfig);
+      const response = await get('/work-schedule/shifts');
       setShifts(response.data.shifts || []);
     } catch (err) {
-      console.error('Error fetching shifts:', err);
-      setError(err.response?.data?.message || 'Failed to fetch shifts');
       setShifts([]);
-    } finally {
-      setLoading(false);
+      // Error is handled by useApiBase
     }
-  }, []);
+  }, []); // No dependencies - get is stable
 
   // Create new shift
-  const createShift = async (shiftData) => {
-    setLoading(true);
-    setError(null);
+  const createShift = useCallback(async (shiftData) => {
     try {
-      const response = await axios.post('/work-schedule/shifts', shiftData, apiConfig);
+      const response = await post('/work-schedule/shifts', shiftData);
       await fetchShifts(); // Refresh list
       return response.data.shift;
     } catch (err) {
-      console.error('Error creating shift:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to create shift';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
+      throw err; // Re-throw for component handling
     }
-  };
+  }, []); // No dependencies - post and fetchShifts are stable
 
   // Update existing shift
-  const updateShift = async (shiftId, shiftData) => {
-    setLoading(true);
-    setError(null);
+  const updateShift = useCallback(async (shiftId, shiftData) => {
     try {
-      const response = await axios.put(`/work-schedule/shifts/${shiftId}`, shiftData, apiConfig);
+      const response = await put(`/work-schedule/shifts/${shiftId}`, shiftData);
       await fetchShifts(); // Refresh list
       return response.data.shift;
     } catch (err) {
-      console.error('Error updating shift:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to update shift';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
+      throw err; // Re-throw for component handling
     }
-  };
+  }, []); // No dependencies - put and fetchShifts are stable
 
   // Delete shift
-  const deleteShift = async (shiftId) => {
-    setLoading(true);
-    setError(null);
+  const deleteShift = useCallback(async (shiftId) => {
     try {
-      await axios.delete(`/work-schedule/shifts/${shiftId}`, apiConfig);
+      await del(`/work-schedule/shifts/${shiftId}`);
       await fetchShifts(); // Refresh list
       return true;
     } catch (err) {
-      console.error('Error deleting shift:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to delete shift';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
+      throw err; // Re-throw for component handling
     }
-  };
+  }, []); // No dependencies - del and fetchShifts are stable
 
   // Get shift by ID
-  const getShift = async (shiftId) => {
-    setLoading(true);
-    setError(null);
+  const getShift = useCallback(async (shiftId) => {
     try {
-      const response = await axios.get(`/work-schedule/shifts/${shiftId}`, apiConfig);
+      const response = await get(`/work-schedule/shifts/${shiftId}`);
       return response.data.shift;
     } catch (err) {
-      console.error('Error fetching shift:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to fetch shift';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
+      throw err; // Re-throw for component handling
     }
-  };
+  }, []); // No dependencies - get is stable
 
   // Initial data fetch
   useEffect(() => {
     fetchShifts();
-  }, [fetchShifts]);
+  }, []); // No dependencies - fetchShifts is stable
 
   return {
     // Data

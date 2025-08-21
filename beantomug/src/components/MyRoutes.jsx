@@ -32,6 +32,7 @@ const CustomerReceipts = lazy(() => import('../pages/customer/CustomerReceipts')
 const PublicGallery = lazy(() => import('../pages/Gallery'));
 const StaffGallery = lazy(() => import('../pages/staff/StaffGallery'));
 const AdminInventory = lazy(() => import('../pages/admin/Inventory'));
+const StaffSchedulePage = lazy(() => import('../pages/staff/StaffSchedulePage'));
 
 // Import the existing order queue for admin use
 const MenuOrdersContainer = lazy(() => import('./layouts/StaffLayout/menuOrders/MenuOrdersContainer'));
@@ -181,6 +182,11 @@ export default function MyRoutes(){
                     <Route index element={
                       <Suspense fallback={<PageLoader />}>
                         <Dashboard />
+                      </Suspense>
+                    } />
+                    <Route path="schedule" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <StaffSchedulePage />
                       </Suspense>
                     } />
                     <Route path="tasks" element={

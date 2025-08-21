@@ -45,7 +45,7 @@ async function checkShiftOverlap(db, userId, scheduleDate, shiftId, excludeSched
     if (conflict) {
       return {
         conflict: true,
-        message: `Conflicts with existing ${existing.shift_name} shift (${existing.start_time}-${existing.end_time})`,
+        message: `Conflicts with existing ${existing.shift_name}(${existing.start_time}-${existing.end_time})`,
         existingShift: existing
       };
     }
@@ -157,6 +157,224 @@ async function checkShiftStaffing(db, shiftId, scheduleDate, excludeScheduleId =
 }
 
 /**
+ * POST /planning-settings
+ * Admin sets planning configuration for staff scheduling
+ */
+router.post('/planning-settings', requireRole(['admin']), asyncHandler(async (req, res) => {
+  const { start_date, exclude_dates } = req.body;
+  const userId = req.user?.userId || req.user?.id;
+
+  try {
+    // Use connection.beginTransaction() for proper transaction handling
+    await req.db.beginTransaction();
+
+    // Get a valid shift_id for the foreign key constraint
+    const shifts = await getRecords(req.db, 'SELECT shift_id FROM shifts LIMIT 1');
+    const validShiftId = shifts[0]?.shift_id || 1;
+
+    // Clean approach: Mark old settings as ended, then insert new ones
+    // This preserves history for reporting while keeping current settings clean
+    
+    // 1. Mark ALL current planning settings as ended (for historical reporting)
+    await req.db.execute(`
+      UPDATE work_schedule 
+      SET effective_until = NOW()
+      WHERE status IN (?, ?) 
+      AND effective_until IS NULL
+    `, ['planning_start', 'planning_exclude']);
+
+    // 2. Insert new start date if provided
+    if (start_date) {
+      await req.db.execute(`
+        INSERT INTO work_schedule (user_id, shift_id, schedule_date, status, notes, created_by) 
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [userId, validShiftId, start_date, 'planning_start', 'ADMIN_PLANNING_START_DATE', userId]);
+    }
+
+    // 3. Insert new excluded dates if provided
+    if (exclude_dates) {
+      const excludedDatesArray = exclude_dates.split(',')
+        .map(date => date.trim())
+        .filter(date => date); // Remove empty strings
+      
+      // Batch insert for better performance
+      if (excludedDatesArray.length > 0) {
+        const placeholders = excludedDatesArray.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+        const values = excludedDatesArray.flatMap(date => [userId, validShiftId, date, 'planning_exclude', 'day_off', userId]);
+        
+        await req.db.execute(`
+          INSERT INTO work_schedule (user_id, shift_id, schedule_date, status, notes, created_by) 
+          VALUES ${placeholders}
+        `, values);
+      }
+    }
+
+    // Commit all changes together
+    await req.db.commit();
+    sendSuccess(res, { message: 'Planning settings saved successfully' });
+    
+  } catch (error) {
+    // Rollback on any error to maintain data consistency
+    await req.db.rollback();
+    handleError(res, error, 'Failed to save planning settings');
+  }
+}));
+
+/**
+ * GET /planning-settings
+ * Get current planning configuration
+ */
+router.get('/planning-settings', requireRole(['admin', 'staff']), asyncHandler(async (req, res) => {
+  try {
+    // Get current start date setting (not ended)
+    const startDateRecords = await getRecords(req.db, `
+      SELECT DATE_FORMAT(schedule_date, '%Y-%m-%d') as schedule_date FROM work_schedule 
+      WHERE status = 'planning_start' 
+      AND effective_until IS NULL
+      ORDER BY created_at DESC 
+      LIMIT 1
+    `);
+
+    // Get current excluded dates (not ended)
+    const excludedRecords = await getRecords(req.db, `
+      SELECT DATE_FORMAT(schedule_date, '%Y-%m-%d') as schedule_date, notes, created_at FROM work_schedule 
+      WHERE status = 'planning_exclude'
+      AND effective_until IS NULL
+      ORDER BY schedule_date ASC
+    `);
+
+    const settings = {
+      start_date: startDateRecords[0]?.schedule_date || null,
+      exclude_dates: excludedRecords.map(r => r.schedule_date).join(','),
+      excluded_dates_details: excludedRecords, // For reporting
+      last_updated: excludedRecords[0]?.created_at || startDateRecords[0]?.created_at || null
+    };
+
+    sendSuccess(res, { settings });
+  } catch (error) {
+    handleError(res, error, 'Failed to get planning settings');
+  }
+}));
+
+/**
+ * GET /shifts/available
+ * Get shifts that need more staff (available for claiming)
+ * IMPORTANT: This route must come BEFORE /shifts to avoid route conflicts
+ */
+router.get('/shifts/available', requireRole(['admin', 'staff']), asyncHandler(async (req, res) => {
+  console.log('Available shifts access - User:', {
+    role: req.user?.role,
+    userId: req.user?.userId || req.user?.id,
+    fullUser: req.user
+  });
+
+  // Get current admin settings from work_schedule table (not ended)
+  // Use DATE_FORMAT to ensure we get proper YYYY-MM-DD strings
+  const startDateRecords = await getRecords(req.db, `
+    SELECT DATE_FORMAT(schedule_date, '%Y-%m-%d') as schedule_date FROM work_schedule 
+    WHERE status = 'planning_start' 
+    AND effective_until IS NULL
+    ORDER BY created_at DESC 
+    LIMIT 1
+  `);
+
+  const excludedRecords = await getRecords(req.db, `
+    SELECT DATE_FORMAT(schedule_date, '%Y-%m-%d') as schedule_date FROM work_schedule 
+    WHERE status = 'planning_exclude'
+    AND effective_until IS NULL
+    ORDER BY schedule_date ASC
+  `);
+
+  // Now we get proper YYYY-MM-DD strings from DATE_FORMAT
+  const adminStartDateStr = startDateRecords[0]?.schedule_date || null;
+  const excludedDates = excludedRecords.map(r => r.schedule_date);
+  
+  console.log('Planning settings debug:', {
+    adminStartDate: adminStartDateStr,
+    excludedDates,
+    excludedRecordsCount: excludedRecords.length,
+    dataTypes: {
+      startDateType: typeof adminStartDateStr,
+      excludedDateType: typeof excludedDates[0]
+    }
+  });
+  
+  // Build the exclusion condition
+  let excludeDateCondition = '';
+  let excludeParams = [];
+  
+  if (excludedDates.length > 0) {
+    excludeDateCondition = `AND DATE(d.date_option) NOT IN (${excludedDates.map(() => '?').join(',')})`;
+    excludeParams = excludedDates;
+  }
+
+
+
+  // Generate available shifts by creating date range and crossing with all shifts
+  let startDate, endDate;
+  
+  if (adminStartDateStr) {
+    // Use the properly formatted start date string
+    startDate = `'${adminStartDateStr}'`;
+    
+    // End 6 days after start date (total 7 days including start date)
+    const endDateObj = new Date(adminStartDateStr + 'T00:00:00'); // Ensure UTC interpretation
+    endDateObj.setDate(endDateObj.getDate() + 6);
+    const formattedEndDate = endDateObj.toISOString().split('T')[0];
+    endDate = `'${formattedEndDate}'`;
+  } else {
+    startDate = 'CURDATE() + INTERVAL 1 DAY'; // Tomorrow
+    endDate = 'CURDATE() + INTERVAL 7 DAY';   // Next week
+  }
+
+  const availableShifts = await getRecords(req.db, `
+    SELECT 
+      s.shift_id,
+      s.shift_name,
+      s.start_time,
+      s.end_time,
+      s.is_overnight,
+      s.min_staff,
+      s.max_staff,
+      s.break_minutes,
+      d.date_option as schedule_date,
+      d.date_option as date,
+      COALESCE(current_schedules.current_staff, 0) as current_staff,
+      (s.max_staff - COALESCE(current_schedules.current_staff, 0)) as spots_available
+    FROM shifts s
+    CROSS JOIN (
+      SELECT DATE_ADD(${startDate}, INTERVAL 0 DAY) as date_option
+      UNION SELECT DATE_ADD(${startDate}, INTERVAL 1 DAY)
+      UNION SELECT DATE_ADD(${startDate}, INTERVAL 2 DAY)
+      UNION SELECT DATE_ADD(${startDate}, INTERVAL 3 DAY)
+      UNION SELECT DATE_ADD(${startDate}, INTERVAL 4 DAY)
+      UNION SELECT DATE_ADD(${startDate}, INTERVAL 5 DAY)
+      UNION SELECT DATE_ADD(${startDate}, INTERVAL 6 DAY)
+    ) d
+    LEFT JOIN (
+      SELECT 
+        shift_id, 
+        schedule_date,
+        COUNT(user_id) as current_staff
+      FROM work_schedule 
+      WHERE status IN ('scheduled', 'completed')
+      AND status NOT IN ('planning_start', 'planning_exclude')
+      GROUP BY shift_id, schedule_date
+    ) current_schedules ON s.shift_id = current_schedules.shift_id AND d.date_option = current_schedules.schedule_date
+    WHERE s.is_active = 1
+    AND s.deactivated_at IS NULL
+    AND FIND_IN_SET(DAYNAME(d.date_option), s.available_days) > 0
+    AND (s.start_date IS NULL OR d.date_option >= s.start_date)
+    AND (s.end_date IS NULL OR d.date_option <= s.end_date)
+    ${excludeDateCondition}
+    HAVING spots_available > 0
+    ORDER BY d.date_option ASC, s.start_time ASC
+  `, excludeParams);
+
+  sendSuccess(res, { available_shifts: availableShifts });
+}));
+
+/**
  * GET /shifts
  * Get all shifts with optional filtering
  */
@@ -195,7 +413,12 @@ router.get('/shifts', requireRole(['admin']), asyncHandler(async (req, res) => {
       min_staff,
       max_staff,
       break_minutes,
-      is_active
+      is_active,
+      available_days,
+      start_date,
+      end_date,
+      deactivated_at,
+      deactivated_reason
     FROM shifts 
     ${whereClause}
     ORDER BY ${validSortBy} ${validSortOrder}
@@ -245,7 +468,9 @@ router.get('/shifts/:id', requireRole(['admin']), asyncHandler(async (req, res) 
 router.post('/shifts', requireRole(['admin']), asyncHandler(async (req, res) => {
   const { 
     shift_name, start_time, end_time, is_overnight = 0, 
-    min_staff = 1, max_staff = 10, break_minutes = 30, is_active = 1 
+    min_staff = 1, max_staff = 10, break_minutes = 30, is_active = 1,
+    available_days = 'Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+    start_date = null, end_date = null
   } = req.body;
 
   const validationError = validateRequiredFields(req.body, SHIFT_REQUIRED_FIELDS);
@@ -253,17 +478,20 @@ router.post('/shifts', requireRole(['admin']), asyncHandler(async (req, res) => 
     return handleError(res, validationError, 400);
   }
 
-  // Check if shift name already exists
-  const existingShift = await checkRecordExists(req.db, 'shifts', 'shift_name', shift_name);
-  if (existingShift) {
+  // Check if shift name already exists among active shifts
+  const existingShift = await getRecords(req.db, `
+    SELECT shift_id FROM shifts 
+    WHERE shift_name = ? AND deactivated_at IS NULL
+  `, [shift_name]);
+  if (existingShift.length > 0) {
     return handleError(res, 'A shift with this name already exists', 409);
   }
 
   // Insert new shift
   const result = await req.db.execute(`
-    INSERT INTO shifts (shift_name, start_time, end_time, is_overnight, min_staff, max_staff, break_minutes, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `, [shift_name, start_time, end_time, is_overnight, min_staff, max_staff, break_minutes, is_active]);
+    INSERT INTO shifts (shift_name, start_time, end_time, is_overnight, min_staff, max_staff, break_minutes, is_active, available_days, start_date, end_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [shift_name, start_time, end_time, is_overnight, min_staff, max_staff, break_minutes, is_active, available_days, start_date, end_date]);
 
   const newShiftId = result[0].insertId;
 
@@ -280,60 +508,96 @@ router.post('/shifts', requireRole(['admin']), asyncHandler(async (req, res) => 
 
 /**
  * PUT /shifts/:id
- * Update a shift
+ * Create new shift version (Option B: Immutable shifts for reporting integrity)
  */
 router.put('/shifts/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
-  const shiftId = req.params.id;
+  const originalShiftId = req.params.id;
   const { 
     shift_name, start_time, end_time, is_overnight, 
-    min_staff, max_staff, break_minutes, is_active 
+    min_staff, max_staff, break_minutes, is_active,
+    available_days, start_date, end_date, deactivation_reason = 'Updated with new rules'
   } = req.body;
 
-  const validationError = validateId(shiftId);
+  const validationError = validateId(originalShiftId);
   if (validationError) {
     return handleError(res, validationError, 400);
   }
 
-  // Check if shift exists
-  const shiftExists = await checkRecordExists(req.db, 'shifts', 'shift_id', shiftId);
-  if (!shiftExists) {
-    return handleError(res, 'Shift not found', 404);
+  // Get original shift
+  const [originalShift] = await getRecords(req.db, `
+    SELECT * FROM shifts WHERE shift_id = ? AND deactivated_at IS NULL
+  `, [originalShiftId]);
+  
+  if (!originalShift) {
+    return handleError(res, 'Active shift not found', 404);
   }
 
-  // Check if new shift name conflicts with existing shifts (if name is being changed)
-  if (shift_name) {
+  // Check if new shift name conflicts with other active shifts
+  if (shift_name && shift_name !== originalShift.shift_name) {
     const existingShift = await getRecords(req.db, `
-      SELECT shift_id FROM shifts WHERE shift_name = ? AND shift_id != ?
-    `, [shift_name, shiftId]);
+      SELECT shift_id FROM shifts WHERE shift_name = ? AND deactivated_at IS NULL
+    `, [shift_name]);
     
     if (existingShift.length > 0) {
       return handleError(res, 'A shift with this name already exists', 409);
     }
   }
 
-  // Update shift
-  await req.db.execute(`
-    UPDATE shifts 
-    SET shift_name = COALESCE(?, shift_name),
-        start_time = COALESCE(?, start_time),
-        end_time = COALESCE(?, end_time),
-        is_overnight = COALESCE(?, is_overnight),
-        min_staff = COALESCE(?, min_staff),
-        max_staff = COALESCE(?, max_staff),
-        break_minutes = COALESCE(?, break_minutes),
-        is_active = COALESCE(?, is_active)
-    WHERE shift_id = ?
-  `, [shift_name, start_time, end_time, is_overnight, min_staff, max_staff, break_minutes, is_active, shiftId]);
+  try {
+    await req.db.beginTransaction();
 
-  // Get updated shift
-  const [updatedShift] = await getRecords(req.db, `
-    SELECT * FROM shifts WHERE shift_id = ?
-  `, [shiftId]);
+    // 1. Deactivate original shift
+    await req.db.execute(`
+      UPDATE shifts 
+      SET deactivated_at = NOW(), deactivated_reason = ?
+      WHERE shift_id = ?
+    `, [deactivation_reason, originalShiftId]);
 
-  sendSuccess(res, { 
-    message: 'Shift updated successfully', 
-    shift: updatedShift 
-  });
+    // 2. Create new shift with updated data (inherit from original if not provided)
+    const newShiftData = {
+      shift_name: shift_name || originalShift.shift_name,
+      start_time: start_time || originalShift.start_time,
+      end_time: end_time || originalShift.end_time,
+      is_overnight: is_overnight !== undefined ? is_overnight : originalShift.is_overnight,
+      min_staff: min_staff || originalShift.min_staff,
+      max_staff: max_staff || originalShift.max_staff,
+      break_minutes: break_minutes || originalShift.break_minutes,
+      is_active: is_active !== undefined ? is_active : originalShift.is_active,
+      available_days: available_days || originalShift.available_days,
+      start_date: start_date !== undefined ? start_date : originalShift.start_date,
+      end_date: end_date !== undefined ? end_date : originalShift.end_date
+    };
+
+    const result = await req.db.execute(`
+      INSERT INTO shifts (shift_name, start_time, end_time, is_overnight, min_staff, max_staff, break_minutes, is_active, available_days, start_date, end_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      newShiftData.shift_name, newShiftData.start_time, newShiftData.end_time, 
+      newShiftData.is_overnight, newShiftData.min_staff, newShiftData.max_staff, 
+      newShiftData.break_minutes, newShiftData.is_active, newShiftData.available_days,
+      newShiftData.start_date, newShiftData.end_date
+    ]);
+
+    const newShiftId = result[0].insertId;
+
+    // 3. Get the new shift
+    const [newShift] = await getRecords(req.db, `
+      SELECT * FROM shifts WHERE shift_id = ?
+    `, [newShiftId]);
+
+    await req.db.commit();
+
+    sendSuccess(res, { 
+      message: 'Shift updated successfully (new version created)',
+      shift: newShift,
+      original_shift_id: originalShiftId,
+      new_shift_id: newShiftId
+    });
+
+  } catch (error) {
+    await req.db.rollback();
+    handleError(res, error, 'Failed to update shift');
+  }
 }));
 
 /**
@@ -369,6 +633,8 @@ router.delete('/shifts/:id', requireRole(['admin']), asyncHandler(async (req, re
   sendSuccess(res, { message: 'Shift deleted successfully' });
 }));
 
+
+
 /**
  * GET /schedules
  * Get all work schedules with optional filtering
@@ -381,7 +647,11 @@ router.get('/schedules', requireRole(['admin', 'staff']), asyncHandler(async (re
   
   // Role-based access control
   const userRole = req.user.role;
-  const requestingUserId = req.user.userId;
+  const requestingUserId = req.user.userId || req.user.id; // Handle both userId and id
+  
+  if (!requestingUserId) {
+    return handleError(res, 'User ID not found in authentication token', 401);
+  }
   
   // Build WHERE clause for filtering
   const whereConditions = [];
@@ -521,9 +791,11 @@ router.get('/schedules/:id', requireRole(['admin', 'staff']), asyncHandler(async
  * POST /schedules
  * Create a new work schedule
  */
-router.post('/schedules', requireRole(['admin']), asyncHandler(async (req, res) => {
+router.post('/schedules', requireRole(['admin', 'staff']), asyncHandler(async (req, res) => {
   const { user_id, shift_id, schedule_date, notes } = req.body;
   const created_by = req.user?.userId || req.user?.id;
+  const userRole = req.user?.role;
+  const requestingUserId = req.user?.userId || req.user?.id;
 
   const validationError = validateRequiredFields(req.body, SCHEDULE_REQUIRED_FIELDS);
   if (validationError) {
@@ -533,6 +805,11 @@ router.post('/schedules', requireRole(['admin']), asyncHandler(async (req, res) 
   // Ensure we have a valid created_by value
   if (!created_by) {
     return handleError(res, 'Unable to identify user for audit trail', 401);
+  }
+
+  // Staff can only create schedules for themselves
+  if (userRole === 'staff' && user_id != requestingUserId) {
+    return handleError(res, 'Staff can only create schedules for themselves', 403);
   }
 
   // Validate schedule date constraints
@@ -563,19 +840,19 @@ router.post('/schedules', requireRole(['admin']), asyncHandler(async (req, res) 
   `, [user_id, shift_id, schedule_date]);
 
   if (existingSchedule.length > 0) {
-    return handleError(res, 'User is already scheduled for this shift on this date', 409);
+    return handleError(res, new Error('Duplicate schedule'), 'User is already scheduled for this shift on this date', 409);
   }
 
   // Check for shift overlaps
   const overlapCheck = await checkShiftOverlap(req.db, user_id, schedule_date, shift_id);
   if (overlapCheck && overlapCheck.conflict) {
-    return handleError(res, `Scheduling conflict: ${overlapCheck.message}`, 409);
+    return handleError(res, new Error('Scheduling conflict'), `Scheduling conflict: ${overlapCheck.message}`, 409);
   }
 
   // Check staffing limits
   const staffingInfo = await checkShiftStaffing(req.db, shift_id, schedule_date);
   if (staffingInfo.current_staff >= staffingInfo.max_staff) {
-    return handleError(res, `Maximum staff limit (${staffingInfo.max_staff}) reached for ${staffingInfo.shift_name} on ${schedule_date}`, 409);
+    return handleError(res, new Error('Staff limit reached'), `Maximum staff limit (${staffingInfo.max_staff}) reached for ${staffingInfo.shift_name} on ${schedule_date}`, 409);
   }
 
   // Insert new schedule
@@ -748,19 +1025,46 @@ router.put('/schedules/:id', requireRole(['admin']), asyncHandler(async (req, re
  * DELETE /schedules/:id
  * Delete a work schedule (or mark as cancelled)
  */
-router.delete('/schedules/:id', requireRole(['admin']), asyncHandler(async (req, res) => {
+router.delete('/schedules/:id', requireRole(['admin', 'staff']), asyncHandler(async (req, res) => {
   const scheduleId = req.params.id;
   const { soft_delete = true } = req.query;
+  const userRole = req.user?.role;
+  const requestingUserId = req.user?.userId || req.user?.id;
 
   const validationError = validateId(scheduleId);
   if (validationError) {
     return handleError(res, validationError, 400);
   }
 
-  // Check if schedule exists
-  const scheduleExists = await checkRecordExists(req.db, 'work_schedule', 'schedule_id', scheduleId);
-  if (!scheduleExists) {
+  // Get schedule details including user_id for permission check
+  const [schedule] = await getRecords(req.db, `
+    SELECT schedule_id, user_id, status, schedule_date 
+    FROM work_schedule 
+    WHERE schedule_id = ?
+  `, [scheduleId]);
+  
+  if (!schedule) {
     return handleError(res, 'Schedule not found', 404);
+  }
+
+  // Staff can only delete their own schedules
+  if (userRole === 'staff' && schedule.user_id != requestingUserId) {
+    return handleError(res, 'Staff can only delete their own schedules', 403);
+  }
+
+  // Staff can only delete future schedules that are still 'scheduled'
+  if (userRole === 'staff') {
+    const scheduleDate = new Date(schedule.schedule_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (scheduleDate < today) {
+      return handleError(res, 'Cannot delete past schedules', 403);
+    }
+    
+    if (schedule.status !== 'scheduled') {
+      return handleError(res, 'Can only delete scheduled shifts', 403);
+    }
   }
 
   if (soft_delete === 'true') {

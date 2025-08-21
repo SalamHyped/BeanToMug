@@ -163,16 +163,18 @@ const RealTimeDashboard = () => {
                 <RecentTasks tasks={tasks} />
                 
                     <Inventory />
+                    
                
                 
                     <div className={styles.contentDiv1}>
-                        {/* First content div */}
                     </div>
                     <div className={styles.contentDiv2}>
                         {/* Second content div */}
                     </div>
+
                 </div>
-           
+                
+
         </div>
     );
 };

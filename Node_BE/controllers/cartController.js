@@ -11,7 +11,7 @@ const {
   validateCartDataFlexible
 } = require('../middleware/cartMiddleware');
 
-// Format cart items to include ingredient details
+// Format cart items to include ingredient details and VAT information
 const formatCartItems = (items) => {
   if (!items || !Array.isArray(items)) {
     return [];
@@ -19,8 +19,34 @@ const formatCartItems = (items) => {
   
   return items.map(item => ({
     ...item,
-    total_price: (item.price || 0) * (item.quantity || 0)
+    total_price: (item.price || 0) * (item.quantity || 0),
+    total_price_with_vat: (item.priceWithVAT || item.price_with_vat || 0) * (item.quantity || 0),
+    total_vat_amount: (item.vatAmount || item.vat_amount || 0) * (item.quantity || 0)
   }));
+};
+
+// Calculate cart totals with VAT breakdown
+const calculateCartTotals = (items) => {
+  if (!items || !Array.isArray(items)) {
+    return {
+      subtotal: 0,
+      totalVatAmount: 0,
+      totalWithVat: 0,
+      itemCount: 0
+    };
+  }
+  
+  const subtotal = items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+  const totalVatAmount = items.reduce((sum, item) => sum + ((item.vatAmount || item.vat_amount || 0) * (item.quantity || 0)), 0);
+  const totalWithVat = items.reduce((sum, item) => sum + ((item.priceWithVAT || item.price_with_vat || item.price || 0) * (item.quantity || 0)), 0);
+  const itemCount = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+  
+  return {
+    subtotal: Math.round(subtotal * 100) / 100,
+    totalVatAmount: Math.round(totalVatAmount * 100) / 100,
+    totalWithVat: Math.round(totalWithVat * 100) / 100,
+    itemCount
+  };
 };
 
 // Get cart items
@@ -31,7 +57,8 @@ const getCart = async (req, res) => {
     if (!cart || !cart.items) {
       return res.json({
         items: [],
-        orderType: cart?.orderType || 'Dine In'
+        orderType: cart?.orderType || 'Dine In',
+        totals: calculateCartTotals([])
       });
     }
     
@@ -41,9 +68,12 @@ const getCart = async (req, res) => {
       return res.status(400).json({ error: 'Invalid cart total' });
     }
     
+    const totals = calculateCartTotals(formattedItems);
+    
     res.json({
       items: formattedItems,
-      orderType: cart.orderType || 'Dine In'
+      orderType: cart.orderType || 'Dine In',
+      totals: totals
     });
   } catch (error) {
     console.error('Error getting cart:', error);

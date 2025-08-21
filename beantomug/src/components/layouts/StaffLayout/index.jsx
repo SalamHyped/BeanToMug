@@ -10,12 +10,14 @@ import {
   FaBoxes, 
   FaImages, 
   FaUserCog,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaCalendarAlt
 } from 'react-icons/fa';
 
 // Static navigation items - better for tree-shaking
 const STAFF_NAV_ITEMS = [
   { to: "/staff", label: "Dashboard", icon: FaHome },
+  { to: "/staff/schedule", label: "Schedule", icon: FaCalendarAlt },
   { to: "/staff/tasks", label: "My Tasks", icon: FaCheckSquare },
   { to: "/staff/orders", label: "Orders Queue", icon: FaClipboardList },
   { to: "/staff/receipts", label: "Receipts", icon: FaReceipt },

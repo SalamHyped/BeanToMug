@@ -1,0 +1,450 @@
+/* Container */
+.container {
+  width: 100%;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.summary {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Loading & Error states (reuse from MyScheduleView) */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error {
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.error p {
+  margin: 0;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.emptyIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.emptyState h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.emptyState p {
+  margin: 0 0 0.5rem 0;
+  color: #6b7280;
+}
+
+/* Quick Actions */
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.actionCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.actionCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.actionIcon {
+  font-size: 2rem;
+}
+
+.actionInfo h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.actionInfo p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Shifts List */
+.shiftsList {
+  space-y: 1.5rem;
+}
+
+.dayGroup {
+  margin-bottom: 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.dayHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dayTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.todayBadge {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.tomorrowBadge {
+  background-color: #10b981;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.shiftsCount {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Shifts Grid */
+.shiftsGrid {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.shiftCard {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.shiftCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.shiftCard.urgent {
+  border-left: 4px solid #ef4444;
+}
+
+.shiftCard.medium {
+  border-left: 4px solid #f59e0b;
+}
+
+.shiftCard.low {
+  border-left: 4px solid #10b981;
+}
+
+.shiftHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.shiftName {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+/* Urgency Badges */
+.urgencyBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.urgentBadge {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.mediumBadge {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.lowBadge {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+/* Shift Details */
+.shiftDetails {
+  margin-bottom: 1rem;
+}
+
+.timeInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.timeRange {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.overnightBadge {
+  background-color: #3730a3;
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Staffing Info */
+.staffingInfo {
+  margin-bottom: 1rem;
+}
+
+.staffingBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.staffingProgress {
+  flex: 1;
+  height: 0.5rem;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.staffingFill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.staffingText {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+  min-width: fit-content;
+}
+
+.spotsInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.spotsLeft {
+  font-size: 0.875rem;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.needsMore {
+  font-size: 0.875rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* Benefits */
+.benefits {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.benefit {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background-color: #f1f5f9;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+/* Shift Actions */
+.shiftActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.claimButton {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.claimButton.urgent {
+  background-color: #ef4444;
+  color: white;
+}
+
+.claimButton.urgent:hover {
+  background-color: #dc2626;
+}
+
+.claimButton.medium {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.claimButton.medium:hover {
+  background-color: #d97706;
+}
+
+.claimButton.low {
+  background-color: #10b981;
+  color: white;
+}
+
+.claimButton.low:hover {
+  background-color: #059669;
+}
+
+.claimButton:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .quickActions {
+    grid-template-columns: 1fr;
+  }
+
+  .dayHeader {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .dayTitle {
+    justify-content: center;
+  }
+
+  .shiftsCount {
+    text-align: center;
+  }
+
+  .shiftsGrid {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+  }
+
+  .shiftHeader {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .timeInfo {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .staffingBar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .spotsInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}

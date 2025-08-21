@@ -1,6 +1,7 @@
 const { dbSingleton } = require('../dbSingleton');
 const { migrateSessionCartToUser, getCartItems, updateCartTotal } = require('../utils/cartMigration');
 const { processIngredientSelections, getIngredientsForStorage, createOptionsForDisplay } = require('../utils/ingredientProcessor');
+const { calculateItemPriceWithOptions, calculateOrderVAT } = require('../utils/priceCalculator');
 
 /**
  * Cart Service
@@ -428,7 +429,26 @@ class CartService {
       // Process ingredient selections with validation, price calculation, and auto-addition
       const processedResult = processIngredientSelections(options, availableIngredients, item.price);
       
-
+      // Calculate VAT-inclusive price using the proper priceCalculator
+      let priceWithVAT = processedResult.pricing.totalPrice;
+      let vatAmount = 0;
+      try {
+        priceWithVAT = await calculateItemPriceWithOptions(
+          connection,
+          item.item_id,
+          options || {},
+          false, // Don't need detailed breakdown
+          true   // Include VAT
+        );
+        // Calculate VAT amount
+        vatAmount = priceWithVAT - processedResult.pricing.totalPrice;
+      } catch (error) {
+        console.warn(`Failed to calculate VAT for item ${item.item_id}:`, error);
+        // Fallback: calculate VAT manually with 15% rate
+        const FALLBACK_VAT_RATE = 15.00;
+        vatAmount = (processedResult.pricing.totalPrice * FALLBACK_VAT_RATE) / 100;
+        priceWithVAT = processedResult.pricing.totalPrice + vatAmount;
+      }
       
       // Check if item with same options already exists in cart
       // Get all existing items with the same item_id
@@ -457,11 +477,11 @@ class CartService {
           WHERE order_item_id = ?
         `, [quantity, exactMatch.order_item_id]);
       } else {
-        // Add new item to cart
+        // Add new item to cart with VAT information
         const [result] = await connection.execute(`
-          INSERT INTO order_item (order_id, item_id, quantity, price, created_at, updated_at)
-          VALUES (?, ?, ?, ?, NOW(), NOW())
-        `, [cartOrder.order_id, item.item_id, quantity, processedResult.pricing.totalPrice]);
+          INSERT INTO order_item (order_id, item_id, quantity, price, price_with_vat, vat_amount, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+        `, [cartOrder.order_id, item.item_id, quantity, processedResult.pricing.totalPrice, priceWithVAT, vatAmount]);
 
         // Add all ingredients (user selected + auto-added required)
         const ingredientsForStorage = getIngredientsForStorage(processedResult);
@@ -790,11 +810,35 @@ class CartService {
       // Create options for display (only user-selected ingredients)
       const displayOptions = createOptionsForDisplay(processedResult);
 
+      // Calculate VAT-inclusive price using the proper priceCalculator
+      let priceWithVAT = processedResult.pricing.totalPrice;
+      let vatAmount = 0;
+      try {
+        const connection = await dbSingleton.getConnection();
+        priceWithVAT = await calculateItemPriceWithOptions(
+          connection,
+          item.item_id,
+          options || {},
+          false, // Don't need detailed breakdown
+          true   // Include VAT
+        );
+        // Calculate VAT amount
+        vatAmount = priceWithVAT - processedResult.pricing.totalPrice;
+      } catch (error) {
+        console.warn(`Failed to calculate VAT for item ${item.item_id}:`, error);
+        // Fallback: calculate VAT manually with 15% rate
+        const FALLBACK_VAT_RATE = 15.00;
+        vatAmount = (processedResult.pricing.totalPrice * FALLBACK_VAT_RATE) / 100;
+        priceWithVAT = processedResult.pricing.totalPrice + vatAmount;
+      }
+
       // Create cart item with validated data
       const cartItem = {
         item_id: item.item_id,
         item_name: item.item_name,
-        price: processedResult.pricing.totalPrice,
+        price: processedResult.pricing.totalPrice,     // Base price without VAT
+        priceWithVAT: priceWithVAT,                    // Price including VAT
+        vatAmount: vatAmount,                          // VAT amount for this item
         quantity: quantity,
         options: displayOptions,
         // Store all ingredient information for security and data integrity
@@ -816,6 +860,7 @@ class CartService {
       if (existingItemIndex !== -1) {
         // Update quantity if item exists
         sessionCart.items[existingItemIndex].quantity += quantity;
+        // Note: VAT per unit remains the same, total VAT scales with quantity
       } else {
         // Add new item if it doesn't exist
         sessionCart.items.push(cartItem);

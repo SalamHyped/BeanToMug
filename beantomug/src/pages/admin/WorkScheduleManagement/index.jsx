@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import styles from './index.module.css';
 import ScheduleCalendar from './components/ScheduleCalendar';
 import ScheduleForm from './components/ScheduleForm';
 import ScheduleFilters from './components/ScheduleFilters';
 import ShiftManager from './components/ShiftManager';
 import AttendancePanel from './components/AttendancePanel';
+import StaffPlanningModal from './components/StaffPlanningModal';
 import { useSchedules } from './hooks';
+import { getApiConfig } from '../../../utils/config';
 
 const WorkScheduleManagement = () => {
   const [activeView, setActiveView] = useState('calendar'); // 'calendar', 'add', 'shifts', 'attendance'
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editingScheduleId, setEditingScheduleId] = useState(null);
+  const [showStaffPlanningModal, setShowStaffPlanningModal] = useState(false);
+  const [staffPlanningSettings, setStaffPlanningSettings] = useState({
+    start_date: '',
+    exclude_dates: ''
+  });
 
   // Use the schedules hook for state management (filters managed internally)
   const { 
@@ -27,6 +35,20 @@ const WorkScheduleManagement = () => {
     markAttendance,
     checkAvailability
   } = useSchedules();
+
+  // Load existing planning settings on component mount
+  useEffect(() => {
+    const loadPlanningSettings = async () => {
+      try {
+        const response = await axios.get('/work-schedule/planning-settings', getApiConfig());
+        setStaffPlanningSettings(response.data.settings);
+      } catch (error) {
+        console.error('Error loading planning settings:', error);
+      }
+    };
+    
+    loadPlanningSettings();
+  }, []);
 
   const handleViewChange = (view) => {
     setActiveView(view);
@@ -64,6 +86,20 @@ const WorkScheduleManagement = () => {
 
   const handleFilterChange = (newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+
+  const handleStaffPlanningSettings = async (settings) => {
+    try {
+      setStaffPlanningSettings(settings);
+      
+      // Save to backend using axios (consistent with rest of app)
+      const response = await axios.post('/work-schedule/planning-settings', settings, getApiConfig());
+      
+      alert('Staff planning settings saved! Staff will now see shifts based on your configuration.');
+    } catch (error) {
+      console.error('Error saving planning settings:', error);
+      alert('Failed to save planning settings. Please try again.');
+    }
   };
 
   const renderContent = () => {
@@ -133,6 +169,13 @@ const WorkScheduleManagement = () => {
           >
             ✅ Attendance
           </button>
+          <button
+            className={styles.settingsButton}
+            onClick={() => setShowStaffPlanningModal(true)}
+            title="Configure what staff can see in their Available Shifts"
+          >
+            ⚙️ Staff Planning
+          </button>
         </div>
       </div>
 
@@ -154,6 +197,13 @@ const WorkScheduleManagement = () => {
       <div className={styles.content}>
         {renderContent()}
       </div>
+
+      <StaffPlanningModal
+        isOpen={showStaffPlanningModal}
+        onClose={() => setShowStaffPlanningModal(false)}
+        onSave={handleStaffPlanningSettings}
+        currentSettings={staffPlanningSettings}
+      />
     </div>
   );
 };

@@ -7,6 +7,7 @@
  */
 
 const { getAvailableIngredients } = require('./cartService');
+const { calculateItemPriceWithOptions } = require('../utils/priceCalculator');
 
 /**
  * Get detailed dish information with ingredients and options
@@ -155,10 +156,27 @@ async function getDishDetails(db, dishId, options = {}) {
       
       const isAvailable = itemActive && requiredIngredientsAvailable;
 
+      // Calculate VAT-inclusive price with no options (base price + VAT)
+      let priceWithVAT = dish.price;
+      try {
+        priceWithVAT = await calculateItemPriceWithOptions(
+          db, 
+          dishId, 
+          {}, // No options for base price
+          false, // Don't need details
+          true   // Include VAT
+        );
+      } catch (error) {
+        console.warn(`Failed to calculate VAT price for dish ${dishId}:`, error);
+        // Fallback: calculate VAT manually with 15% rate
+        priceWithVAT = dish.price * 1.15;
+      }
+
       return { 
         success: true, 
         dish: { 
           ...dish, 
+          priceWithVAT,      // VAT-inclusive base price
           options,           // Customization options for frontend
           ingredients,       // Ingredient list
           isAvailable        // Overall availability status
@@ -177,39 +195,74 @@ async function getDishDetails(db, dishId, options = {}) {
 }
 
 /**
- * Enhance basic dish arrays with availability info (optional)
- * This function can take an array of basic dishes and optionally add availability
+ * Enhance basic dish arrays with availability info and VAT prices
+ * This function can take an array of basic dishes and optionally add availability and VAT pricing
  * 
+ * @param {Object} db - Database connection
  * @param {Array} dishes - Array of basic dish objects
  * @param {Object} options - Configuration options
  * @param {boolean} options.includeAvailability - Whether to check and include availability
+ * @param {boolean} options.includeVAT - Whether to calculate and include VAT prices
  * @returns {Array} Enhanced dishes array
  */
-async function enhanceDishesArray(dishes, options = {}) {
-  const { includeAvailability = false } = options;
+async function enhanceDishesArray(db, dishes, options = {}) {
+  const { includeAvailability = false, includeVAT = false } = options;
   
-  if (!includeAvailability || !dishes || dishes.length === 0) {
+  if ((!includeAvailability && !includeVAT) || !dishes || dishes.length === 0) {
     return dishes; // Return as-is if no enhancement needed
   }
 
   try {
-    // For each dish, quickly check if it has available required ingredients
+    // For each dish, check availability and calculate VAT prices as needed
     const enhancedDishes = await Promise.all(
       dishes.map(async (dish) => {
         try {
-          const availableIngredients = await getAvailableIngredients(dish.item_id);
+          let enhancedDish = { ...dish };
+
+          // Calculate VAT price if requested
+          if (includeVAT) {
+            try {
+              const priceWithVAT = await calculateItemPriceWithOptions(
+                db, 
+                dish.item_id, 
+                {}, // No options for base price
+                false, // Don't need details
+                true   // Include VAT
+              );
+              enhancedDish.priceWithVAT = priceWithVAT;
+            } catch (error) {
+              console.warn(`Failed to calculate VAT price for dish ${dish.item_id}:`, error);
+              // Fallback: calculate VAT manually with 15% rate
+              enhancedDish.priceWithVAT = dish.price * 1.15;
+            }
+          }
+
+          // Check availability if requested
+          if (includeAvailability) {
+            const availableIngredients = await getAvailableIngredients(dish.item_id);
+            
+            // Quick availability check based on required ingredients
+            const isAvailable = dish.status && availableIngredients
+              .filter(group => group.required)
+              .every(group => group.ingredients.some(ing => 
+                group.isPhysical ? ing.stock > 0 : true
+              ));
+            
+            enhancedDish.isAvailable = isAvailable;
+          }
           
-          // Quick availability check based on required ingredients
-          const isAvailable = dish.status && availableIngredients
-            .filter(group => group.required)
-            .every(group => group.ingredients.some(ing => 
-              group.isPhysical ? ing.stock > 0 : true
-            ));
-          
-          return { ...dish, isAvailable };
+          return enhancedDish;
         } catch (error) {
-          console.warn(`Failed to check availability for dish ${dish.item_id}:`, error);
-          return { ...dish, isAvailable: dish.status }; // Fallback to dish status
+          console.warn(`Failed to enhance dish ${dish.item_id}:`, error);
+          // Fallback enhancement
+          const fallbackDish = { ...dish };
+          if (includeAvailability) {
+            fallbackDish.isAvailable = dish.status;
+          }
+          if (includeVAT) {
+            fallbackDish.priceWithVAT = dish.price * 1.15; // 15% VAT fallback
+          }
+          return fallbackDish;
         }
       })
     );

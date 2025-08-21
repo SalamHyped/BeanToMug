@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { getApiConfig } from '../../../../utils/config';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import useApiBase from './useApiBase';
 
 const useSchedules = () => {
   const [schedules, setSchedules] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  
+  // Get API functions from useApiBase (these are stable)
+  const { loading, error, get, post, put, delete: del } = useApiBase();
 
   const [filters, setFilters] = useState({
     search: '',
@@ -20,115 +20,114 @@ const useSchedules = () => {
     sortOrder: 'asc'
   });
 
-  // Use the existing API config
-  const apiConfig = getApiConfig();
+  // Memoize filter values to prevent unnecessary re-renders
+  const memoizedFilters = useMemo(() => filters, [
+    filters.search,
+    filters.user_id,
+    filters.shift_id,
+    filters.status,
+    filters.date_from,
+    filters.date_to,
+    filters.sortBy,
+    filters.sortOrder
+  ]);
 
   // Fetch all schedules with filters
   const fetchSchedules = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       const params = new URLSearchParams();
       
-      Object.entries(filters).forEach(([key, value]) => {
+      Object.entries(memoizedFilters).forEach(([key, value]) => {
         if (value && value !== 'all' && value !== '') {
           params.append(key, value);
         }
       });
 
-      const response = await axios.get(`/work-schedule/schedules?${params}`, apiConfig);
+      const response = await get(`/work-schedule/schedules?${params}`);
       setSchedules(response.data.schedules || []);
     } catch (err) {
-      console.error('Error fetching schedules:', err);
-      setError(err.response?.data?.message || 'Failed to fetch schedules');
       setSchedules([]);
-    } finally {
-      setLoading(false);
+      // Error is handled by useApiBase
     }
-  }, [filters]); // Only depend on filters when they actually change
+  }, [memoizedFilters]); // Depend on memoized filters, NOT on get function
 
   // Fetch all shifts
   const fetchShifts = useCallback(async () => {
     try {
-      const response = await axios.get('/work-schedule/shifts', apiConfig);
+      const response = await get('/work-schedule/shifts');
       setShifts(response.data.shifts || []);
     } catch (err) {
-      console.error('Error fetching shifts:', err);
       setShifts([]);
+      // Error is handled by useApiBase
     }
-  }, []);
+  }, []); // No dependencies - get is stable
 
   // Fetch users for scheduling
   const fetchUsers = useCallback(async () => {
     try {
-      const response = await axios.get('/admin/users', apiConfig);
+      const response = await get('/admin/users');
       setUsers(response.data.filter(user => user.status === 1) || []);
     } catch (err) {
-      console.error('Error fetching users:', err);
       setUsers([]);
+      // Error is handled by useApiBase
     }
-  }, []);
+  }, []); // No dependencies - get is stable
 
   // Create a new schedule
   const createSchedule = useCallback(async (scheduleData) => {
     try {
-      const response = await axios.post('/work-schedule/schedules', scheduleData, apiConfig);
+      const response = await post('/work-schedule/schedules', scheduleData);
       await fetchSchedules(); // Refresh the list
       return response.data;
     } catch (err) {
-      console.error('Error creating schedule:', err);
-      throw err;
+      throw err; // Re-throw for component handling
     }
-  }, [fetchSchedules]);
+  }, []); // No dependencies - post and fetchSchedules are stable
 
   // Update an existing schedule
   const updateSchedule = useCallback(async (scheduleId, scheduleData) => {
     try {
-      const response = await axios.put(`/work-schedule/schedules/${scheduleId}`, scheduleData, apiConfig);
+      const response = await put(`/work-schedule/schedules/${scheduleId}`, scheduleData);
       await fetchSchedules(); // Refresh the list
       return response.data;
     } catch (err) {
-      console.error('Error updating schedule:', err);
-      throw err;
+      throw err; // Re-throw for component handling
     }
-  }, [fetchSchedules]);
+  }, []); // No dependencies - put and fetchSchedules are stable
 
   // Delete a schedule
   const deleteSchedule = useCallback(async (scheduleId) => {
     try {
-      await axios.delete(`/work-schedule/schedules/${scheduleId}`, apiConfig);
+      await del(`/work-schedule/schedules/${scheduleId}`);
       await fetchSchedules(); // Refresh the list
     } catch (err) {
-      console.error('Error deleting schedule:', err);
-      throw err;
+      throw err; // Re-throw for component handling
     }
-  }, [fetchSchedules]);
+  }, []); // No dependencies - del and fetchSchedules are stable
 
   // Get a single schedule by ID
   const getSchedule = useCallback(async (scheduleId) => {
     try {
-      const response = await axios.get(`/work-schedule/schedules/${scheduleId}`, apiConfig);
+      const response = await get(`/work-schedule/schedules/${scheduleId}`);
       return response.data.schedule;
     } catch (err) {
-      console.error('Error fetching schedule:', err);
-      throw err;
+      throw err; // Re-throw for component handling
     }
-  }, []);
+  }, []); // No dependencies - get is stable
 
   // Mark attendance for a schedule
   const markAttendance = useCallback(async (scheduleId, status, notes = '') => {
     try {
-      const response = await axios.put(`/work-schedule/schedules/${scheduleId}/attendance`, {
+      const response = await put(`/work-schedule/schedules/${scheduleId}/attendance`, {
         status,
         notes
-      }, apiConfig);
+      });
       await fetchSchedules(); // Refresh the list
       return response.data;
     } catch (err) {
-      console.error('Error marking attendance:', err);
-      throw err;
+      throw err; // Re-throw for component handling
     }
-  }, [fetchSchedules]);
+  }, []); // No dependencies - put and fetchSchedules are stable
 
   // Check shift availability and staffing info
   const checkAvailability = useCallback(async (shiftId, scheduleDate) => {
@@ -138,27 +137,25 @@ const useSchedules = () => {
         schedule_date: scheduleDate
       });
       
-      const response = await axios.get(`/work-schedule/availability?${params}`, apiConfig);
+      const response = await get(`/work-schedule/availability?${params}`);
       return response.data;
     } catch (err) {
-      console.error('Error checking shift availability:', err);
-      throw err;
+      throw err; // Re-throw for component handling
     }
-  }, []);
+  }, []); // No dependencies - get is stable
 
   // Create multiple schedules at once
   const createBulkSchedules = useCallback(async (schedulesData) => {
     try {
-      const response = await axios.post('/work-schedule/schedules/bulk', {
+      const response = await post('/work-schedule/schedules/bulk', {
         schedules: schedulesData
-      }, apiConfig);
+      });
       await fetchSchedules(); // Refresh the list
       return response.data;
     } catch (err) {
-      console.error('Error creating bulk schedules:', err);
-      throw err;
+      throw err; // Re-throw for component handling
     }
-  }, [fetchSchedules]);
+  }, []); // No dependencies - post and fetchSchedules are stable
 
   // Initial data fetch
   useEffect(() => {
@@ -169,7 +166,7 @@ const useSchedules = () => {
   // Fetch schedules whenever filters change (including initial load)
   useEffect(() => {
     fetchSchedules();
-  }, [fetchSchedules]); // Only depend on the callback
+  }, [memoizedFilters]); // Depend on memoized filters, not fetchSchedules function
 
   return {
     // Data

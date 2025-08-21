@@ -82,6 +82,23 @@
   overflow: hidden;
 }
 
+.dashboardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.dashboardSection {
+  width: 100%;
+}
+
+.scheduleSection {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
 
 
 
@@ -164,6 +181,15 @@
   
   .header {
     margin-bottom: 1.5rem;
+  }
+
+  .dashboardContent {
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .scheduleSection {
+    max-width: none;
   }
 
   .welcomeSection {
