@@ -22,8 +22,8 @@ const useSupplierEditor = () => {
       });
 
       if (response.data.success) {
-        setSupplier(response.data.data.supplier);
-        return { success: true, supplier: response.data.data.supplier };
+        setSupplier(response.data.supplier);
+        return { success: true, supplier: response.data.supplier };
       } else {
         const errorMsg = 'Failed to fetch supplier details';
         setError(errorMsg);
@@ -50,7 +50,7 @@ const useSupplierEditor = () => {
       });
 
       if (response.data.success) {
-        return { success: true, supplier: response.data.data };
+        return { success: true, supplier: response.data };
       } else {
         const errorMsg = response.data.message || 'Failed to create supplier';
         setError(errorMsg);
@@ -77,7 +77,7 @@ const useSupplierEditor = () => {
       });
 
       if (response.data.success) {
-        return { success: true, supplier: response.data.data };
+        return { success: true, supplier: response.data };
       } else {
         const errorMsg = response.data.message || 'Failed to update supplier';
         setError(errorMsg);

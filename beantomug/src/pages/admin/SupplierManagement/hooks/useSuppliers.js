@@ -110,7 +110,7 @@ const useSuppliers = (filters = {}) => {
       });
 
       if (response.data.success) {
-        return { success: true, supplier: response.data.data.supplier };
+        return { success: true, supplier: response.data.supplier };
       } else {
         return { success: false, error: 'Failed to fetch supplier details' };
       }

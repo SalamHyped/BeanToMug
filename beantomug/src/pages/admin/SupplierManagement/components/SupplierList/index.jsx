@@ -1,5 +1,4 @@
 import React from 'react';
-import { useSuppliers } from '../../hooks';
 import styles from './index.module.css';
 
 const SupplierList = ({ 
@@ -9,13 +8,11 @@ const SupplierList = ({
   error = null,
   filteredCount = 0,
   filteredActiveCount = 0,
-  filteredInactiveCount = 0
+  filteredInactiveCount = 0,
+  onToggleStatus,
+  onDeleteSupplier,
+  onRefresh
 }) => {
-  const {
-    toggleSupplierStatus,
-    deleteSupplier,
-    fetchSuppliers
-  } = useSuppliers();
 
   const handleEdit = (supplier) => {
     if (onEditSupplier) {
@@ -24,17 +21,21 @@ const SupplierList = ({
   };
 
   const handleToggleStatus = async (supplierId, currentStatus) => {
-    const result = await toggleSupplierStatus(supplierId, currentStatus);
-    if (!result.success) {
-      console.error('Failed to toggle supplier status');
+    if (onToggleStatus) {
+      const result = await onToggleStatus(supplierId, currentStatus);
+      if (!result.success) {
+        console.error('Failed to toggle supplier status');
+      }
     }
   };
 
   const handleDelete = async (supplier) => {
     if (window.confirm(`Are you sure you want to delete "${supplier.supplier_name}"? This action cannot be undone and may affect related ingredients and orders.`)) {
-      const result = await deleteSupplier(supplier.supplier_id);
-      if (!result.success) {
-        console.error('Failed to delete supplier');
+      if (onDeleteSupplier) {
+        const result = await onDeleteSupplier(supplier.supplier_id);
+        if (!result.success) {
+          console.error('Failed to delete supplier');
+        }
       }
     }
   };
@@ -51,7 +52,7 @@ const SupplierList = ({
     return (
       <div className={styles.error}>
         <p>{error}</p>
-        <button onClick={fetchSuppliers} className={styles.retryButton}>
+        <button onClick={onRefresh} className={styles.retryButton}>
           Retry
         </button>
       </div>

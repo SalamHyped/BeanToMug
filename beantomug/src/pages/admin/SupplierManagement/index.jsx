@@ -25,7 +25,9 @@ const SupplierManagement = () => {
     error, 
     filteredCount, 
     filteredActiveCount, 
-    filteredInactiveCount 
+    filteredInactiveCount,
+    toggleSupplierStatus,
+    deleteSupplier
   } = useSuppliers(filters);
 
   const handleViewChange = (view) => {
@@ -106,6 +108,9 @@ const SupplierManagement = () => {
               filteredCount={filteredCount}
               filteredActiveCount={filteredActiveCount}
               filteredInactiveCount={filteredInactiveCount}
+              onToggleStatus={toggleSupplierStatus}
+              onDeleteSupplier={deleteSupplier}
+              onRefresh={fetchSuppliers}
             />
           </div>
         )}

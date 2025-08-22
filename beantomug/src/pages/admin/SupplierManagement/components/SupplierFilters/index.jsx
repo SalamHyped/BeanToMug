@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './index.module.css';
 
 const SupplierFilters = ({ onFiltersChange, currentFilters, loading }) => {
@@ -9,6 +9,8 @@ const SupplierFilters = ({ onFiltersChange, currentFilters, loading }) => {
     sortOrder: 'asc',
     ...currentFilters
   });
+  
+  const searchTimeoutRef = useRef(null);
 
   // Update local filters when parent filters change
   useEffect(() => {
@@ -17,6 +19,15 @@ const SupplierFilters = ({ onFiltersChange, currentFilters, loading }) => {
       ...currentFilters
     }));
   }, [currentFilters]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleFilterChange = (field, value) => {
     const newFilters = {
@@ -27,8 +38,8 @@ const SupplierFilters = ({ onFiltersChange, currentFilters, loading }) => {
     
     // Debounce search input, apply others immediately
     if (field === 'search') {
-      clearTimeout(window.searchTimeout);
-      window.searchTimeout = setTimeout(() => {
+      clearTimeout(searchTimeoutRef.current);
+      searchTimeoutRef.current = setTimeout(() => {
         onFiltersChange(newFilters);
       }, 300);
     } else {

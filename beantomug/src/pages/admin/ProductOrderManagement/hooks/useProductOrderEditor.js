@@ -111,7 +111,7 @@ const useProductOrderEditor = () => {
       );
 
       if (response.data.success) {
-        return { success: true, data: response.data.data };
+        return { success: true, data: response.data };
       } else {
         const errorMsg = response.data.message || 'Failed to update order status';
         setError(errorMsg);
