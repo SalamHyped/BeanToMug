@@ -72,7 +72,7 @@ const validateStatus = (status) => {
  * @returns {string|null} - Error message or null if valid
  */
 const validateId = (id) => {
-  if (!id || isNaN(id) || parseInt(id) <= 0) {
+  if (id === null || id === undefined || id === '' || isNaN(id) || parseInt(id) < 0) {
     return 'Invalid ID parameter';
   }
   return null;

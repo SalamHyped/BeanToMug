@@ -1,5 +1,6 @@
 import React from 'react';
 import { useProductOrders } from '../../hooks';
+import { FaEye, FaEdit, FaTimesCircle, FaTrash } from 'react-icons/fa';
 import styles from './index.module.css';
 
 const ProductOrderList = ({ 
@@ -28,6 +29,12 @@ const ProductOrderList = ({
   };
 
   const handleStatusUpdate = async (orderId, currentStatus) => {
+    // Validate orderId before proceeding
+    if (orderId === null || orderId === undefined || isNaN(orderId) || parseInt(orderId) < 0) {
+      console.error('❌ Invalid orderId in handleStatusUpdate:', orderId);
+      return;
+    }
+
     // Define next status progression
     const statusProgression = {
       'pending': 'shipped',
@@ -39,7 +46,7 @@ const ProductOrderList = ({
     const nextStatus = statusProgression[currentStatus];
     
     if (nextStatus && nextStatus !== currentStatus) {
-      const result = await updateOrderStatus(orderId, nextStatus);
+      const result = await updateOrderStatus(parseInt(orderId), nextStatus);
       if (!result.success) {
         console.error('Failed to update order status');
       }
@@ -47,8 +54,14 @@ const ProductOrderList = ({
   };
 
   const handleCancelOrder = async (orderId) => {
+    // Validate orderId before proceeding
+    if (orderId === null || orderId === undefined || isNaN(orderId) || parseInt(orderId) < 0) {
+      console.error('❌ Invalid orderId in handleCancelOrder:', orderId);
+      return;
+    }
+
     if (window.confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
-      const result = await updateOrderStatus(orderId, 'cancelled');
+      const result = await updateOrderStatus(parseInt(orderId), 'cancelled');
       if (!result.success) {
         console.error('Failed to cancel order');
       }
@@ -186,7 +199,7 @@ const ProductOrderList = ({
                       className={styles.viewButton}
                       title="View order details"
                     >
-                      👁️ View
+                      <FaEye /> View
                     </button>
                     
                     {order.status === 'pending' && (
@@ -195,7 +208,7 @@ const ProductOrderList = ({
                         className={styles.editButton}
                         title="Edit order"
                       >
-                        ✏️ Edit
+                        <FaEdit /> Edit
                       </button>
                     )}
                     
@@ -215,7 +228,7 @@ const ProductOrderList = ({
                         className={styles.cancelButton}
                         title="Cancel order"
                       >
-                        ❌ Cancel
+                        <FaTimesCircle /> Cancel
                       </button>
                     )}
                     
@@ -225,7 +238,7 @@ const ProductOrderList = ({
                         className={styles.deleteButton}
                         title="Delete order"
                       >
-                        🗑️ Delete
+                        <FaTrash /> Delete
                       </button>
                     )}
                   </td>
