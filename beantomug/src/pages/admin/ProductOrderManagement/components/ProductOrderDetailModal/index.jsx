@@ -30,8 +30,18 @@ const ProductOrderDetailModal = ({ isOpen, onClose, orderId }) => {
 
   // Fetch order details when modal opens
   useEffect(() => {
-    if (isOpen && orderId) {
+    if (isOpen && (orderId !== null && orderId !== undefined)) {
+      // Reset state when opening modal
+      setOrderDetails(null);
+      setError(null);
       fetchOrderDetails();
+    } else {
+      // Reset state when modal closes
+      if (!isOpen) {
+        setOrderDetails(null);
+        setError(null);
+        setLoading(false);
+      }
     }
   }, [isOpen, orderId]);
 
@@ -121,18 +131,22 @@ const ProductOrderDetailModal = ({ isOpen, onClose, orderId }) => {
         <div className={styles.modalBody}>
           {loading && (
             <div className={styles.loading}>
-              <p>Loading order details...</p>
+              <div className={styles.spinner}></div>
+              <p>Loading order details for Order ID: {orderId}...</p>
             </div>
           )}
 
           {error && (
             <div className={styles.error}>
               <p>{error}</p>
+              <p>Order ID: {orderId}</p>
               <button onClick={fetchOrderDetails} className={styles.retryButton}>
                 Retry
               </button>
             </div>
           )}
+
+
 
           {orderDetails && !loading && (
             <div className={styles.orderDetailsContainer}>
@@ -250,11 +264,11 @@ const ProductOrderDetailModal = ({ isOpen, onClose, orderId }) => {
                 <div className={styles.summaryGrid}>
                   <div className={styles.summaryItem}>
                     <span className={styles.label}>Total Items:</span>
-                    <span className={styles.value}>{orderDetails.order.item_count}</span>
+                    <span className={styles.value}>{orderDetails.statistics.total_items}</span>
                   </div>
                   <div className={styles.summaryItem}>
                     <span className={styles.label}>Total Quantity:</span>
-                    <span className={styles.value}>{orderDetails.order.total_quantity}</span>
+                    <span className={styles.value}>{orderDetails.statistics.total_quantity}</span>
                   </div>
                   <div className={styles.summaryItem}>
                     <span className={styles.label}>Order Status:</span>

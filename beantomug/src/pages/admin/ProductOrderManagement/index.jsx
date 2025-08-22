@@ -29,7 +29,9 @@ const ProductOrderManagement = () => {
     loading, 
     error, 
     filteredCount, 
-    orderStatistics 
+    orderStatistics,
+    updateOrderStatus,
+    deleteProductOrder
   } = useProductOrders(filters);
 
   const handleViewChange = (view) => {
@@ -145,6 +147,8 @@ const ProductOrderManagement = () => {
               loading={loading}
               error={error}
               filteredCount={filteredCount}
+              onStatusUpdate={updateOrderStatus}
+              onOrderDelete={deleteProductOrder}
             />
           </div>
         )}

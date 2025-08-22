@@ -1,5 +1,4 @@
 import React from 'react';
-import { useProductOrders } from '../../hooks';
 import { FaEye, FaEdit, FaTimesCircle, FaTrash } from 'react-icons/fa';
 import styles from './index.module.css';
 
@@ -9,12 +8,10 @@ const ProductOrderList = ({
   orders = [], 
   loading = false, 
   error = null,
-  filteredCount = 0
+  filteredCount = 0,
+  onStatusUpdate,
+  onOrderDelete
 }) => {
-  const {
-    updateOrderStatus,
-    deleteProductOrder
-  } = useProductOrders();
 
   const handleEdit = (order) => {
     if (onEditOrder) {
@@ -45,8 +42,8 @@ const ProductOrderList = ({
 
     const nextStatus = statusProgression[currentStatus];
     
-    if (nextStatus && nextStatus !== currentStatus) {
-      const result = await updateOrderStatus(parseInt(orderId), nextStatus);
+    if (nextStatus && nextStatus !== currentStatus && onStatusUpdate) {
+      const result = await onStatusUpdate(parseInt(orderId), nextStatus);
       if (!result.success) {
         console.error('Failed to update order status');
       }
@@ -60,8 +57,8 @@ const ProductOrderList = ({
       return;
     }
 
-    if (window.confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
-      const result = await updateOrderStatus(parseInt(orderId), 'cancelled');
+    if (window.confirm('Are you sure you want to cancel this order? This action cannot be undone.') && onStatusUpdate) {
+      const result = await onStatusUpdate(parseInt(orderId), 'cancelled');
       if (!result.success) {
         console.error('Failed to cancel order');
       }
@@ -74,8 +71,8 @@ const ProductOrderList = ({
       return;
     }
 
-    if (window.confirm(`Are you sure you want to delete order #${order.order_id}? This action cannot be undone.`)) {
-      const result = await deleteProductOrder(order.order_id);
+    if (window.confirm(`Are you sure you want to delete order #${order.order_id}? This action cannot be undone.`) && onOrderDelete) {
+      const result = await onOrderDelete(order.order_id);
       if (!result.success) {
         console.error('Failed to delete order');
       }

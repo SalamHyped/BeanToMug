@@ -225,6 +225,7 @@ router.get('/', asyncHandler(async (req, res) => {
       date_from: date_from || null,
       date_to: date_to || null
     };
+    
     const { whereClause, queryParams } = buildWhereClause(filters, filterMap);
 
     // Validate sort parameters using helper

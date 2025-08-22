@@ -29,6 +29,8 @@ const useProductOrders = (filters = {}) => {
         }
       });
 
+
+
       const response = await axios.get(
         `${getApiConfig().baseURL}/product-orders?${queryParams.toString()}`,
         { withCredentials: true }
@@ -187,7 +189,7 @@ const useProductOrders = (filters = {}) => {
 
   // Fetch orders when filters change
   useEffect(() => {
-    fetchProductOrders();
+    fetchProductOrders(filters); // Pass the current filters explicitly
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     filters.supplier_id, 
