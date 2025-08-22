@@ -11,10 +11,31 @@ export const generateReceiptContent = (order) => {
     if (!order) return '';
 
     const items = order.items || [];
-    const totalAmount = parseFloat(order.total_amount || order.totalAmount || 0);
-    const vatRate = 0.15; // 15% VAT
-    const subtotal = totalAmount / (1 + vatRate);
-    const vatAmount = totalAmount - subtotal;
+    
+    // Calculate totals from item-level VAT data when available
+    let subtotal = 0;
+    let totalVatAmount = 0;
+    let totalAmount = 0;
+    
+    items.forEach(item => {
+        const itemQuantity = parseInt(item.quantity || 1);
+        const itemBasePrice = parseFloat(item.price || item.item_price || 0);
+        const itemVatAmount = parseFloat(item.vat_amount || item.vatAmount || 0);
+        const itemPriceWithVat = parseFloat(item.price_with_vat || item.priceWithVAT || itemBasePrice);
+        
+        subtotal += itemBasePrice * itemQuantity;
+        totalVatAmount += itemVatAmount * itemQuantity;
+        totalAmount += itemPriceWithVat * itemQuantity;
+    });
+    
+    // Fallback to order total if item-level calculation gives zero
+    if (totalAmount === 0) {
+        totalAmount = parseFloat(order.total_amount || order.totalAmount || 0);
+        // Calculate VAT backwards if no item-level data
+        const vatRate = 0.15; // Fallback VAT rate
+        subtotal = totalAmount / (1 + vatRate);
+        totalVatAmount = totalAmount - subtotal;
+    }
 
     let receipt = '';
     receipt += '='.repeat(40) + '\n';
@@ -66,12 +87,14 @@ export const generateReceiptContent = (order) => {
 
     items.forEach((item, index) => {
         const itemName = item.name || item.item_name || `Item ${index + 1}`;
-        const itemPrice = parseFloat(item.price || item.item_price || 0);
         const itemQuantity = parseInt(item.quantity || 1);
-        const itemTotal = itemPrice * itemQuantity;
+        
+        // Use VAT-inclusive price for customer-facing receipt
+        const itemPriceWithVat = parseFloat(item.price_with_vat || item.priceWithVAT || item.price || item.item_price || 0);
+        const itemTotal = itemPriceWithVat * itemQuantity;
 
         receipt += `${itemName}\n`;
-        receipt += `  ${itemQuantity} x $${itemPrice.toFixed(2)} = $${itemTotal.toFixed(2)}\n`;
+        receipt += `  ${itemQuantity} x $${itemPriceWithVat.toFixed(2)} = $${itemTotal.toFixed(2)}\n`;
      
         // Add ingredients if available (from database structure)
         if (item.ingredients && item.ingredients.length > 0) {
@@ -94,7 +117,7 @@ export const generateReceiptContent = (order) => {
 
     receipt += '-'.repeat(40) + '\n';
     receipt += `Subtotal: $${subtotal.toFixed(2)}\n`;
-    receipt += `VAT (15%): $${vatAmount.toFixed(2)}\n`;
+    receipt += `VAT (15%): $${totalVatAmount.toFixed(2)}\n`;
     receipt += `TOTAL: $${totalAmount.toFixed(2)}\n`;
     receipt += '='.repeat(40) + '\n';
     receipt += 'Thank you for your order!\n';

@@ -1,0 +1,478 @@
+/* Product Order Form Styles */
+.formContainer {
+  padding: 2rem;
+  background: white;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.formHeader {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.formHeader h2 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-color, #333);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.formHeader p {
+  margin: 0;
+  color: var(--text-secondary, #666);
+  font-size: 1rem;
+}
+
+.orderForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Form Fields */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-weight: 600;
+  color: var(--text-color, #333);
+  font-size: 1rem;
+}
+
+.input,
+.select {
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--border-color, #dee2e6);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--primary-color, #8B4513);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+}
+
+.error {
+  border-color: #dc3545;
+}
+
+.error:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.errorText {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Supplier Information */
+.supplierInfo {
+  background: var(--bg-secondary, #f8f9fa);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-color, #dee2e6);
+}
+
+.supplierInfo h3 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-color, #8B4513);
+  font-size: 1.25rem;
+}
+
+.supplierDetails {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.supplierDetails span {
+  color: var(--text-secondary, #666);
+  font-size: 0.95rem;
+}
+
+/* Ingredients Section */
+.ingredientsSection {
+  background: var(--bg-light, #ffffff);
+  border: 1px solid var(--border-color, #dee2e6);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.sectionHeader h3 {
+  margin: 0;
+  color: var(--text-color, #333);
+  font-size: 1.25rem;
+}
+
+.ingredientsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ingredientItem {
+  border: 2px solid var(--border-color, #dee2e6);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.ingredientItem:hover {
+  border-color: var(--primary-color, #8B4513);
+  box-shadow: 0 2px 8px rgba(139, 69, 19, 0.1);
+}
+
+.ingredientItem.selected {
+  border-color: var(--primary-color, #8B4513);
+  background: rgba(139, 69, 19, 0.02);
+}
+
+.ingredientHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+}
+
+.ingredientName {
+  color: var(--text-color, #333);
+  font-size: 1rem;
+}
+
+.ingredientInfo {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.unit {
+  color: var(--text-secondary, #666);
+  font-size: 0.875rem;
+}
+
+.currentPrice {
+  color: var(--primary-color, #8B4513);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.lowStock {
+  background: #ffeaa7;
+  color: #d63031;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Ingredient Inputs */
+.ingredientInputs {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #dee2e6);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  align-items: end;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputGroup label {
+  font-weight: 500;
+  color: var(--text-color, #333);
+  font-size: 0.875rem;
+}
+
+.lineTotal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary, #f8f9fa);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--primary-color, #8B4513);
+}
+
+/* Order Summary */
+.orderSummary {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-color, #dee2e6);
+}
+
+.orderSummary h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-color, #333);
+  font-size: 1.25rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.summaryItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color, #dee2e6);
+}
+
+.totalCost {
+  font-weight: 700;
+  color: var(--primary-color, #8B4513);
+  font-size: 1.1rem;
+}
+
+/* Loading and Empty States */
+.loading,
+.empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary, #666);
+}
+
+.orderError {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+}
+
+.orderError p {
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .ingredientInputs {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .lineTotal {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .formContainer {
+    padding: 1.5rem;
+  }
+  
+  .formHeader h2 {
+    font-size: 1.5rem;
+  }
+  
+  .ingredientInputs {
+    grid-template-columns: 1fr;
+  }
+  
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .supplierDetails {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .ingredientHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .ingredientInfo {
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .formActions {
+    flex-direction: column-reverse;
+  }
+  
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .formContainer {
+    padding: 1rem;
+  }
+  
+  .ingredientsSection {
+    padding: 1rem;
+  }
+  
+  .orderSummary {
+    padding: 1rem;
+  }
+  
+  .supplierInfo {
+    padding: 1rem;
+  }
+}
+
+.comingSoon {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 1rem;
+  border: 2px dashed var(--border-color, #dee2e6);
+}
+
+.comingSoon h3 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-color, #8B4513);
+  font-size: 1.5rem;
+}
+
+.comingSoon p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary, #666);
+}
+
+.comingSoon ul {
+  text-align: left;
+  max-width: 300px;
+  margin: 1rem auto;
+  color: var(--text-color, #333);
+}
+
+.comingSoon li {
+  margin: 0.5rem 0;
+}
+
+.formActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color, #dee2e6);
+}
+
+.cancelButton,
+.submitButton {
+  padding: 0.875em 2em;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.cancelButton {
+  background: var(--bg-secondary, #f8f9fa);
+  color: var(--text-color, #333);
+  border: 2px solid var(--border-color, #dee2e6);
+}
+
+.cancelButton:hover {
+  background: var(--bg-hover, #e9ecef);
+  transform: translateY(-1px);
+}
+
+.submitButton {
+  background: var(--primary-color, #8B4513);
+  color: white;
+}
+
+.submitButton:hover {
+  background: var(--primary-hover, #A0522D);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(139, 69, 19, 0.2);
+}
+
+.cancelButton:disabled,
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .formContainer {
+    padding: 1.5rem;
+  }
+  
+  .formHeader h2 {
+    font-size: 1.5rem;
+  }
+  
+  .formActions {
+    flex-direction: column-reverse;
+  }
+  
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .formContainer {
+    padding: 1rem;
+  }
+  
+  .comingSoon {
+    padding: 2rem 1rem;
+  }
+  
+  .comingSoon h3 {
+    font-size: 1.25rem;
+  }
+}

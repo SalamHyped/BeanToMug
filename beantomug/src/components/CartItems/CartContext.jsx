@@ -58,7 +58,7 @@ console.log(cartItems)
 
     // Calculate totals from cart items (backend should provide these values)
     if (cartItems && Array.isArray(cartItems)) {
-      cartItems.forEach(item => {
+      cartItems.forEach((item) => {
         if (item && typeof item === 'object') {
           const quantity = parseInt(item.quantity) || 1;
           

@@ -1,0 +1,174 @@
+/* Product Order Filters Styles */
+.filtersContainer {
+  position: relative;
+  background: white;
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  padding: 1.5rem 2rem;
+}
+
+.filtersRow {
+  display: flex;
+  gap: 1.5rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 140px;
+  flex: 1;
+}
+
+.filterLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+  margin-bottom: 0.25rem;
+}
+
+.filterSelect,
+.dateInput {
+  padding: 0.75rem;
+  border: 2px solid var(--border-color, #dee2e6);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.filterSelect:focus,
+.dateInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #8B4513);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+}
+
+.filterSelect {
+  cursor: pointer;
+}
+
+.clearButton {
+  background: var(--warning-color, #ffc107);
+  color: var(--text-color, #333);
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  align-self: end;
+}
+
+.clearButton:hover {
+  background: var(--warning-hover, #e0a800);
+  transform: translateY(-1px);
+}
+
+.clearButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading Overlay */
+.loadingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color, #8B4513);
+  font-weight: 600;
+  backdrop-filter: blur(2px);
+}
+
+/* Disabled State */
+.filterSelect:disabled,
+.dateInput:disabled {
+  background: var(--bg-disabled, #f8f9fa);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .filtersRow {
+    gap: 1rem;
+  }
+  
+  .filterGroup {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filtersContainer {
+    padding: 1rem;
+  }
+  
+  .filtersRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .filterGroup {
+    min-width: unset;
+    flex: none;
+  }
+  
+  .clearButton {
+    align-self: stretch;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .filtersContainer {
+    padding: 0.75rem;
+  }
+  
+  .filterSelect,
+  .dateInput,
+  .clearButton {
+    padding: 0.625rem;
+    font-size: 0.875rem;
+  }
+  
+  .filterLabel {
+    font-size: 0.8rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .filterSelect,
+  .dateInput {
+    border-width: 3px;
+  }
+  
+  .clearButton {
+    border: 2px solid var(--text-color, #333);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .filterSelect,
+  .dateInput,
+  .clearButton {
+    transition: none;
+  }
+  
+  .clearButton:hover {
+    transform: none;
+  }
+}

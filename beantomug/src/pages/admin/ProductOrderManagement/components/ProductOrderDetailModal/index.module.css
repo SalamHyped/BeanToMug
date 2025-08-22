@@ -1,0 +1,119 @@
+/* Product Order Detail Modal Styles - Same as Edit Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
+}
+
+.modalContent {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  background: var(--bg-secondary, #f8f9fa);
+}
+
+.modalHeader h2 {
+  margin: 0;
+  color: var(--text-color, #333);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary, #666);
+  transition: color 0.2s ease;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.closeButton:hover {
+  color: var(--danger-color, #dc3545);
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.modalBody {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.comingSoon {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 1rem;
+  border: 2px dashed var(--border-color, #dee2e6);
+}
+
+.comingSoon h3 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-color, #8B4513);
+  font-size: 1.5rem;
+}
+
+.comingSoon p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary, #666);
+}
+
+.comingSoon ul {
+  text-align: left;
+  max-width: 300px;
+  margin: 1rem auto;
+  color: var(--text-color, #333);
+}
+
+.comingSoon li {
+  margin: 0.5rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modalOverlay {
+    padding: 0.5rem;
+  }
+  
+  .modalContent {
+    max-width: 100%;
+    border-radius: 0.5rem;
+  }
+  
+  .modalHeader {
+    padding: 1rem 1.5rem;
+  }
+  
+  .modalHeader h2 {
+    font-size: 1.25rem;
+  }
+  
+  .modalBody {
+    padding: 1.5rem;
+  }
+}

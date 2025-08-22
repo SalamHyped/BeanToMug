@@ -52,6 +52,10 @@ const IngredientEffectsManagement = lazy(() => import('../pages/admin/Ingredient
 const ConfigurationDashboard = lazy(() => import('../pages/admin/ConfigurationDashboard'));
 // Import Work Schedule Management component
 const WorkScheduleManagement = lazy(() => import('../pages/admin/WorkScheduleManagement/index'));
+// Import Supplier Management component
+const SupplierManagement = lazy(() => import('../pages/admin/SupplierManagement/index'));
+// Import Product Order Management component
+const ProductOrderManagement = lazy(() => import('../pages/admin/ProductOrderManagement/index'));
 
 // Loading component for page content only
 const PageLoader = () => (
@@ -170,6 +174,16 @@ export default function MyRoutes(){
                     <Route path="work-schedule" element={
                       <Suspense fallback={<PageLoader />}>
                         <WorkScheduleManagement />
+                      </Suspense>
+                    } />
+                    <Route path="suppliers" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <SupplierManagement />
+                      </Suspense>
+                    } />
+                    <Route path="product-orders" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <ProductOrderManagement />
                       </Suspense>
                     } />
                     <Route path="profile" element={<Profile />} />

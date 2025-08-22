@@ -141,6 +141,7 @@ async function calculateMultipleItemsPrices(connection, items, includeVAT = true
  * @throws {Error} If item not found or invalid prices detected
  */
 async function calculateItemPriceWithOptions(connection, itemId, options = {}, returnDetails = false, includeVAT = true) {
+
   // Validate inputs
   if (!itemId || isNaN(itemId)) {
     throw new Error(`Invalid item ID: ${itemId}`);
@@ -200,7 +201,11 @@ async function calculateItemPriceWithOptions(connection, itemId, options = {}, r
   // Process all ingredients
   for (const ingredient of allIngredients) {
     if (ingredient.is_required) {
-      // Required ingredients are automatically included (no extra charge)
+      // Required ingredients - check if they have a price
+      const ingredientPrice = parseFloat(ingredient.price);
+      const isSelected = options[ingredient.ingredient_id] && options[ingredient.ingredient_id].selected;
+      
+      // Required ingredients are automatically included
       requiredIngredients.push({
         ingredient_id: ingredient.ingredient_id,
         ingredient_name: ingredient.ingredient_name,
@@ -209,11 +214,17 @@ async function calculateItemPriceWithOptions(connection, itemId, options = {}, r
         category: ingredient.category_name,
         is_required: true
       });
+      
+      // If required ingredient has a price AND is selected, add to total
+      if (isSelected && !isNaN(ingredientPrice) && ingredientPrice > 0) {
+        optionalPrice += ingredientPrice;
+      }
     } else {
       // Optional ingredients - check if selected by customer
       const isSelected = options[ingredient.ingredient_id] && options[ingredient.ingredient_id].selected;
       if (isSelected) {
         const optionPrice = parseFloat(ingredient.price);
+        
         if (!isNaN(optionPrice) && optionPrice >= 0) {
           optionalPrice += optionPrice;
           optionalIngredients.push({

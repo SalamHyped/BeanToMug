@@ -433,10 +433,21 @@ class CartService {
       let priceWithVAT = processedResult.pricing.totalPrice;
       let vatAmount = 0;
       try {
+        // Convert option keys to numbers (priceCalculator expects numeric keys)
+        const numericOptions = {};
+        if (options && typeof options === 'object') {
+          Object.entries(options).forEach(([key, value]) => {
+            const numericKey = parseInt(key);
+            if (!isNaN(numericKey)) {
+              numericOptions[numericKey] = value;
+            }
+          });
+        }
+        
         priceWithVAT = await calculateItemPriceWithOptions(
           connection,
           item.item_id,
-          options || {},
+          numericOptions,
           false, // Don't need detailed breakdown
           true   // Include VAT
         );
@@ -813,17 +824,32 @@ class CartService {
       // Calculate VAT-inclusive price using the proper priceCalculator
       let priceWithVAT = processedResult.pricing.totalPrice;
       let vatAmount = 0;
+      
       try {
         const connection = await dbSingleton.getConnection();
+        
+        // Convert option keys to numbers (priceCalculator expects numeric keys)
+        const numericOptions = {};
+        if (options && typeof options === 'object') {
+          Object.entries(options).forEach(([key, value]) => {
+            const numericKey = parseInt(key);
+            if (!isNaN(numericKey)) {
+              numericOptions[numericKey] = value;
+            }
+          });
+        }
+        
         priceWithVAT = await calculateItemPriceWithOptions(
           connection,
           item.item_id,
-          options || {},
+          numericOptions,
           false, // Don't need detailed breakdown
           true   // Include VAT
         );
+        
         // Calculate VAT amount
         vatAmount = priceWithVAT - processedResult.pricing.totalPrice;
+        
       } catch (error) {
         console.warn(`Failed to calculate VAT for item ${item.item_id}:`, error);
         // Fallback: calculate VAT manually with 15% rate

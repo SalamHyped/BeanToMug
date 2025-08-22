@@ -184,18 +184,31 @@ class PayPalService {
 
     const tempOrderId = orderResult.insertId;
 
-    // Add each cart item to the temporary order
+    // Add each cart item to the temporary order with VAT information
     for (const item of validatedItems) {
+      // Calculate VAT-inclusive price for this item
+      const itemPriceWithVAT = await calculateItemPriceWithOptions(
+        connection,
+        item.item_id,
+        item.options || {},
+        false, // Only need the price
+        true   // Include VAT
+      );
+      
+      const itemVATAmount = itemPriceWithVAT - item.item_price;
+      
       const [itemResult] = await connection.execute(
         `
-        INSERT INTO order_item (order_id, item_id, quantity, price, created_at)
-        VALUES (?, ?, ?, ?, NOW())
+        INSERT INTO order_item (order_id, item_id, quantity, price, price_with_vat, vat_amount, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())
       `,
         [
           tempOrderId,
           item.item_id,
           item.quantity,
-          item.item_price
+          item.item_price,
+          itemPriceWithVAT,
+          itemVATAmount
         ]
       );
    

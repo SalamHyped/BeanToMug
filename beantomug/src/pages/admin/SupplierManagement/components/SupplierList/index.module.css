@@ -1,0 +1,316 @@
+/* Supplier List Styles */
+.supplierList {
+  background: white;
+}
+
+.listHeader {
+  padding: 1.5rem 2rem;
+  background: var(--bg-secondary, #f8f9fa);
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+}
+
+.stats h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-color, #333);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.statDetails {
+  display: flex;
+  gap: 2rem;
+}
+
+.statItem {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.statLabel {
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+}
+
+.statValue {
+  background: var(--primary-color, #8B4513);
+  color: white;
+  padding: 0.25em 0.5em;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Table Styles */
+.tableContainer {
+  overflow-x: auto;
+}
+
+.suppliersTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.suppliersTable thead {
+  background: var(--primary-color, #8B4513);
+  color: white;
+}
+
+.suppliersTable th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tableRow {
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  transition: background-color 0.2s ease;
+}
+
+.tableRow:hover {
+  background: var(--bg-hover, #f8f9fa);
+}
+
+.tableRow.inactiveSupplier {
+  background: rgba(255, 193, 7, 0.1);
+  opacity: 0.8;
+}
+
+.suppliersTable td {
+  padding: 1rem;
+  vertical-align: top;
+}
+
+/* Cell Specific Styles */
+.nameCell h4 {
+  margin: 0 0 0.25rem 0;
+  color: var(--text-color, #333);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.nameCell small {
+  color: var(--text-secondary, #666);
+  font-size: 0.75rem;
+}
+
+.contactCell {
+  min-width: 200px;
+}
+
+.contactInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.contactItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-color, #333);
+}
+
+.noContact {
+  color: var(--text-secondary, #666);
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+.ingredientsCell {
+  min-width: 250px;
+}
+
+.ingredientInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ingredientCount {
+  font-weight: 600;
+  color: var(--primary-color, #8B4513);
+  font-size: 0.875rem;
+}
+
+.ingredientsList {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #666);
+  line-height: 1.4;
+  max-width: 250px;
+}
+
+.statusCell {
+  text-align: center;
+}
+
+.status {
+  padding: 0.375em 0.75em;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status.active {
+  background: var(--success-color, #28a745);
+  color: white;
+}
+
+.status.inactive {
+  background: var(--warning-color, #ffc107);
+  color: var(--text-color, #333);
+}
+
+/* Action Buttons */
+.actionsCell {
+  min-width: 200px;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.editButton,
+.statusButton,
+.deleteButton {
+  border: none;
+  padding: 0.5em 0.75em;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.editButton {
+  background: var(--info-color, #17a2b8);
+  color: white;
+}
+
+.editButton:hover {
+  background: var(--info-hover, #138496);
+  transform: translateY(-1px);
+}
+
+.statusButton.activate {
+  background: var(--success-color, #28a745);
+  color: white;
+}
+
+.statusButton.activate:hover {
+  background: var(--success-hover, #218838);
+}
+
+.statusButton.deactivate {
+  background: var(--warning-color, #ffc107);
+  color: var(--text-color, #333);
+}
+
+.statusButton.deactivate:hover {
+  background: var(--warning-hover, #e0a800);
+}
+
+.deleteButton {
+  background: var(--danger-color, #dc3545);
+  color: white;
+}
+
+.deleteButton:hover {
+  background: var(--danger-hover, #c82333);
+  transform: translateY(-1px);
+}
+
+/* Loading and Error States */
+.loading,
+.error,
+.empty {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-secondary, #666);
+}
+
+.error {
+  color: var(--danger-color, #dc3545);
+}
+
+.retryButton {
+  background: var(--primary-color, #8B4513);
+  color: white;
+  border: none;
+  padding: 0.75em 1.5em;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+.retryButton:hover {
+  background: var(--primary-hover, #A0522D);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .actionsCell {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .editButton,
+  .statusButton,
+  .deleteButton {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .listHeader {
+    padding: 1rem;
+  }
+  
+  .statDetails {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .suppliersTable {
+    font-size: 0.8rem;
+  }
+  
+  .suppliersTable th,
+  .suppliersTable td {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  .ingredientsList {
+    display: none; /* Hide ingredient list on mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .tableContainer {
+    font-size: 0.75rem;
+  }
+  
+  .contactItem {
+    font-size: 0.75rem;
+  }
+  
+  .editButton,
+  .statusButton,
+  .deleteButton {
+    padding: 0.375em 0.5em;
+    font-size: 0.7rem;
+  }
+}

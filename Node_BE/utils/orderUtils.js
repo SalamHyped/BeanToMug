@@ -51,6 +51,8 @@ function processOrderRows(rows) {
                     item_id: row.item_id,
                     item_name: row.item_name,
                     price: parseFloat(row.price),  // Convert string to number for consistency
+                    price_with_vat: parseFloat(row.price_with_vat || row.price),  // Fallback to base price if VAT not available
+                    vat_amount: parseFloat(row.vat_amount || 0),  // Default to 0 if not available
                     quantity: row.quantity,
                     ingredients: []  // Array to hold ingredients/options
                 };
@@ -182,6 +184,8 @@ function buildOrderQuery(orderId, options) {
             oi.item_id,
             d.item_name,
             oi.price,
+            oi.price_with_vat,
+            oi.vat_amount,
             oi.quantity,
             oii.ingredient_id,
             oii.price as ingredient_price,
@@ -290,6 +294,8 @@ async function getCompleteOrderData(orderId = null, options = null) {
                     oi.item_id,
                     d.item_name,
                     oi.price,
+                    oi.price_with_vat,
+                    oi.vat_amount,
                     oi.quantity,
                     oii.ingredient_id,
                     oii.price as ingredient_price,

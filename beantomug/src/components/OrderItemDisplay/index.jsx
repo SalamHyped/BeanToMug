@@ -65,7 +65,7 @@ const OrderItemDisplay = ({
                 
                 {showPrice && (
                     <div className={styles.itemPrice}>
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ${((item.price_with_vat || item.priceWithVAT || item.price) * item.quantity).toFixed(2)}
                     </div>
                 )}
             </div>

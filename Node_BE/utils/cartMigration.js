@@ -308,6 +308,8 @@ async function getCartItems(connection, cartId) {
       oi.item_id,
       oi.quantity,
       oi.price,
+      oi.price_with_vat,
+      oi.vat_amount,
       oi.created_at,
       d.item_name,
       d.price as current_price
@@ -348,6 +350,8 @@ async function getCartItems(connection, cartId) {
       item_id: item.item_id,
       item_name: item.item_name,
       price: item.price,
+      priceWithVAT: item.price_with_vat || item.price, // Fallback for items without VAT data
+      vatAmount: item.vat_amount || 0, // Default to 0 if no VAT data
       quantity: item.quantity,
       options: options,
       total_price: item.price * item.quantity

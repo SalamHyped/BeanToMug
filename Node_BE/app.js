@@ -32,6 +32,8 @@ const ingredientTypesRouter = require('./Routes/ingredientTypes');
 const ingredientCategoriesRouter = require('./Routes/ingredientCategories');
 const ingredientEffectsRouter = require('./Routes/ingredientEffects');
 const workScheduleRouter = require('./Routes/workSchedule');
+const suppliersRouter = require('./Routes/suppliers');
+const productOrdersRouter = require('./Routes/productOrders');
 
 app.use(express.json());
 app.use(cors({
@@ -132,6 +134,8 @@ app.use('/ingredient-types', ingredientTypesRouter); // Ingredient types managem
 app.use('/ingredient-categories', ingredientCategoriesRouter); // Ingredient categories management routes
 app.use('/ingredient-effects', ingredientEffectsRouter); // Ingredient effects management routes
 app.use('/work-schedule', workScheduleRouter); // Work schedule management routes
+app.use('/suppliers', suppliersRouter); // Supplier management routes
+app.use('/product-orders', productOrdersRouter); // Product order management routes
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
