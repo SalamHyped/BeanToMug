@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useOutletContext } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import RealTimeDashboard from "../../components/RealTimeDashboard";
+import FinancialKPISection from "../../components/admin/FinancialKPISection";
+import useFinancialKPIs from "../../hooks/useFinancialKPIs";
 import { getApiConfig } from '../../utils/config';
 
 const AdminDashboard = () => {
@@ -10,6 +12,9 @@ const AdminDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Financial KPIs hook
+  const financialData = useFinancialKPIs();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
@@ -136,6 +141,12 @@ const AdminDashboard = () => {
           Create New Task
         </button>
       </div>
+
+      {/* Financial KPIs Section */}
+      <FinancialKPISection 
+        financialData={financialData}
+        loading={financialData.loading}
+      />
 
       {/* Create Task Form */}
       {showCreateForm && (

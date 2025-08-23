@@ -6,6 +6,28 @@ module.exports = {
   ],
   theme: {
     extend: {
+      colors: {
+        // Mocha Colors
+        mocha: {
+          dark: '#3C2415',
+          medium: '#8B4513', 
+          light: '#A0522D',
+          cream: '#D2B48C',
+        },
+        // Crystal Colors
+        crystal: {
+          clear: '#F8F8FF',
+          ice: '#E6E6FA', 
+          shine: '#FFFFFF',
+          frost: '#F0F8FF',
+        },
+      },
+      backgroundImage: {
+        'mocha-crystal': 'linear-gradient(135deg, #8B4513 0%, #F8F8FF 100%)',
+        'crystal-mocha': 'linear-gradient(135deg, #F8F8FF 0%, #8B4513 100%)',
+        'mocha-gradient': 'linear-gradient(135deg, #3C2415 0%, #8B4513 30%, #F8F8FF 100%)',
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
       fontFamily: {
         'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'sans-serif'],
         'mono': ['source-code-pro', 'Menlo', 'Monaco', 'Consolas', 'Courier New', 'monospace'],

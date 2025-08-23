@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roleMiddleware');
+const financialService = require('../services/FinancialService');
 
 // Get all users (Admin only)
 router.get('/users', authenticateToken, requireRole(['admin']), async (req, res) => {
@@ -256,6 +257,99 @@ router.post('/users/:userId/reactivate', authenticateToken, requireRole(['admin'
     res.status(500).json({ 
       success: false, 
       message: 'Failed to reactivate user' 
+    });
+  }
+});
+
+// Get Financial KPIs (Admin only)
+router.get('/financial-kpis', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const kpis = await financialService.getFinancialKPIs(req.user.id);
+    
+    res.json({
+      success: true,
+      data: {
+        todaysRevenue: kpis.revenue.today.formatted,
+        todaysPercentage: kpis.revenue.today.percentage,
+        todaysChange: kpis.revenue.today.change,
+        
+        weeklyRevenue: kpis.revenue.weekly.formatted,
+        weeklyPercentage: kpis.revenue.weekly.percentage,
+        weeklyChange: kpis.revenue.weekly.change,
+        
+        averageOrderValue: kpis.aov.formatted,
+        aovPercentage: kpis.aov.percentage,
+        aovChange: `${kpis.aov.changeDirection === 'up' ? '+' : '-'}${kpis.aov.change}`,
+        
+        dailyProfit: kpis.profit.formatted,
+        profitMargin: kpis.profit.marginFormatted,
+        profitChange: kpis.profit.change,
+        profitSource: kpis.profit.source,
+        
+        lastUpdated: kpis.metadata.lastUpdated,
+        dataQuality: kpis.metadata.dataQuality
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching financial KPIs:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch financial KPIs',
+      error: error.message 
+    });
+  }
+});
+
+// Get Business Configuration (Admin only)
+router.get('/business-config', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const config = await financialService.getConfiguration(req.user.id);
+    
+    res.json({
+      success: true,
+      data: {
+        profit_margins: config.financial,
+        targets: config.targets,
+        cost_categories: config.costs,
+        settings: config.system,
+        metadata: config.metadata
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching business config:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch business configuration',
+      error: error.message 
+    });
+  }
+});
+
+// Update Business Configuration (Admin only)
+router.put('/business-config', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { key, value } = req.body;
+    
+    if (!key || value === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Key and value are required'
+      });
+    }
+    
+    const result = await financialService.updateConfiguration(key, value, req.user.id);
+    
+    res.json({
+      success: true,
+      message: 'Business configuration updated successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error updating business config:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update business configuration',
+      error: error.message 
     });
   }
 });
