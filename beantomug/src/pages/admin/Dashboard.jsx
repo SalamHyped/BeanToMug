@@ -4,7 +4,9 @@ import { useOutletContext } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import RealTimeDashboard from "../../components/RealTimeDashboard";
 import FinancialKPISection from "../../components/admin/FinancialKPISection";
+import OrderAnalyticsSection from "../../components/admin/OrderAnalyticsSection";
 import useFinancialKPIs from "../../hooks/useFinancialKPIs";
+import useOrderAnalytics from "../../hooks/useOrderAnalytics";
 import { getApiConfig } from '../../utils/config';
 
 const AdminDashboard = () => {
@@ -15,6 +17,9 @@ const AdminDashboard = () => {
   
   // Financial KPIs hook
   const financialData = useFinancialKPIs();
+  // Order Analytics hook
+  const orderAnalytics = useOrderAnalytics();
+  
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
@@ -148,6 +153,12 @@ const AdminDashboard = () => {
         loading={financialData.loading}
       />
 
+      {/* Order Analytics Section */}
+      <OrderAnalyticsSection 
+        orderData={orderAnalytics.orderData}
+        loading={orderAnalytics.loading}
+      />
+
       {/* Create Task Form */}
       {showCreateForm && (
         <div className={styles.modal}>
@@ -273,7 +284,7 @@ const AdminDashboard = () => {
                     {task.priority}
                   </span>
                   <span 
-                    className={styles.statusBadge}
+                    className={styles.priorityBadge}
                     style={{ backgroundColor: getStatusColor(task.status) }}
                   >
                     {task.status}
@@ -330,4 +341,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;

@@ -7,26 +7,103 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Mocha Colors
-        mocha: {
-          dark: '#3C2415',
-          medium: '#8B4513', 
-          light: '#A0522D',
-          cream: '#D2B48C',
+        // Modern Coffee Dashboard Palette
+        coffee: {
+          // Deep espresso tones (primary)
+          espresso: '#2C1810',      // Deepest espresso brown
+          dark: '#3D2415',          // Dark roasted coffee
+          rich: '#4A2C1A',          // Rich dark brown
+          
+          // Medium roasted mocha tones (secondary)
+          mocha: '#6B4423',         // Medium roasted mocha
+          medium: '#8B5A2B',        // Medium brown
+          warm: '#A67B4A',          // Warm medium brown
+          
+          // Light latte tones (accent)
+          latte: '#C4A484',         // Light latte
+          light: '#D4B898',         // Light coffee
+          cream: '#E2C8A8',         // Coffee cream
+          
+          // Crystal-like coffee accents (highlights)
+          crystal: '#F0E6D8',       // Crystal coffee
+          pearl: '#F5EDE0',         // Pearl coffee
+          ivory: '#FAF4E8',         // Ivory coffee
+          
+          // Ultra-light tones (backgrounds)
+          mist: '#FDF8F0',          // Coffee mist
+          cloud: '#FEFAF5',         // Coffee cloud
+          snow: '#FFFCF8',          // Coffee snow
         },
-        // Crystal Colors
-        crystal: {
-          clear: '#F8F8FF',
-          ice: '#E6E6FA', 
-          shine: '#FFFFFF',
-          frost: '#F0F8FF',
+        
+        // Semantic colors for dashboard
+        dashboard: {
+          // Success states
+          success: {
+            light: '#D1FAE5',       // Light mint
+            main: '#10B981',        // Green
+            dark: '#059669',        // Dark green
+          },
+          
+          // Warning states
+          warning: {
+            light: '#FEF3C7',       // Light amber
+            main: '#F59E0B',        // Amber
+            dark: '#D97706',        // Dark amber
+          },
+          
+          // Error states
+          error: {
+            light: '#FEE2E2',       // Light red
+            main: '#EF4444',        // Red
+            dark: '#DC2626',        // Dark red
+          },
+          
+          // Info states
+          info: {
+            light: '#DBEAFE',       // Light blue
+            main: '#3B82F6',        // Blue
+            dark: '#2563EB',        // Dark blue
+          },
+        },
+        
+        // Neutral tones for text and borders
+        neutral: {
+          text: {
+            primary: '#1F2937',     // Dark text
+            secondary: '#4B5563',   // Medium text
+            tertiary: '#9CA3AF',    // Light text
+            disabled: '#D1D5DB',    // Disabled text
+          },
+          border: {
+            light: '#E5E7EB',       // Light border
+            medium: '#D1D5DB',      // Medium border
+            dark: '#9CA3AF',        // Dark border
+          },
+          background: {
+            primary: '#FFFFFF',     // Primary background
+            secondary: '#F9FAFB',   // Secondary background
+            tertiary: '#F3F4F6',    // Tertiary background
+          },
         },
       },
       backgroundImage: {
-        'mocha-crystal': 'linear-gradient(135deg, #8B4513 0%, #F8F8FF 100%)',
-        'crystal-mocha': 'linear-gradient(135deg, #F8F8FF 0%, #8B4513 100%)',
-        'mocha-gradient': 'linear-gradient(135deg, #3C2415 0%, #8B4513 30%, #F8F8FF 100%)',
+        // Coffee dashboard gradients
+        'coffee-primary': 'linear-gradient(135deg, #2C1810 0%, #4A2C1A 50%, #6B4423 100%)',
+        'coffee-secondary': 'linear-gradient(135deg, #6B4423 0%, #8B5A2B 50%, #A67B4A 100%)',
+        'coffee-accent': 'linear-gradient(135deg, #A67B4A 0%, #C4A484 50%, #D4B898 100%)',
+        'coffee-light': 'linear-gradient(135deg, #D4B898 0%, #E2C8A8 50%, #F0E6D8 100%)',
+        'coffee-crystal': 'linear-gradient(135deg, #F0E6D8 0%, #F5EDE0 50%, #FAF4E8 100%)',
+        'coffee-mist': 'linear-gradient(135deg, #FDF8F0 0%, #FEFAF5 50%, #FFFCF8 100%)',
+        
+        // Dashboard specific gradients
+        'dashboard-card': 'linear-gradient(135deg, #FAF4E8 0%, #F5EDE0 30%, #F0E6D8 100%)',
+        'dashboard-header': 'linear-gradient(135deg, #2C1810 0%, #3D2415 50%, #4A2C1A 100%)',
+        'dashboard-sidebar': 'linear-gradient(180deg, #4A2C1A 0%, #6B4423 100%)',
+        'dashboard-content': 'linear-gradient(135deg, #FDF8F0 0%, #FAF4E8 100%)',
+        
+        // Utility gradients
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(var(--tw-gradient-stops))',
       },
       fontFamily: {
         'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'sans-serif'],

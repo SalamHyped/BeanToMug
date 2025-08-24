@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roleMiddleware');
 const financialService = require('../services/FinancialService');
+const orderAnalyticsService = require('../services/OrderAnalyticsService');
 
 // Get all users (Admin only)
 router.get('/users', authenticateToken, requireRole(['admin']), async (req, res) => {
@@ -286,6 +287,13 @@ router.get('/financial-kpis', authenticateToken, requireRole(['admin']), async (
         profitChange: kpis.profit.change,
         profitSource: kpis.profit.source,
         
+        // Online Orders data
+        onlineOrdersPercentage: kpis.onlineOrders.percentage,
+        onlineOrdersFormatted: kpis.onlineOrders.formatted,
+        onlineOrdersTarget: kpis.onlineOrders.target,
+        onlineOrdersTargetFormatted: kpis.onlineOrders.targetFormatted,
+        onlineOrdersPercentageAchievement: kpis.onlineOrders.percentageAchievement,
+        
         lastUpdated: kpis.metadata.lastUpdated,
         dataQuality: kpis.metadata.dataQuality
       }
@@ -349,6 +357,31 @@ router.put('/business-config', authenticateToken, requireRole(['admin']), async 
     res.status(500).json({ 
       success: false, 
       message: 'Failed to update business configuration',
+      error: error.message 
+    });
+  }
+});
+
+// Get Order Analytics (Admin only)
+router.get('/order-analytics', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    // Parse dates or use defaults
+    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 7));
+    const end = endDate ? new Date(endDate) : new Date();
+    
+    const analytics = await orderAnalyticsService.getOrderAnalytics(start, end);
+    
+    res.json({
+      success: true,
+      data: analytics
+    });
+  } catch (error) {
+    console.error('Error fetching order analytics:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch order analytics',
       error: error.message 
     });
   }

@@ -56,18 +56,15 @@ class SocketService {
 
             // Handle staff alert interactions
             socket.on('staffAlertInteraction', (data) => {
-                console.log('Backend SocketService: Received staffAlertInteraction event:', data);
                 this.handleStaffAlertInteraction(socket, data);
             });
 
             // Handle item preparation toggle for cross-view sync
             socket.on('itemPreparationToggle', (data) => {
-                console.log('Backend SocketService: Received itemPreparationToggle event:', data);
                 this.handleItemPreparationToggle(socket, data);
             });
 
         socket.on('testNotification', (data) => {
-            console.log('Backend SocketService: Received test notification:', data);
             // Broadcast to admin room
             this.io.to('admin-room').emit('testNotification', data);
         });
@@ -212,10 +209,6 @@ class SocketService {
     emitNotification(notificationData) {
         const { targetUserId, targetRole, message, type } = notificationData;
         
-        console.log('Backend SocketService: Emitting notification:', notificationData);
-        console.log('Backend SocketService: Connected users:', this.connectedUsers.size);
-        console.log('Backend SocketService: Users in admin-room:', this.getUsersInRoom('admin-room'));
-        
         // Send to specific user if userId provided
         if (targetUserId) {
             this.io.to(`user-${targetUserId}`).emit('notification', {
@@ -302,6 +295,79 @@ class SocketService {
         this.io.to('staff-room').emit('itemPreparationUpdate', {
             ...data,
             timestamp: new Date().toISOString()
+        });
+    }
+
+    // Financial KPI WebSocket Methods
+    emitOrderCompleted(orderData) {
+        // Validate required data
+        if (!orderData.orderId || !orderData.totalPrice || isNaN(orderData.totalPrice)) {
+            console.error('❌ Invalid order data for WebSocket emission:', orderData);
+            return;
+        }
+        
+        // Ensure numeric values are properly converted
+        const totalPrice = parseFloat(orderData.totalPrice);
+        const profitIncrease = parseFloat(orderData.profitIncrease || (totalPrice * 0.4));
+        
+        // Emit to admin room for real-time KPI updates
+        this.io.to('admin-room').emit('order-completed', {
+            type: 'order-completed',
+            orderId: orderData.orderId,
+            totalPrice: totalPrice,
+            revenue: totalPrice,
+            timestamp: new Date().toISOString(),
+            message: `Order ${orderData.orderId} completed - Revenue: $${totalPrice}`,
+            // Send only the incremental changes for efficient updates
+            kpiChanges: {
+                revenueIncrease: totalPrice,
+                profitIncrease: profitIncrease, // Default 40% margin
+                orderCountIncrease: 1,
+                // Include current totals for percentage calculations
+                currentTotals: orderData.currentTotals || null
+            }
+        });
+        
+        // Note: Removed duplicate financial-kpis-updated emission to prevent double-counting
+        // The order-completed event is sufficient for KPI updates
+    }
+
+    emitOrderStatusChanged(orderData) {
+        // Validate required data
+        if (!orderData.orderId || !orderData.totalPrice || isNaN(orderData.totalPrice)) {
+            console.error('❌ Invalid order data for WebSocket emission:', orderData);
+            return;
+        }
+        
+        // Ensure numeric values are properly converted
+        const totalPrice = parseFloat(orderData.totalPrice);
+        const profitDecrease = parseFloat(orderData.profitDecrease || (totalPrice * 0.4));
+        
+        // Emit to admin room for real-time KPI updates
+        this.io.to('admin-room').emit('order-status-changed', {
+            type: 'order-status-changed',
+            orderId: orderData.orderId,
+            totalPrice: totalPrice,
+            status: orderData.status,
+            previousStatus: orderData.previousStatus,
+            timestamp: new Date().toISOString(),
+            message: orderData.message,
+            // Send KPI decrease data with proper numeric types
+            kpiChanges: {
+                revenueDecrease: totalPrice,
+                profitDecrease: profitDecrease,
+                orderCountDecrease: 1,
+                isDecrease: true // Flag to indicate this is a decrease
+            }
+        });
+    }
+
+    emitFinancialKPIsUpdated(kpiData) {
+        this.io.to('admin-room').emit('financial-kpis-updated', {
+            type: 'financial-kpis-updated',
+            ...kpiData,
+            timestamp: new Date().toISOString(),
+            message: 'Financial KPIs have been updated'
         });
     }
 

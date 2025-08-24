@@ -214,7 +214,7 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
     
    // Get order details before updating for notification
     const [orderRows] = await req.db.execute(
-      'SELECT user_id, order_type FROM orders WHERE order_id = ? AND is_cart = 0',
+      'SELECT user_id, order_type, total_price, status FROM orders WHERE order_id = ? AND is_cart = 0',
       [orderId]
     );
     
@@ -246,7 +246,6 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
       try {
         const stockService = require('../services/stockService');
         const stockResult = await stockService.deductStockForOrder(orderId);
-        console.log(`Stock deducted for completed order ${orderId}:`, stockResult);
       } catch (stockError) {
         console.error(`Error deducting stock for order ${orderId}:`, stockError);
         // Don't fail the order status update if stock deduction fails
@@ -257,7 +256,6 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
       try {
         const stockService = require('../services/stockService');
         const stockResult = await stockService.restoreStockForCancelledOrder(orderId);
-        console.log(`Stock restored for cancelled order ${orderId}:`, stockResult);
       } catch (stockError) {
         console.error(`Error restoring stock for cancelled order ${orderId}:`, stockError);
         // Don't fail the order status update if stock restoration fails
@@ -275,6 +273,87 @@ router.put('/staff/:orderId/status', authenticateToken, async (req, res) => {
         // Backend now always sends complete order data with order_id
         // No need for field normalization since we're using order_id consistently
         await req.socketService.emitOrderUpdate(completeOrder);
+        
+        // Emit financial KPI updates for real-time dashboard
+        if (status === 'completed') {
+          // Calculate only the incremental changes for efficient updates
+          try {
+            // Validate total_price exists
+            if (!orderData.total_price || isNaN(orderData.total_price)) {
+              console.error('❌ Invalid total_price from orderData:', orderData.total_price);
+              return;
+            }
+            
+            // Get current totals for percentage calculations (minimal query)
+            const [currentTotals] = await req.db.execute(`
+              SELECT 
+                COALESCE(SUM(total_price), 0) as todayRevenue,
+                COUNT(*) as todayOrderCount
+              FROM orders 
+              WHERE DATE(created_at) = CURDATE() 
+                AND status = 'completed' 
+                AND is_cart = 0
+            `);
+            
+            // Get profit margin from config (cached)
+            const databaseConfig = require('../utils/databaseConfig');
+            const profitMargin = await databaseConfig.getProfitMargin('default') || 0.4;
+            
+            const orderImpact = {
+              orderId: orderId,
+              totalPrice: orderData.total_price,
+              status: status,
+              profitIncrease: orderData.total_price * profitMargin,
+              currentTotals: {
+                todayRevenue: parseFloat(currentTotals[0].todayRevenue),
+                todayOrderCount: parseInt(currentTotals[0].todayOrderCount)
+              }
+            };
+            
+            req.socketService.emitOrderCompleted(orderImpact);
+            
+          } catch (kpiError) {
+            // Silent fallback without KPI data
+            req.socketService.emitOrderCompleted({
+              orderId: orderId,
+              totalPrice: orderData.total_price,
+              status: status
+            });
+          }
+        } else {
+          // Check if this order was previously completed (decrease KPIs)
+          try {
+            // Get previous status from the database
+            const [previousStatusRow] = await req.db.execute(
+              'SELECT status FROM orders WHERE order_id = ? AND is_cart = 0',
+              [orderId]
+            );
+            const previousStatus = previousStatusRow[0]?.status;
+
+            if (previousStatus === 'completed') {
+              // Get profit margin from config
+              const databaseConfig = require('../utils/databaseConfig');
+              const profitMargin = await databaseConfig.getProfitMargin('default') || 0.4;
+              
+              const orderDecrease = {
+                orderId: orderId,
+                totalPrice: orderData.total_price,
+                status: status,
+                previousStatus: 'completed',
+                profitDecrease: orderData.total_price * profitMargin,
+                message: `Order ${orderId} changed from completed to ${status} - decreasing KPIs`
+              };
+              
+              // Emit order status changed event for KPI decrease
+              req.socketService.emitOrderStatusChanged(orderDecrease);
+            } else {
+              // No KPI decrease needed
+            }
+            
+          } catch (error) {
+            // Silent error handling for previous status check
+          }
+        }
       } else {
         // Fallback to basic notification if complete data not available
         await req.socketService.emitOrderUpdate({

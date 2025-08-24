@@ -122,6 +122,19 @@ class SocketService {
             this.emit('itemPreparationUpdate', data);
         });
 
+        // Financial KPI events for real-time dashboard updates
+        this.socket.on('order-completed', (data) => {
+            this.emit('order-completed', data);
+        });
+
+        this.socket.on('order-status-changed', (data) => {
+            this.emit('order-status-changed', data);
+        });
+
+        this.socket.on('financial-kpis-updated', (data) => {
+            this.emit('financial-kpis-updated', data);
+        });
+
         // Handle reconnection
         this.socket.on('reconnect', (attemptNumber) => {
             this.reconnectAttempts = 0;

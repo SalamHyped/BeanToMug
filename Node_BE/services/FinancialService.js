@@ -1,5 +1,6 @@
 const { dbSingleton } = require('../dbSingleton');
 const databaseConfig = require('../utils/databaseConfig');
+const orderAnalyticsService = require('./OrderAnalyticsService');
 
 /**
  * Financial Service - Handles all financial KPI calculations and business configuration
@@ -8,7 +9,30 @@ const databaseConfig = require('../utils/databaseConfig');
 class FinancialService {
   constructor() {
     this.cache = new Map();
-    this.cacheTimeout = 30000; // 30 seconds
+    this.queryCache = new Map(); // Cache for individual queries
+    
+    // These will be set from database config
+    this.cacheTimeout = 30000; // Default 30 seconds
+    this.queryCacheTimeout = 10000; // Default 10 seconds
+    
+    // Initialize cache timeouts from config (will be called when first method is invoked)
+    this._initialized = false;
+  }
+
+  async _ensureInitialized() {
+    if (!this._initialized) {
+      await this._initializeCacheTimeouts();
+      this._initialized = true;
+    }
+  }
+
+  async _initializeCacheTimeouts() {
+    try {
+      this.cacheTimeout = (await databaseConfig.get('cache_timeout') || 30) * 1000; // Convert to milliseconds
+      this.queryCacheTimeout = (await databaseConfig.get('query_cache_timeout') || 10) * 1000; // Convert to milliseconds
+    } catch (error) {
+      console.error('Failed to initialize cache timeouts, using defaults:', error.message);
+    }
   }
 
   /**
@@ -18,6 +42,9 @@ class FinancialService {
    */
   async getFinancialKPIs(userId) {
     try {
+      // Ensure cache timeouts are initialized
+      await this._ensureInitialized();
+      
       const connection = await dbSingleton.getConnection();
       
       // Calculate date ranges
@@ -39,7 +66,8 @@ class FinancialService {
         lastWeekRevenue,
         todayAOV,
         yesterdayAOV,
-        targets
+        targets,
+        onlineOrdersData
       ] = await Promise.all([
         this._getRevenue(connection, todayStart, new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)),
         this._getRevenue(connection, yesterdayStart, todayStart),
@@ -47,7 +75,8 @@ class FinancialService {
         this._getRevenue(connection, lastWeekStart, weekStart),
         this._getAOV(connection, todayStart, new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)),
         this._getAOV(connection, yesterdayStart, todayStart),
-        this._getTargets()
+        this._getTargets(),
+        orderAnalyticsService.getOnlineOrdersPercentage(todayStart, new Date(todayStart.getTime() + 24 * 60 * 60 * 1000))
       ]);
 
       // Calculate profit margins using real data
@@ -75,41 +104,48 @@ class FinancialService {
         revenue: {
           today: {
             value: todayRevenue,
-            formatted: this._formatCurrency(todayRevenue),
+            formatted: await this._formatCurrency(todayRevenue),
             percentage: Math.round((todayRevenue / targets.dailyRevenue) * 100),
             change: changes.revenueChange,
-            target: this._formatCurrency(targets.dailyRevenue)
+            target: await this._formatCurrency(targets.dailyRevenue)
           },
           weekly: {
             value: weeklyRevenue,
-            formatted: this._formatCurrency(weeklyRevenue),
+            formatted: await this._formatCurrency(weeklyRevenue),
             percentage: Math.round((weeklyRevenue / targets.weeklyRevenue) * 100),
             change: changes.weeklyChange,
-            target: this._formatCurrency(targets.weeklyRevenue)
+            target: await this._formatCurrency(targets.weeklyRevenue)
           }
         },
         aov: {
           value: todayAOV.value,
-          formatted: this._formatCurrency(todayAOV.value),
+          formatted: await this._formatCurrency(todayAOV.value),
           percentage: Math.round((todayAOV.value / targets.aov) * 100),
-          change: this._formatCurrency(Math.abs(todayAOV.value - yesterdayAOV.value)),
+          change: await this._formatCurrency(Math.abs(todayAOV.value - yesterdayAOV.value)),
           changeDirection: todayAOV.value >= yesterdayAOV.value ? 'up' : 'down',
-          target: this._formatCurrency(targets.aov),
+          target: await this._formatCurrency(targets.aov),
           orderCount: todayAOV.count
         },
         profit: {
           value: todayProfit,
-          formatted: this._formatCurrency(todayProfit),
+          formatted: await this._formatCurrency(todayProfit),
           margin: todayMarginData.margin,
           marginFormatted: `${(todayMarginData.margin * 100).toFixed(1)}%`,
           change: changes.profitChange,
           source: todayMarginData.source,
           details: todayMarginData.details
         },
+        onlineOrders: {
+          percentage: onlineOrdersData.percentage,
+          formatted: `${onlineOrdersData.percentage.toFixed(1)}%`,
+          target: targets.onlineOrders,
+          targetFormatted: `${targets.onlineOrders}%`,
+          percentageAchievement: Math.round((onlineOrdersData.percentage / targets.onlineOrders) * 100)
+        },
         metadata: {
           lastUpdated: new Date().toISOString(),
           userId,
-          dataQuality: this._assessDataQuality(todayAOV.count, todayMarginData.source)
+          dataQuality: await this._assessDataQuality(todayAOV.count, todayMarginData.source)
         }
       };
 
@@ -188,30 +224,146 @@ class FinancialService {
     }
   }
 
+  /**
+   * Debug method to check database orders
+   */
+  async debugOrders() {
+    try {
+      const connection = await dbSingleton.getConnection();
+      
+      // Check recent orders
+      const [recentOrders] = await connection.execute(`
+        SELECT order_id, total_price, status, created_at, is_cart
+        FROM orders 
+        ORDER BY created_at DESC 
+        LIMIT 10
+      `);
+      
+      console.log('🔍 Recent Orders in Database:');
+      recentOrders.forEach(order => {
+        console.log(`  Order ${order.order_id}: $${order.total_price}, Status: ${order.status}, Date: ${order.created_at}, Cart: ${order.is_cart}`);
+      });
+      
+      // Check completed orders
+      const [completedOrders] = await connection.execute(`
+        SELECT COUNT(*) as count, SUM(total_price) as total
+        FROM orders 
+        WHERE status = 'completed' AND is_cart = 0
+      `);
+      
+      console.log(`✅ Completed Orders: ${completedOrders[0].count}, Total Revenue: $${completedOrders[0].total}`);
+      
+    } catch (error) {
+      console.error('Debug error:', error);
+    }
+  }
+
   // Private helper methods
   async _getRevenue(connection, startDate, endDate) {
-    const [result] = await connection.execute(`
-      SELECT COALESCE(SUM(total_amount), 0) as revenue
+    // Only log once per method call, not for every query
+    const isDebug = false; // Set to true only when debugging
+    
+    // Create cache key for this query
+    const cacheKey = `revenue_${startDate.toISOString()}_${endDate.toISOString()}`;
+    
+    // Check cache first
+    if (this.queryCache.has(cacheKey)) {
+      const cached = this.queryCache.get(cacheKey);
+      if (Date.now() - cached.timestamp < this.queryCacheTimeout) {
+        if (isDebug) console.log(`💰 Revenue from cache: $${cached.value}`);
+        return cached.value;
+      }
+    }
+    
+    if (isDebug) {
+      console.log(`🔍 Revenue Query - Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
+    }
+    
+    // First, let's see what orders exist in this date range
+    const [debugOrders] = await connection.execute(`
+      SELECT order_id, total_price, status, created_at, is_cart
       FROM orders 
-      WHERE created_at >= ? AND created_at < ? AND status = 'completed'
+      WHERE created_at >= ? AND created_at < ?
+      ORDER BY created_at DESC
+      LIMIT 5
     `, [startDate, endDate]);
     
-    return parseFloat(result[0].revenue);
+    if (isDebug) {
+      console.log(`📋 Orders in date range:`);
+      debugOrders.forEach(order => {
+        console.log(`  Order ${order.order_id}: $${order.total_price}, Status: ${order.status}, Date: ${order.created_at}, Cart: ${order.is_cart}`);
+      });
+    }
+    
+    const [result] = await connection.execute(`
+      SELECT COALESCE(SUM(total_price), 0) as revenue
+      FROM orders 
+      WHERE created_at >= ? AND created_at < ? 
+        AND status = 'completed'
+        AND is_cart = 0
+    `, [startDate, endDate]);
+    
+    const revenue = parseFloat(result[0].revenue);
+    
+    // Cache the result
+    this.queryCache.set(cacheKey, {
+      value: revenue,
+      timestamp: Date.now()
+    });
+    
+    if (isDebug) {
+      console.log(`💰 Revenue found: $${revenue}`);
+    }
+    
+    return revenue;
   }
 
   async _getAOV(connection, startDate, endDate) {
+    const isDebug = false; // Set to true only when debugging
+    
+    // Create cache key for this query
+    const cacheKey = `aov_${startDate.toISOString()}_${endDate.toISOString()}`;
+    
+    // Check cache first
+    if (this.queryCache.has(cacheKey)) {
+      const cached = this.queryCache.get(cacheKey);
+      if (Date.now() - cached.timestamp < this.queryCacheTimeout) {
+        if (isDebug) console.log(`📊 AOV from cache: $${cached.value}, Orders: ${cached.count}`);
+        return cached;
+      }
+    }
+    
+    if (isDebug) {
+      console.log(`🔍 AOV Query - Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
+    }
+    
     const [result] = await connection.execute(`
       SELECT 
-        COALESCE(AVG(total_amount), 0) as aov,
+        COALESCE(AVG(total_price), 0) as aov,
         COUNT(*) as order_count
       FROM orders 
-      WHERE created_at >= ? AND created_at < ? AND status = 'completed'
+      WHERE created_at >= ? AND created_at < ? 
+        AND status = 'completed'
+        AND is_cart = 0
     `, [startDate, endDate]);
     
-    return {
+    const aov = {
       value: parseFloat(result[0].aov),
       count: parseInt(result[0].order_count)
     };
+    
+    // Cache the result
+    this.queryCache.set(cacheKey, {
+      value: aov.value,
+      count: aov.count,
+      timestamp: Date.now()
+    });
+    
+    if (isDebug) {
+      console.log(`📊 AOV found: $${aov.value}, Orders: ${aov.count}`);
+    }
+    
+    return aov;
   }
 
   async _getProfitMargin(connection, startDate, endDate) {
@@ -261,7 +413,7 @@ class FinancialService {
       JOIN order_item oi ON o.order_id = oi.order_id
       LEFT JOIN order_item_ingredient oii ON oi.order_item_id = oii.order_item_id
       LEFT JOIN ingredient ing ON oii.ingredient_id = ing.ingredient_id
-      WHERE o.status = 'completed' 
+      WHERE o.status = 'completed'
         AND o.is_cart = 0
         AND o.created_at >= ? 
         AND o.created_at < ?
@@ -277,8 +429,13 @@ class FinancialService {
     }
 
     // Calculate total costs including labor and overhead
-    const laborCosts = revenue * (await databaseConfig.get('labor_cost_ratio') || 0.30);
-    const overheadCosts = revenue * (await databaseConfig.get('overhead_cost_ratio') || 0.15);
+    const laborCosts = revenue * (await databaseConfig.get('labor_cost_ratio'));
+    const overheadCosts = revenue * (await databaseConfig.get('overhead_cost_ratio'));
+    
+    // Validate that cost ratios are configured
+    if (laborCosts === undefined || overheadCosts === undefined) {
+      throw new Error('Labor and overhead cost ratios must be configured in business_config');
+    }
     const totalCosts = ingredientCosts + laborCosts + overheadCosts;
     
     const netProfit = revenue - totalCosts;
@@ -297,7 +454,8 @@ class FinancialService {
     return {
       dailyRevenue: await databaseConfig.getTarget('daily_revenue') || 3000,
       weeklyRevenue: await databaseConfig.getTarget('weekly_revenue') || 18000,
-      aov: await databaseConfig.getTarget('aov') || 15
+      aov: await databaseConfig.getTarget('aov') || 15,
+      onlineOrders: await databaseConfig.getTarget('online_orders') || 70
     };
   }
 
@@ -319,17 +477,40 @@ class FinancialService {
     return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
   }
 
-  _formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+  async _formatCurrency(amount) {
+    try {
+      const currency = await databaseConfig.get('currency') || 'USD';
+      const locale = await databaseConfig.get('locale') || 'en-US';
+      
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: currency
+      }).format(amount);
+    } catch (error) {
+      console.error('Error formatting currency, using USD fallback:', error.message);
+      // Fallback to USD if config fails
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(amount);
+    }
   }
 
-  _assessDataQuality(orderCount, profitSource) {
-    if (orderCount >= 10 && profitSource === 'calculated') return 'high';
-    if (orderCount >= 5 || profitSource === 'configured') return 'medium';
-    return 'low';
+  async _assessDataQuality(orderCount, profitSource) {
+    try {
+      const highQualityThreshold = await databaseConfig.get('data_quality_high_threshold') || 10;
+      const mediumQualityThreshold = await databaseConfig.get('data_quality_medium_threshold') || 5;
+      
+      if (orderCount >= highQualityThreshold && profitSource === 'calculated') return 'high';
+      if (orderCount >= mediumQualityThreshold || profitSource === 'configured') return 'medium';
+      return 'low';
+    } catch (error) {
+      console.error('Error assessing data quality, using defaults:', error.message);
+      // Fallback to defaults if config fails
+      if (orderCount >= 10 && profitSource === 'calculated') return 'high';
+      if (orderCount >= 5 || profitSource === 'configured') return 'medium';
+      return 'low';
+    }
   }
 
   async _validateAdminUser(userId) {
@@ -345,6 +526,8 @@ class FinancialService {
 
   _clearCache() {
     this.cache.clear();
+    this.queryCache.clear(); // Also clear query cache
+    console.log('🧹 FinancialService cache cleared');
   }
 }
 
