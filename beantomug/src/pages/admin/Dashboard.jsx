@@ -5,8 +5,9 @@ import styles from './Dashboard.module.css';
 import RealTimeDashboard from "../../components/RealTimeDashboard";
 import FinancialKPISection from "../../components/admin/FinancialKPISection";
 import OrderAnalyticsSection from "../../components/admin/OrderAnalyticsSection";
-import useFinancialKPIs from "../../hooks/useFinancialKPIs";
-import useOrderAnalytics from "../../hooks/useOrderAnalytics";
+import CustomerSatisfactionSection from "../../components/admin/CustomerSatisfactionSection";
+import useFinancialKPIs from "../../hooks/useFinancialKPIs.js";
+import useOrderAnalytics from "../../hooks/useOrderAnalytics.js";
 import { getApiConfig } from '../../utils/config';
 
 const AdminDashboard = () => {
@@ -158,6 +159,9 @@ const AdminDashboard = () => {
         orderData={orderAnalytics.orderData}
         loading={orderAnalytics.loading}
       />
+
+      {/* Customer Satisfaction Section */}
+      <CustomerSatisfactionSection />
 
       {/* Create Task Form */}
       {showCreateForm && (

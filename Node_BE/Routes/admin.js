@@ -6,6 +6,43 @@ const { requireRole } = require('../middleware/roleMiddleware');
 const financialService = require('../services/FinancialService');
 const orderAnalyticsService = require('../services/OrderAnalyticsService');
 
+// Get order ratings analytics
+router.get('/order-ratings', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { range, startDate, endDate } = req.query;
+    
+    let result;
+    
+    if (range) {
+      // Use predefined range (e.g., '7_days', '30_days')
+      result = await orderAnalyticsService.getOrderRatings(range);
+    } else if (startDate && endDate) {
+      // Use custom date range
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      result = await orderAnalyticsService.getOrderRatings(start, end);
+    } else {
+      // Use default range from config
+      result = await orderAnalyticsService.getOrderRatings();
+    }
+    
+    res.json({
+      success: true,
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('Failed to get order ratings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get order ratings',
+      error: error.message
+    });
+  }
+});
+
+
+
 // Get all users (Admin only)
 router.get('/users', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {

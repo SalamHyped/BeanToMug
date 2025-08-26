@@ -1,5 +1,4 @@
 const { dbSingleton } = require('../dbSingleton');
-const databaseConfig = require('../utils/databaseConfig');
 
 /**
  * Order Analytics Service - Handles order-related analytics and metrics
@@ -155,6 +154,176 @@ class OrderAnalyticsService {
       type: row.order_type || 'unknown',
       count: parseInt(row.count),
       percentage: parseFloat(row.percentage)
+    }));
+  }
+
+  /**
+   * Get order ratings analytics for a date range
+   * @param {Date} startDate - Start of date range
+   * @param {Date} endDate - End of date range
+   * @returns {Object} Order ratings data
+   */
+  async getOrderRatings(startDate, endDate) {
+    try {
+      await this._ensureInitialized();
+      
+      let start, end;
+      
+      // Use provided dates or calculate default range (7 days)
+      if (startDate && endDate) {
+        start = startDate;
+        end = endDate;
+      } else {
+        // Default: last 7 days
+        end = new Date();
+        start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+      }
+      
+      const connection = await dbSingleton.getConnection();
+      
+      const [
+        overallRating,
+        ratingDistribution,
+        orderTypeRatings,
+        ratingTrends
+      ] = await Promise.all([
+        this._getOverallRating(connection, start, end),
+        this._getRatingDistribution(connection, start, end),
+        this._getOrderTypeRatings(connection, start, end),
+        this._getRatingTrends(connection, end)
+      ]);
+
+      // If no ratings found, return default structure
+      if (overallRating.totalRatings === 0) {
+        return {
+          overall: 0,
+          totalRatings: 0,
+          distribution: { five: 0, four: 0, three: 0, two: 0, one: 0 },
+          byOrderType: { online: 0, pickup: 0 },
+          trends: [],
+          dateRange: { start: start.toISOString(), end: end.toISOString(), range: 'default' }
+        };
+      }
+
+      return {
+        overall: overallRating.overall,
+        totalRatings: overallRating.totalRatings,
+        distribution: ratingDistribution,
+        byOrderType: orderTypeRatings,
+        trends: ratingTrends,
+        dateRange: { start: start.toISOString(), end: end.toISOString(), range: 'custom' }
+      };
+    } catch (error) {
+      console.error('OrderAnalyticsService.getOrderRatings error:', error);
+      throw new Error(`Failed to get order ratings: ${error.message}`);
+    }
+  }
+
+
+
+  // Private helper methods for ratings
+  async _getOverallRating(connection, startDate, endDate) {
+    const [result] = await connection.execute(`
+      SELECT 
+        AVG(rating) as overall,
+        COUNT(rating) as totalRatings
+      FROM orders 
+      WHERE rating > 0 
+        AND created_at >= ? 
+        AND created_at <= ?
+    `, [startDate, endDate]);
+    
+    const overall = result[0]?.overall;
+    const totalRatings = result[0]?.totalRatings;
+    
+    return {
+      overall: overall !== null ? parseFloat(overall) : 0,
+      totalRatings: parseInt(totalRatings || 0)
+    };
+  }
+
+  async _getRatingDistribution(connection, startDate, endDate) {
+    const [result] = await connection.execute(`
+      SELECT 
+        rating,
+        COUNT(*) as count
+      FROM orders 
+      WHERE rating > 0 
+        AND created_at >= ? 
+        AND created_at <= ?
+      GROUP BY rating
+      ORDER BY rating DESC
+    `, [startDate, endDate]);
+    
+    const distribution = {
+      five: 0, four: 0, three: 0, two: 0, one: 0
+    };
+    
+    result.forEach(row => {
+      if (row.rating >= 1 && row.rating <= 5 && row.count !== null) {
+        distribution[row.rating === 1 ? 'one' : row.rating === 2 ? 'two' : row.rating === 3 ? 'three' : row.rating === 4 ? 'four' : 'five'] = parseInt(row.count || 0);
+      }
+    });
+    
+    return distribution;
+  }
+
+  async _getOrderTypeRatings(connection, startDate, endDate) {
+    const [result] = await connection.execute(`
+      SELECT 
+        order_type,
+        AVG(rating) as avgRating,
+        COUNT(rating) as count
+      FROM orders 
+      WHERE rating > 0 
+        AND created_at >= ? 
+        AND created_at <= ?
+      GROUP BY order_type
+      ORDER BY avgRating DESC
+    `, [startDate, endDate]);
+    
+    const byOrderType = {
+      online: 0,
+      pickup: 0
+    };
+    
+    result.forEach(row => {
+      const type = row.order_type?.toLowerCase();
+      
+      // Map your actual database values to chart labels
+      let mappedType = null;
+      if (type === 'dine in') {
+        mappedType = 'online';  // Dine In = Online Orders
+      } else if (type === 'take away') {
+        mappedType = 'pickup';  // Take Away = Pickup
+      }
+      
+      if (mappedType && byOrderType.hasOwnProperty(mappedType) && row.avgRating !== null) {
+        byOrderType[mappedType] = parseFloat(parseFloat(row.avgRating).toFixed(1));
+      }
+    });
+    
+    return byOrderType;
+  }
+
+  async _getRatingTrends(connection, endDate) {
+    const [result] = await connection.execute(`
+      SELECT 
+        DATE(created_at) as date,
+        AVG(rating) as avgRating,
+        COUNT(rating) as count
+      FROM orders 
+      WHERE rating > 0 
+        AND created_at >= DATE_SUB(?, INTERVAL 7 DAY)
+        AND created_at <= ?
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `, [endDate, endDate]);
+    
+    return result.map(row => ({
+      date: row.date,
+      rating: row.avgRating !== null ? parseFloat(parseFloat(row.avgRating).toFixed(1)) : 0,
+      count: parseInt(row.count || 0)
     }));
   }
 

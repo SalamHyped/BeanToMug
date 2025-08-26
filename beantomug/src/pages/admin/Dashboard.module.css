@@ -460,4 +460,130 @@
   50% {
     background-position: 100% 50%;
   }
+}
+
+/* Customer Satisfaction Section */
+.customerSatisfactionSection {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 
+    0 0.125rem 0.25rem rgba(0, 0, 0, 0.15),
+    inset 0 0.0625rem 0.125rem rgba(255, 255, 255, 0.25);
+  border: 0.0625rem solid rgba(255, 255, 255, 0.3);
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.sectionHeader h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #EFEBE9;
+  margin: 0 0 0.5rem 0;
+  text-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+}
+
+.sectionDescription {
+  font-size: 1rem;
+  color: #D7CCC8;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.chartCard {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  border: 0.0625rem solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chartCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.summaryStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.statItem {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  border: 0.0625rem solid rgba(255, 255, 255, 0.2);
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #10B981;
+  margin-bottom: 0.5rem;
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: #D7CCC8;
+  font-weight: 500;
+}
+
+.loadingState,
+.errorState {
+  text-align: center;
+  padding: 3rem;
+  color: #D7CCC8;
+}
+
+.loadingSpinner {
+  border: 0.25rem solid rgba(255, 255, 255, 0.3);
+  border-top: 0.25rem solid #EFEBE9;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.errorMessage {
+  color: #EF4444;
+  margin-bottom: 1rem;
+}
+
+.retryButton {
+  background: linear-gradient(135deg, #896651 0%, #6b4f3f 100%);
+  color: white;
+  border: 0;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(137, 102, 81, 0.3);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 } 
