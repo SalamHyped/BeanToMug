@@ -35,182 +35,19 @@
   text-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
 }
 
-.createButton {
-  background: linear-gradient(135deg, #896651 0%, #6b4f3f 100%);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
 
-.createButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(137, 102, 81, 0.3);
-}
 
-/* Modal Styles */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
 
-.modalContent {
-  background: white;
-  padding: 2rem;
-  border-radius: 1rem;
-  width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
 
-.modalContent h2 {
-  margin: 0 0 1.5rem 0;
-  color: #896651;
-  font-size: 1.75rem;
-}
 
-.formGroup {
-  margin-bottom: 1.5rem;
-}
 
-.formGroup label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: #333;
-}
 
-.formGroup input,
-.formGroup select,
-.formGroup textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e9ecef;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-}
 
-.formGroup input:focus,
-.formGroup select:focus,
-.formGroup textarea:focus {
-  outline: none;
-  border-color: #896651;
-}
 
-.formGroup textarea {
-  min-height: 100px;
-  resize: vertical;
-}
 
-/* Assignment Styles */
-.assignmentsContainer {
-  border: 2px solid #e9ecef;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  background: #f8f9fa;
-}
+  
 
-.assignmentRow {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  align-items: center;
-}
 
-.assignmentRow select {
-  flex: 1;
-  margin: 0;
-}
-
-.removeButton {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.removeButton:hover {
-  background: #c82333;
-  transform: translateY(-1px);
-}
-
-.addAssignmentButton {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 100%;
-}
-
-.addAssignmentButton:hover {
-  background: #218838;
-  transform: translateY(-1px);
-}
-
-.formActions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-}
-
-.submitButton {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.submitButton:hover {
-  background: #218838;
-  transform: translateY(-1px);
-}
-
-.cancelButton {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.cancelButton:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
 
 /* Tasks Container */
 .tasksContainer {
@@ -353,20 +190,7 @@
   text-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
 }
 
-/* Real-Time Dashboard Section */
-.realTimeSection {
-  margin: 0.5rem;
-  padding: 0;
-  width: calc(100% - 1rem);
-}
 
-.realTimeSection h2 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #EFEBE9;
-  margin-bottom: 1.5rem;
-  text-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
-}
 
 /* WebSocket Test Section */
 .webSocketSection {
@@ -399,40 +223,7 @@
     text-align: center;
   }
   
-  .tasksGrid {
-    grid-template-columns: 1fr;
-  }
-  
-  .modalContent {
-    width: 95%;
-    padding: 1.5rem;
-  }
-  
-  .formActions {
-    flex-direction: column;
-  }
-  
-  .taskHeader {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .taskBadges {
-    justify-content: flex-start;
-  }
-  
-  .assignmentRow {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .assignmentRow select {
-    width: 100%;
-  }
-  
-  .removeButton {
-    width: 100%;
-  }
+
 }
 
 @media (max-width: 480px) {
@@ -444,13 +235,7 @@
     font-size: 1.75rem;
   }
   
-  .modalContent {
-    padding: 1rem;
-  }
-  
-  .taskCard {
-    padding: 1rem;
-  }
+
 }
 
 @keyframes coffeeSteam {
@@ -586,4 +371,6 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-} 
+}
+
+ 

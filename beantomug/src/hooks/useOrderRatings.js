@@ -24,7 +24,7 @@ const useOrderRatings = () => {
     error: null
   });
   
-  const [currentRange, setCurrentRange] = useState('7_days');
+  const [currentRange, setCurrentRange] = useState('30_days');
   const [currentDates, setCurrentDates] = useState({
     start: null,
     end: null
@@ -74,10 +74,10 @@ const useOrderRatings = () => {
     }
   }, []);
 
-  // Fetch data on mount with default date range (last 7 days)
+  // Fetch data on mount with default date range (last 30 days)
   useEffect(() => {
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
     fetchOrderRatings(startDate, endDate);
   }, [fetchOrderRatings]);
 
@@ -91,7 +91,7 @@ const useOrderRatings = () => {
   // Function to refresh current data
   const refresh = useCallback(() => {
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
     fetchOrderRatings(startDate, endDate);
   }, [fetchOrderRatings]);
 

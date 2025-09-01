@@ -7,14 +7,18 @@ const useOrderAnalytics = () => {
     onlineOrders: {
       percentage: 0,
       formatted: "0.0%",
-      target: 70,
-      targetFormatted: "70%",
+      target: 0,
+      targetFormatted: "0%",
       percentageAchievement: 0,
       totalOrders: 0,
       onlineOrders: 0,
-      cartOrders: 0
+      cartOrders: 0,
+      change: "0.0%",
+      trend: "neutral"
     },
     orderTypes: [],
+    popularItems: [],
+    orderCompletion: {},
     metadata: {
       startDate: null,
       endDate: null,
@@ -33,30 +37,42 @@ const useOrderAnalytics = () => {
       if (startDate) params.startDate = startDate.toISOString();
       if (endDate) params.endDate = endDate.toISOString();
 
-      const response = await axios.get(`${getApiConfig().baseURL}/admin/order-analytics`, {
-        params,
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // Fetch both order analytics and popular items
+      const [analyticsResponse, popularItemsResponse] = await Promise.all([
+        axios.get(`${getApiConfig().baseURL}/admin/order-analytics`, {
+          params,
+          withCredentials: true,
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        axios.get(`${getApiConfig().baseURL}/admin/popular-items`, {
+          params,
+          withCredentials: true,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      ]);
 
-      if (response.data.success) {
-        const apiData = response.data.data;
+      if (analyticsResponse.data.success && popularItemsResponse.data.success) {
+        const apiData = analyticsResponse.data.data;
+        const popularItems = popularItemsResponse.data.data;
         
         setOrderData(prev => ({
           ...prev,
           onlineOrders: {
             percentage: apiData.onlineOrders.percentage || 0,
             formatted: apiData.onlineOrders.formatted || "0.0%",
-            target: apiData.onlineOrders.target || 70,
-            targetFormatted: `${apiData.onlineOrders.target || 70}%`,
-            percentageAchievement: Math.round((apiData.onlineOrders.percentage || 0) / (apiData.onlineOrders.target || 70) * 100),
+            target: apiData.onlineOrders.target || 0,
+            targetFormatted: apiData.onlineOrders.targetFormatted || "0%",
+            percentageAchievement: apiData.onlineOrders.percentageAchievement || 0,
             totalOrders: apiData.onlineOrders.totalOrders || 0,
             onlineOrders: apiData.onlineOrders.onlineOrders || 0,
-            cartOrders: apiData.onlineOrders.cartOrders || 0
+            cartOrders: apiData.onlineOrders.cartOrders || 0,
+            change: apiData.onlineOrders.change || "0.0%",
+            trend: apiData.onlineOrders.trend || "neutral"
           },
           orderTypes: apiData.orderTypes || [],
+          popularItems: popularItems || [],
+          orderCompletion: apiData.orderCompletion || {},
+          targets: apiData.targets || {},
           metadata: {
             startDate: apiData.metadata?.startDate || null,
             endDate: apiData.metadata?.endDate || null,
@@ -66,7 +82,7 @@ const useOrderAnalytics = () => {
           error: null
         }));
       } else {
-        throw new Error(response.data.message || 'Failed to fetch order analytics');
+        throw new Error('Failed to fetch data from one or more endpoints');
       }
     } catch (error) {
       console.error('Error fetching order analytics:', error);
@@ -79,10 +95,10 @@ const useOrderAnalytics = () => {
     }
   }, []);
 
-  // Fetch data on mount with default date range (last 7 days)
+  // Fetch data on mount with default date range (last 30 days)
   useEffect(() => {
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
     fetchOrderAnalytics(startDate, endDate);
   }, [fetchOrderAnalytics]);
 
@@ -94,7 +110,7 @@ const useOrderAnalytics = () => {
   // Function to refresh current data
   const refresh = useCallback(() => {
     const endDate = new Date();
-    const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
     fetchOrderAnalytics(startDate, endDate);
   }, [fetchOrderAnalytics]);
 

@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const { generateVerificationToken, verifyToken } = require('../utils/tokenUtil');
-const { sendVerificationEmail } = require('../utils/mailer');
+const { generateVerificationToken, verifyToken, generatePasswordResetToken, verifyPasswordResetToken } = require('../utils/tokenUtil');
+const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/mailer');
 const vonageService = require('../utils/vonageService');
 
 /**
@@ -690,6 +690,263 @@ router.post('/verify-sms', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to verify code'
+    });
+  }
+});
+
+/**
+ * Forgot Password Endpoint
+ * ------------------------
+ * Handles password reset requests by sending a reset email to the user.
+ * 
+ * Flow:
+ * 1. Validate email parameter
+ * 2. Check if user exists and is verified
+ * 3. Generate password reset token
+ * 4. Send password reset email
+ * 
+ * @route POST /auth/forgot-password
+ * @param {string} email - User's email address
+ * @returns {Object} Success/error response
+ */
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Validate email parameter
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+    
+    // Find user with the provided email address
+    const [users] = await req.db.query(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+    
+    if (users.length === 0) {
+      // Don't reveal if email exists or not for security
+      return res.json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    }
+    
+    const user = users[0];
+    
+    // Check if user's email is verified
+    if (!user.email_verified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please verify your email before requesting a password reset'
+      });
+    }
+    
+    // Check if user account is active
+    if (!user.status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account is deactivated. Please contact support.'
+      });
+    }
+    
+    // Generate password reset token
+    const resetToken = generatePasswordResetToken(email);
+    
+    // Send password reset email
+    try {
+      await sendPasswordResetEmail(email, resetToken);
+      
+      res.json({
+        success: true,
+        message: 'Password reset link has been sent to your email'
+      });
+    } catch (emailError) {
+      console.error('Error sending password reset email:', emailError);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send password reset email. Please try again later.'
+      });
+    }
+    
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset request'
+    });
+  }
+});
+
+/**
+ * Reset Password Endpoint
+ * -----------------------
+ * Resets user's password using the token from the reset email.
+ * 
+ * Flow:
+ * 1. Validate token, email, and new password
+ * 2. Verify reset token
+ * 3. Update user's password
+ * 4. Return success response
+ * 
+ * @route POST /auth/reset-password
+ * @param {string} token - Password reset token
+ * @param {string} email - User's email address
+ * @param {string} newPassword - New password
+ * @returns {Object} Success/error response
+ */
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, email, newPassword } = req.body;
+    
+    // Validate required parameters
+    if (!token || !email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token, email, and new password are required'
+      });
+    }
+    
+    // Validate password strength (minimum 6 characters)
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+    
+    // Verify the reset token
+    const isValidToken = verifyPasswordResetToken(token, email);
+    
+    if (!isValidToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+    
+    // Find user with the provided email
+    const [users] = await req.db.query(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+    
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    const user = users[0];
+    
+    // Check if user account is active
+    if (!user.status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account is deactivated. Please contact support.'
+      });
+    }
+    
+    // Hash the new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    
+    // Update user's password
+    await req.db.query(
+      'UPDATE users SET password = ? WHERE id = ?',
+      [hashedPassword, user.id]
+    );
+    
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. You can now login with your new password.'
+    });
+    
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during password reset'
+    });
+  }
+});
+
+/**
+ * Verify Reset Token Endpoint
+ * ---------------------------
+ * Verifies if a password reset token is valid without resetting the password.
+ * Useful for frontend validation before showing the reset password form.
+ * 
+ * Flow:
+ * 1. Validate token and email
+ * 2. Verify reset token validity
+ * 3. Return token status
+ * 
+ * @route POST /auth/verify-reset-token
+ * @param {string} token - Password reset token
+ * @param {string} email - User's email address
+ * @returns {Object} Token validation response
+ */
+router.post('/verify-reset-token', async (req, res) => {
+  try {
+    const { token, email } = req.body;
+    
+    // Validate required parameters
+    if (!token || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token and email are required'
+      });
+    }
+    
+    // Verify the reset token
+    const isValidToken = verifyPasswordResetToken(token, email);
+    
+    if (!isValidToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+    
+    // Check if user exists
+    const [users] = await req.db.query(
+      'SELECT id, status FROM users WHERE email = ?',
+      [email]
+    );
+    
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    const user = users[0];
+    
+    // Check if user account is active
+    if (!user.status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account is deactivated'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Reset token is valid',
+      valid: true
+    });
+    
+  } catch (error) {
+    console.error('Verify reset token error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during token verification'
     });
   }
 });

@@ -1,4 +1,5 @@
 const { dbSingleton } = require('../dbSingleton');
+const databaseConfig = require('../utils/databaseConfig');
 
 /**
  * Order Analytics Service - Handles order-related analytics and metrics
@@ -16,6 +17,7 @@ class OrderAnalyticsService {
   async _ensureInitialized() {
     if (!this._initialized) {
       await this._initializeCacheTimeout();
+      await this._initializeTargets();
       this._initialized = true;
     }
   }
@@ -25,6 +27,28 @@ class OrderAnalyticsService {
       this.cacheTimeout = (await databaseConfig.get('cache_timeout') || 30) * 1000; // Convert to milliseconds
     } catch (error) {
       console.error('Failed to initialize cache timeout, using default:', error.message);
+    }
+  }
+
+  async _initializeTargets() {
+    try {
+      // Initialize default targets
+      this.defaultTargets = {
+        onlineOrders: await databaseConfig.get('online_orders_target') || 70,
+        totalOrders: await databaseConfig.get('total_orders_target') || 100,
+        customerSatisfaction: await databaseConfig.get('customer_satisfaction_target') || 4.5,
+        orderCompletion: await databaseConfig.get('order_completion_target') || 95
+      };
+      
+      console.log('🎯 Targets initialized:', this.defaultTargets);
+    } catch (error) {
+      console.error('Failed to initialize targets, using defaults:', error.message);
+      this.defaultTargets = {
+        onlineOrders: 70,
+        totalOrders: 100,
+        customerSatisfaction: 4.5,
+        orderCompletion: 95
+      };
     }
   }
 
@@ -60,19 +84,28 @@ class OrderAnalyticsService {
       
       const [
         onlineOrdersData,
-        orderTypeDistribution
+        orderTypeDistribution,
+        popularItems
       ] = await Promise.all([
         this._calculateOnlineOrdersPercentage(connection, startDate, endDate),
-        this._getOrderTypeDistribution(connection, startDate, endDate)
+        this._getOrderTypeDistribution(connection, startDate, endDate),
+        this.getMostPopularItems(startDate, endDate)
       ]);
 
+      // Calculate order completion rate
+      const orderCompletionData = await this._calculateOrderCompletionRate(connection, startDate, endDate);
+      
       return {
         onlineOrders: onlineOrdersData,
         orderTypes: orderTypeDistribution,
+        popularItems: popularItems,
+        orderCompletion: orderCompletionData,
+        targets: this.defaultTargets,
         metadata: {
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          periodDuration: endDate.getTime() - startDate.getTime()
         }
       };
     } catch (error) {
@@ -101,28 +134,63 @@ class OrderAnalyticsService {
       console.log(`🔍 Online Orders Percentage Query - Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
     }
     
+    // Calculate previous period dates
+    const periodDuration = endDate.getTime() - startDate.getTime();
+    const previousStartDate = new Date(startDate.getTime() - periodDuration);
+    const previousEndDate = new Date(startDate.getTime());
+    
+    // Single optimized query to get current and previous period data
     const [result] = await connection.execute(`
       SELECT 
-        COALESCE(SUM(CASE WHEN o.is_cart = 0 THEN 1 ELSE 0 END) / COUNT(DISTINCT o.order_id), 0) * 100 as percentage,
-        COUNT(DISTINCT o.order_id) as total_orders,
-        SUM(CASE WHEN o.is_cart = 0 THEN 1 ELSE 0 END) as online_orders,
-        SUM(CASE WHEN o.is_cart = 1 THEN 1 ELSE 0 END) as cart_orders
+        -- Current period
+        COALESCE(SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? AND o.is_cart = 0 THEN 1 ELSE 0 END) / 
+                 NULLIF(SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? THEN 1 ELSE 0 END), 0), 0) * 100 as current_percentage,
+        SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? THEN 1 ELSE 0 END) as current_total_orders,
+        SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? AND o.is_cart = 0 THEN 1 ELSE 0 END) as current_online_orders,
+        SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? AND o.is_cart = 1 THEN 1 ELSE 0 END) as current_cart_orders,
+        
+        -- Previous period
+        COALESCE(SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? AND o.is_cart = 0 THEN 1 ELSE 0 END) / 
+                 NULLIF(SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? THEN 1 ELSE 0 END), 0), 0) * 100 as previous_percentage,
+        SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? THEN 1 ELSE 0 END) as previous_total_orders,
+        SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? AND o.is_cart = 0 THEN 1 ELSE 0 END) as previous_online_orders,
+        SUM(CASE WHEN o.created_at >= ? AND o.created_at < ? AND o.is_cart = 1 THEN 1 ELSE 0 END) as previous_cart_orders
       FROM orders o
-      WHERE o.created_at >= ? AND o.created_at < ?
-    `, [startDate, endDate]);
+    `, [
+      // Current period params
+      startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate, startDate, endDate,
+      // Previous period params  
+      previousStartDate, previousEndDate, previousStartDate, previousEndDate, previousStartDate, previousEndDate, previousStartDate, previousEndDate, previousStartDate, previousEndDate
+    ]);
     
     const data = result[0];
-    const percentage = parseFloat(data.percentage);
-    const totalOrders = parseInt(data.total_orders);
-    const onlineOrders = parseInt(data.online_orders);
-    const cartOrders = parseInt(data.cart_orders);
+    
+    // Current period data
+    const currentPercentage = parseFloat(data.current_percentage);
+    const currentTotalOrders = parseInt(data.current_total_orders);
+    const currentOnlineOrders = parseInt(data.current_online_orders);
+    const currentCartOrders = parseInt(data.current_cart_orders);
+    
+    // Previous period data
+    const previousPercentage = parseFloat(data.previous_percentage);
+    const previousTotalOrders = parseInt(data.previous_total_orders);
+    
+    // Calculate change and trend
+    const change = this._calculateChange(currentTotalOrders, previousTotalOrders);
+    const trend = this._calculateTrend(currentTotalOrders, previousTotalOrders);
     
     const resultData = {
-      percentage: percentage,
-      totalOrders: totalOrders,
-      onlineOrders: onlineOrders,
-      cartOrders: cartOrders,
-      formatted: `${percentage.toFixed(1)}%`
+      percentage: currentPercentage,
+      totalOrders: currentTotalOrders,
+      onlineOrders: currentOnlineOrders,
+      cartOrders: currentCartOrders,
+      formatted: `${currentPercentage.toFixed(1)}%`,
+      target: this.defaultTargets?.onlineOrders || 70,
+      targetFormatted: `${this.defaultTargets?.onlineOrders || 70}%`,
+      percentageAchievement: Math.round((currentPercentage / (this.defaultTargets?.onlineOrders || 70)) * 100),
+      change: change,
+      comparison: "vs previous period", // Will be updated by frontend
+      trend: trend
     };
     
     // Cache the result
@@ -132,7 +200,8 @@ class OrderAnalyticsService {
     });
     
     if (isDebug) {
-      console.log(`📊 Online Orders Percentage found: ${percentage}% (${onlineOrders}/${totalOrders})`);
+      console.log(`📊 Online Orders Percentage found: ${currentPercentage}% (${currentOnlineOrders}/${currentTotalOrders})`);
+      console.log(`📈 Change: ${change}, Trend: ${trend}`);
     }
     
     return resultData;
@@ -143,7 +212,7 @@ class OrderAnalyticsService {
       SELECT 
         o.order_type,
         COUNT(*) as count,
-        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM orders WHERE created_at >= ? AND created_at < ?), 2) as percentage
+        ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM orders WHERE created_at >= ? AND o.created_at < ?), 2) as percentage
       FROM orders o
       WHERE o.created_at >= ? AND o.created_at < ?
       GROUP BY o.order_type
@@ -155,6 +224,81 @@ class OrderAnalyticsService {
       count: parseInt(row.count),
       percentage: parseFloat(row.percentage)
     }));
+  }
+
+  async _calculateOrderCompletionRate(connection, startDate, endDate) {
+    try {
+      // Get current period order completion data
+      const [currentResult] = await connection.execute(`
+        SELECT 
+          COUNT(*) as total_orders,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_orders,
+          SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_orders
+        FROM orders 
+        WHERE created_at >= ? AND created_at < ?
+      `, [startDate, endDate]);
+
+      const currentData = currentResult[0];
+      const currentTotalOrders = parseInt(currentData.total_orders || 0);
+      const currentCompletedOrders = parseInt(currentData.completed_orders || 0);
+      const currentCancelledOrders = parseInt(currentData.cancelled_orders || 0);
+      const currentPendingOrders = parseInt(currentData.pending_orders || 0);
+
+      // Calculate completion rate
+      const currentCompletionRate = currentTotalOrders > 0 ? (currentCompletedOrders / currentTotalOrders) * 100 : 0;
+
+      // Get previous period for comparison
+      const periodDuration = endDate.getTime() - startDate.getTime();
+      const previousStartDate = new Date(startDate.getTime() - periodDuration);
+      const previousEndDate = new Date(startDate.getTime());
+
+      const [previousResult] = await connection.execute(`
+        SELECT 
+          COUNT(*) as total_orders,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_orders
+        FROM orders 
+        WHERE created_at >= ? AND created_at < ?
+      `, [previousStartDate, previousEndDate]);
+
+      const previousData = previousResult[0];
+      const previousTotalOrders = parseInt(previousData.total_orders || 0);
+      const previousCompletedOrders = parseInt(previousData.completed_orders || 0);
+      const previousCompletionRate = previousTotalOrders > 0 ? (previousCompletedOrders / previousTotalOrders) * 100 : 0;
+
+      // Calculate change and trend
+      const change = this._calculateChange(currentCompletionRate, previousCompletionRate);
+      const trend = this._calculateTrend(currentCompletionRate, previousCompletionRate);
+
+      return {
+        rate: currentCompletionRate,
+        formatted: `${currentCompletionRate.toFixed(1)}%`,
+        totalOrders: currentTotalOrders,
+        completedOrders: currentCompletedOrders,
+        cancelledOrders: currentCancelledOrders,
+        pendingOrders: currentPendingOrders,
+        target: this.defaultTargets?.orderCompletion || 95,
+        targetFormatted: `${this.defaultTargets?.orderCompletion || 95}%`,
+        percentageAchievement: Math.round((currentCompletionRate / (this.defaultTargets?.orderCompletion || 95)) * 100),
+        change: change,
+        trend: trend
+      };
+    } catch (error) {
+      console.error('Error calculating order completion rate:', error);
+      return {
+        rate: 0,
+        formatted: "0.0%",
+        totalOrders: 0,
+        completedOrders: 0,
+        cancelledOrders: 0,
+        pendingOrders: 0,
+        target: this.defaultTargets?.orderCompletion || 95,
+        targetFormatted: `${this.defaultTargets?.orderCompletion || 95}%`,
+        percentageAchievement: 0,
+        change: "0.0%",
+        trend: "neutral"
+      };
+    }
   }
 
   /**
@@ -169,14 +313,14 @@ class OrderAnalyticsService {
       
       let start, end;
       
-      // Use provided dates or calculate default range (7 days)
+      // Use provided dates or calculate default range (30 days)
       if (startDate && endDate) {
         start = startDate;
         end = endDate;
       } else {
-        // Default: last 7 days
+        // Default: last 30 days to show more order types
         end = new Date();
-        start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+        start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
       }
       
       const connection = await dbSingleton.getConnection();
@@ -325,6 +469,186 @@ class OrderAnalyticsService {
       rating: row.avgRating !== null ? parseFloat(parseFloat(row.avgRating).toFixed(1)) : 0,
       count: parseInt(row.count || 0)
     }));
+  }
+
+  /**
+   * Get most popular items for a date range
+   * @param {Date} startDate - Start of date range
+   * @param {Date} endDate - End of date range
+   * @returns {Array} Array of popular items with counts and trends
+   */
+  async getMostPopularItems(startDate, endDate) {
+    try {
+      await this._ensureInitialized();
+      
+      const connection = await dbSingleton.getConnection();
+      
+      // Get current period popular items
+      const currentItems = await this._getPopularItems(connection, startDate, endDate);
+      
+      // Get previous period for trend calculation
+      const periodLength = endDate.getTime() - startDate.getTime();
+      const previousStart = new Date(startDate.getTime() - periodLength);
+      const previousEnd = new Date(startDate.getTime());
+      
+      const previousItems = await this._getPopularItems(connection, previousStart, previousEnd);
+      
+      // Calculate trends and combine data
+      const itemsWithTrends = currentItems.map(currentItem => {
+        const previousItem = previousItems.find(prev => prev.name === currentItem.name);
+        const previousCount = previousItem ? previousItem.count : 0;
+        
+        let trend = 'neutral';
+        if (currentItem.count > previousCount) trend = 'up';
+        else if (currentItem.count < previousCount) trend = 'down';
+        
+        return {
+          ...currentItem,
+          trend,
+          previousCount,
+          change: currentItem.count - previousCount
+        };
+      });
+      
+      return itemsWithTrends;
+    } catch (error) {
+      console.error('OrderAnalyticsService.getMostPopularItems error:', error);
+      throw new Error(`Failed to get most popular items: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get popular items from database
+   * @param {Object} connection - Database connection
+   * @param {Date} startDate - Start date
+   * @param {Date} endDate - End date
+   * @returns {Array} Array of items with counts
+   */
+  async _getPopularItems(connection, startDate, endDate) {
+    try {
+      // Query for most ordered items
+      const [result] = await connection.execute(`
+        SELECT 
+          d.item_name as name,
+          COUNT(*) as count,
+          AVG(o.rating) as avgRating
+        FROM order_item oi
+        JOIN orders o ON oi.order_id = o.order_id
+        JOIN dish d ON oi.item_id = d.item_id
+        WHERE o.created_at >= ? AND o.created_at <= ?
+        GROUP BY d.item_name
+        ORDER BY count DESC
+        LIMIT 6
+      `, [startDate, endDate]);
+      
+      return result.map(row => ({
+        name: row.name || 'Unknown Item',
+        count: parseInt(row.count || 0),
+        avgRating: row.avgRating ? parseFloat(parseFloat(row.avgRating).toFixed(1)) : 0
+      }));
+    } catch (error) {
+      console.error('Error getting popular items:', error);
+      // Return default items if query fails
+      return [
+        { name: "Espresso", count: 0, avgRating: 0 },
+        { name: "Cappuccino", count: 0, avgRating: 0 },
+        { name: "Latte", count: 0, avgRating: 0 },
+        { name: "Americano", count: 0, avgRating: 0 },
+        { name: "Mocha", count: 0, avgRating: 0 },
+        { name: "Croissant", count: 0, avgRating: 0 }
+      ];
+    }
+  }
+
+  /**
+   * Calculate percentage change between two values
+   * @param {number} current - Current value
+   * @param {number} previous - Previous value
+   * @returns {string} Formatted change percentage
+   */
+  _calculateChange(current, previous) {
+    if (previous === 0) {
+      return current > 0 ? '+100.0%' : '0.0%';
+    }
+    
+    const changePercent = ((current - previous) / previous) * 100;
+    const sign = changePercent >= 0 ? '+' : '';
+    return `${sign}${changePercent.toFixed(1)}%`;
+  }
+
+  /**
+   * Determine trend based on two values
+   * @param {number} current - Current value
+   * @param {number} previous - Previous value
+   * @returns {string} Trend direction: 'up', 'down', or 'neutral'
+   */
+  _calculateTrend(current, previous) {
+    if (current > previous) return 'up';
+    if (current < previous) return 'down';
+    return 'neutral';
+  }
+
+  /**
+   * Get current targets
+   * @returns {Object} Current target values
+   */
+  getTargets() {
+    return this.defaultTargets || {};
+  }
+
+  /**
+   * Update targets dynamically
+   * @param {Object} newTargets - New target values
+   */
+  async updateTargets(newTargets) {
+    try {
+      const connection = await dbSingleton.getConnection();
+      
+      // Update database config directly
+      for (const [key, value] of Object.entries(newTargets)) {
+        await connection.execute(`
+          UPDATE business_config 
+          SET config_value = ?, updated_at = NOW()
+          WHERE config_key = ?
+        `, [value.toString(), key]);
+      }
+      
+      // Update local targets
+      this.defaultTargets = { ...this.defaultTargets, ...newTargets };
+      
+      // Clear cache to ensure fresh data
+      this.clearCache();
+      
+      console.log('🎯 Targets updated:', this.defaultTargets);
+    } catch (error) {
+      console.error('Failed to update targets:', error.message);
+      throw new Error(`Failed to update targets: ${error.message}`);
+    }
+  }
+
+  /**
+   * Force refresh targets from database
+   * This method resets the service initialization and fetches fresh targets
+   */
+  async forceRefreshTargets() {
+    try {
+      console.log('🔄 Force refreshing targets from database...');
+      
+      // Reset initialization flag
+      this._initialized = false;
+      
+      // Clear existing cache
+      this.clearCache();
+      
+      // Force reinitialize targets from database
+      await this._ensureInitialized();
+      
+      console.log('✅ Targets refreshed successfully:', this.defaultTargets);
+      return this.defaultTargets;
+    } catch (error) {
+      console.error('❌ Failed to refresh targets:', error.message);
+      throw new Error(`Failed to refresh targets: ${error.message}`);
+    }
   }
 
   /**

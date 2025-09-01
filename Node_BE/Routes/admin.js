@@ -5,6 +5,7 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roleMiddleware');
 const financialService = require('../services/FinancialService');
 const orderAnalyticsService = require('../services/OrderAnalyticsService');
+const salesAnalyticsService = require('../services/SalesAnalyticsService');
 
 // Get order ratings analytics
 router.get('/order-ratings', authenticateToken, requireRole(['admin']), async (req, res) => {
@@ -36,6 +37,169 @@ router.get('/order-ratings', authenticateToken, requireRole(['admin']), async (r
     res.status(500).json({
       success: false,
       message: 'Failed to get order ratings',
+      error: error.message
+    });
+  }
+});
+
+// Get most popular items analytics
+router.get('/popular-items', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { range, startDate, endDate } = req.query;
+    
+    let result;
+    
+    if (range) {
+      // Use predefined range (e.g., '7_days', '30_days')
+      const end = new Date();
+      const start = new Date();
+      if (range === '7_days') start.setDate(start.getDate() - 7);
+      else if (range === '30_days') start.setDate(start.getDate() - 30);
+      else if (range === '90_days') start.setDate(start.getDate() - 90);
+      result = await orderAnalyticsService.getMostPopularItems(start, end);
+    } else if (startDate && endDate) {
+      // Use custom date range
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      result = await orderAnalyticsService.getMostPopularItems(start, end);
+    } else {
+      // Use default range (last 30 days)
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      result = await orderAnalyticsService.getMostPopularItems(start, end);
+    }
+    
+    res.json({
+      success: true,
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('Failed to get popular items:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get popular items',
+      error: error.message
+    });
+  }
+});
+
+// Get current targets
+router.get('/targets', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const targets = orderAnalyticsService.getTargets();
+    res.json({
+      success: true,
+      data: targets
+    });
+  } catch (error) {
+    console.error('Failed to get targets:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get targets',
+      error: error.message
+    });
+  }
+});
+
+// Update targets
+router.put('/targets', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { targets } = req.body;
+    
+    if (!targets || typeof targets !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid targets data'
+      });
+    }
+    
+    await orderAnalyticsService.updateTargets(targets);
+    
+    res.json({
+      success: true,
+      message: 'Targets updated successfully',
+      data: orderAnalyticsService.getTargets()
+    });
+  } catch (error) {
+    console.error('Failed to update targets:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update targets',
+      error: error.message
+    });
+  }
+});
+
+// Force refresh targets from database
+router.post('/targets/refresh', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    console.log('🔄 Admin requested target refresh...');
+    
+    const refreshedTargets = await orderAnalyticsService.forceRefreshTargets();
+    
+    res.json({
+      success: true,
+      message: 'Targets refreshed successfully from database',
+      data: refreshedTargets
+    });
+  } catch (error) {
+    console.error('Failed to refresh targets:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to refresh targets',
+      error: error.message
+    });
+  }
+});
+
+// Get sales analytics
+router.get('/sales-analytics', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { range, startDate, endDate, granularity = 'daily' } = req.query;
+    
+    let start, end;
+    
+    if (range) {
+      // Use predefined range
+      end = new Date();
+      start = new Date();
+      
+      if (range === 'today') start.setHours(0, 0, 0, 0);
+      else if (range === '7_days') start.setDate(start.getDate() - 7);
+      else if (range === '14_days') start.setDate(start.getDate() - 14);
+      else if (range === '30_days') start.setDate(start.getDate() - 30);
+      else if (range === '3_months') start.setDate(start.getDate() - 90);
+      else if (range === '6_months') start.setDate(start.getDate() - 180);
+      else if (range === '1_year') start.setDate(start.getDate() - 365);
+      else {
+        // Default to 30 days
+        start.setDate(start.getDate() - 30);
+      }
+    } else if (startDate && endDate) {
+      // Use custom date range
+      start = new Date(startDate);
+      end = new Date(endDate);
+    } else {
+      // Default to last 30 days
+      end = new Date();
+      start = new Date();
+      start.setDate(start.getDate() - 30);
+    }
+    
+    const result = await salesAnalyticsService.getSalesAnalytics(start, end, granularity);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('Failed to get sales analytics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get sales analytics',
       error: error.message
     });
   }

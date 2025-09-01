@@ -336,6 +336,49 @@ p {
   float: right;
 }
 
+/* Forgot Password Styles */
+.forgotPasswordLink {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.forgotPasswordButton {
+  background: none;
+  border: none;
+  color: #896551;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  transition: color 0.2s ease;
+}
+
+.forgotPasswordButton:hover:not(:disabled) {
+  color: #6d4c41;
+}
+
+.forgotPasswordButton:disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.forgotPasswordOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
 @media (max-height: 700px) {
   .container {
     min-height: 500px;
@@ -350,6 +393,5 @@ p {
   form {
     padding: 1rem 25px;
   }
-}
-  
+}  
  

@@ -4,9 +4,11 @@ import { UserContext } from '../../context/UserContext/UserContext';
 import classes from './LogInForm.module.css';
 import axios from 'axios';
 import { getApiConfig } from '../../utils/config';
+import ForgotPasswordForm from './ForgotPasswordForm';
 
 export default function LogInForm({ onLoginSuccess, onSignupSuccess }) {
     const [signIn, toggle] = useState(true);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [loginFormData, setLoginFormData] = useState({
         username: "",
         password: "",
@@ -51,6 +53,16 @@ export default function LogInForm({ onLoginSuccess, onSignupSuccess }) {
             return () => clearTimeout(timer);
         }
     }, [loginErrors, signupErrors]);
+
+    // Show forgot password form
+    const showForgotPasswordForm = () => {
+        setShowForgotPassword(true);
+    };
+
+    // Hide forgot password form
+    const hideForgotPasswordForm = () => {
+        setShowForgotPassword(false);
+    };
 
     // Login Form Handlers
     function handleLoginSubmit(event) {
@@ -275,6 +287,19 @@ export default function LogInForm({ onLoginSuccess, onSignupSuccess }) {
       
     return (
         <div className={classes.container}>
+            {/* Forgot Password Form Overlay */}
+            {showForgotPassword && (
+                <div className={classes.forgotPasswordOverlay}>
+                    <ForgotPasswordForm
+                        onBackToLogin={hideForgotPasswordForm}
+                        onSuccess={(email) => {
+                            hideForgotPasswordForm();
+                            // You can add a success message here if needed
+                        }}
+                    />
+                </div>
+            )}
+
             <div className={`${classes.SignInContainer} ${!signIn ? classes.active : ''}`}>
                 <form onSubmit={handleLoginSubmit}>
                     <h2>Login</h2>
@@ -310,6 +335,18 @@ export default function LogInForm({ onLoginSuccess, onSignupSuccess }) {
                     <button type="submit" className={classes.submitButton} disabled={isSubmitting}>
                         {isSubmitting ? 'Logging in...' : 'Login'}
                     </button>
+
+                    {/* Forgot Password Link */}
+                    <div className={classes.forgotPasswordLink}>
+                        <button
+                            type="button"
+                            onClick={showForgotPasswordForm}
+                            className={classes.forgotPasswordButton}
+                            disabled={isSubmitting}
+                        >
+                            Forgot Password?
+                        </button>
+                    </div>
                 </form>
             </div>
 

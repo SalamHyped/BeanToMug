@@ -12,7 +12,8 @@ import {
   FaClock,
   FaPercent,
   FaShoppingCart,
-  FaBullseye
+  FaBullseye,
+  FaChartPie
 } from 'react-icons/fa';
 
 const FinancialKPICard = ({ kpi }) => {
@@ -35,12 +36,29 @@ const FinancialKPICard = ({ kpi }) => {
         return <FaBriefcase className="text-2xl filter drop-shadow-lg" />;
       case "Online Orders":
         return <FaChartLine className="text-2xl filter drop-shadow-lg" />;
+      case "Total Orders":
+        return <FaShoppingCart className="text-2xl filter drop-shadow-lg" />;
+      case "Order Types":
+        return <FaChartPie className="text-2xl filter drop-shadow-lg" />;
+      case "Order Completion":
+        return <FaCheckCircle className="text-2xl filter drop-shadow-lg" />;
       default:
         return <FaChartLine className="text-2xl filter drop-shadow-lg" />;
     }
   };
 
-  const getChangeColorClass = (color) => {
+  const getChangeColorClass = (color, trend) => {
+    // Use trend for dynamic colors if available, otherwise fall back to color prop
+    if (trend) {
+      switch (trend) {
+        case 'up': return 'bg-coffee-crystal/90';
+        case 'down': return 'bg-coffee-mocha/90';
+        case 'neutral': return 'bg-coffee-medium/90';
+        default: return 'bg-coffee-medium/90';
+      }
+    }
+    
+    // Fallback to color prop
     switch (color) {
       case 'success': return 'bg-coffee-crystal/90';
       case 'warning': return 'bg-coffee-warm/90';
@@ -137,7 +155,7 @@ const FinancialKPICard = ({ kpi }) => {
                        text-sm font-semibold backdrop-blur-md
                        shadow-lg border border-coffee-crystal/30
                        text-coffee-espresso
-                       ${getChangeColorClass(kpi.color)}`}>
+                       ${getChangeColorClass(kpi.color, kpi.trend)}`}>
         {getTrendIcon(kpi.trend)}
         <span>{kpi.change}</span>
         <span className="text-xs opacity-80">{kpi.comparison}</span>

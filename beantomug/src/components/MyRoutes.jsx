@@ -7,6 +7,7 @@ import LogIn from '../pages/LogIn';
 import EmailVerification from './auth/EmailVerification';
 import ResendVerification from './auth/ResendVerification';
 import VerificationPending from './auth/VerificationPending';
+import ResetPassword from '../pages/ResetPassword';
 import PaymentSuccess from '../pages/PaymentSuccess';
 import PaymentCancel from '../pages/PaymentCancel';
 import ProfileCompletion from '../pages/ProfileCompletion';
@@ -88,6 +89,7 @@ export default function MyRoutes(){
             <Route path="/verify-email" element={<EmailVerification/>} />
             <Route path="/verify-email/pending" element={<VerificationPending/>} />
             <Route path="/resend-verification" element={<ResendVerification/>} />
+            <Route path="/reset-password" element={<ResetPassword/>} />
             <Route path="/profile-completion" element={<ProfileCompletion/>} />
             <Route path="/cart" element={<CartPage/>} />
             <Route path="/gallery" element={<PublicGallery/>} />

@@ -6,6 +6,9 @@ const SECRET_KEY = 'beanToMugSecretKey123';
 // Token expiration time in milliseconds (24 hours)
 const TOKEN_EXPIRY = 24 * 60 * 60 * 1000;
 
+// Password reset token expiration time in milliseconds (1 hour)
+const PASSWORD_RESET_TOKEN_EXPIRY = 60 * 60 * 1000;
+
 /**
  * Generate a secure token for email verification
  * @param {string} email - User's email
@@ -67,7 +70,75 @@ const verifyToken = (token, email) => {
   }
 };
 
+/**
+ * Generate a secure token for password reset
+ * @param {string} email - User's email
+ * @returns {string} - Generated password reset token
+ */
+const generatePasswordResetToken = (email) => {
+  const timestamp = Date.now();
+  const data = `reset:${email}:${timestamp}`;
+  
+  // Create HMAC signature
+  const signature = crypto
+    .createHmac('sha256', SECRET_KEY)
+    .update(data)
+    .digest('hex');
+  
+  // Combine data and signature, then encode
+  const token = Buffer.from(`${data}:${signature}`).toString('base64');
+  return token;
+};
+
+/**
+ * Verify a password reset token is valid and not expired
+ * @param {string} token - The password reset token
+ * @param {string} email - The user's email
+ * @returns {boolean} - Whether the token is valid
+ */
+const verifyPasswordResetToken = (token, email) => {
+  try {
+    // Decode the token
+    const decoded = Buffer.from(token, 'base64').toString();
+    const [tokenType, tokenEmail, timestamp, signature] = decoded.split(':');
+    
+    // Check if it's a password reset token
+    if (tokenType !== 'reset') {
+      return false;
+    }
+    
+    // Check if email matches
+    if (email !== tokenEmail) {
+      return false;
+    }
+    
+    // Check if token is expired (1 hour for password reset)
+    const tokenTime = parseInt(timestamp, 10);
+    if (isNaN(tokenTime) || Date.now() - tokenTime > PASSWORD_RESET_TOKEN_EXPIRY) {
+      return false;
+    }
+    
+    // Verify the signature
+    const data = `reset:${tokenEmail}:${timestamp}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', SECRET_KEY)
+      .update(data)
+      .digest('hex');
+    
+    // Use timing-safe comparison to prevent timing attacks
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+  } catch (error) {
+    console.error('Password reset token verification error:', error);
+    return false;
+  }
+};
+
 module.exports = {
   generateVerificationToken,
-  verifyToken
+  verifyToken,
+  generatePasswordResetToken,
+  verifyPasswordResetToken
 }; 
