@@ -28,6 +28,7 @@ import CustomerLayout from './layouts/CustomerLayout';
 const Dashboard = lazy(() => import('../pages/staff/DashBoard'));
 const AdminDashboard = lazy(() => import('../pages/admin/Dashboard'));
 const TaskDashboard = lazy(() => import('../pages/staff/TaskDashboard'));
+const TaskManagement = lazy(() => import('../pages/admin/TaskManagement'));
 const Receipts = lazy(() => import('../pages/staff/Receipts'));
 const CustomerReceipts = lazy(() => import('../pages/customer/CustomerReceipts'));
 const PublicGallery = lazy(() => import('../pages/Gallery'));
@@ -120,7 +121,12 @@ export default function MyRoutes(){
                     } />
                     <Route path="tasks" element={
                       <Suspense fallback={<PageLoader />}>
-                        <AdminDashboard />
+                        <TaskDashboard />
+                      </Suspense>
+                    } />
+                    <Route path="task-management" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <TaskManagement />
                       </Suspense>
                     } />
                     <Route path="orders/queue" element={

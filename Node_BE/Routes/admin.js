@@ -85,74 +85,6 @@ router.get('/popular-items', authenticateToken, requireRole(['admin']), async (r
   }
 });
 
-// Get current targets
-router.get('/targets', authenticateToken, requireRole(['admin']), async (req, res) => {
-  try {
-    const targets = orderAnalyticsService.getTargets();
-    res.json({
-      success: true,
-      data: targets
-    });
-  } catch (error) {
-    console.error('Failed to get targets:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get targets',
-      error: error.message
-    });
-  }
-});
-
-// Update targets
-router.put('/targets', authenticateToken, requireRole(['admin']), async (req, res) => {
-  try {
-    const { targets } = req.body;
-    
-    if (!targets || typeof targets !== 'object') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid targets data'
-      });
-    }
-    
-    await orderAnalyticsService.updateTargets(targets);
-    
-    res.json({
-      success: true,
-      message: 'Targets updated successfully',
-      data: orderAnalyticsService.getTargets()
-    });
-  } catch (error) {
-    console.error('Failed to update targets:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update targets',
-      error: error.message
-    });
-  }
-});
-
-// Force refresh targets from database
-router.post('/targets/refresh', authenticateToken, requireRole(['admin']), async (req, res) => {
-  try {
-    console.log('🔄 Admin requested target refresh...');
-    
-    const refreshedTargets = await orderAnalyticsService.forceRefreshTargets();
-    
-    res.json({
-      success: true,
-      message: 'Targets refreshed successfully from database',
-      data: refreshedTargets
-    });
-  } catch (error) {
-    console.error('Failed to refresh targets:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to refresh targets',
-      error: error.message
-    });
-  }
-});
 
 // Get sales analytics
 router.get('/sales-analytics', authenticateToken, requireRole(['admin']), async (req, res) => {
@@ -491,9 +423,6 @@ router.get('/financial-kpis', authenticateToken, requireRole(['admin']), async (
         // Online Orders data
         onlineOrdersPercentage: kpis.onlineOrders.percentage,
         onlineOrdersFormatted: kpis.onlineOrders.formatted,
-        onlineOrdersTarget: kpis.onlineOrders.target,
-        onlineOrdersTargetFormatted: kpis.onlineOrders.targetFormatted,
-        onlineOrdersPercentageAchievement: kpis.onlineOrders.percentageAchievement,
         
         lastUpdated: kpis.metadata.lastUpdated,
         dataQuality: kpis.metadata.dataQuality
@@ -518,7 +447,6 @@ router.get('/business-config', authenticateToken, requireRole(['admin']), async 
       success: true,
       data: {
         profit_margins: config.financial,
-        targets: config.targets,
         cost_categories: config.costs,
         settings: config.system,
         metadata: config.metadata

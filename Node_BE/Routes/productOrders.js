@@ -13,6 +13,7 @@ const {
  * 
  * Available endpoints:
  * - GET /product-orders - Get all product orders with filtering
+ * - GET /product-orders/alerts - Get ingredient alerts (low stock, expiring)
  * - GET /product-orders/:id - Get specific product order details  
  * - GET /product-orders/supplier/:supplier_id/ingredients - Get ingredients for a supplier
  * - POST /product-orders - Create new product order
@@ -20,6 +21,123 @@ const {
  * - PUT /product-orders/:id/status - Update order status
  * - DELETE /product-orders/:id - Delete product order
  */
+
+/**
+ * GET /product-orders/alerts
+ * Retrieves product orders that require attention
+ * 
+ * This endpoint provides alerts for product orders:
+ * - Returns pending orders that need attention
+ * - Returns shipped orders with expired delivery dates
+ * - Includes order details and supplier information
+ * - Used for admin dashboard alerts
+ * 
+ * Response: Array of product orders requiring attention
+ */
+router.get('/alerts', asyncHandler(async (req, res) => {
+  try {
+    const connection = await dbSingleton.getConnection();
+    
+    // Get product orders that need attention (pending or expired delivery)
+    const rows = await getRecords(connection, `
+      SELECT 
+        po.order_id,
+        po.total_price,
+        po.order_start_date,
+        po.order_end_date,
+        po.status,
+        po.supplier_id,
+        s.supplier_name,
+        s.phone_number as supplier_phone,
+        s.email as supplier_email,
+        poi.id as order_item_id,
+        poi.quantity_ordered,
+        poi.unit_cost,
+        (poi.quantity_ordered * poi.unit_cost) as item_total_cost,
+        i.ingredient_id,
+        i.ingredient_name,
+        i.unit,
+        i.brand,
+        ic.name as ingredient_category
+      FROM product_order po
+      LEFT JOIN supplier s ON po.supplier_id = s.supplier_id
+      LEFT JOIN product_order_item poi ON po.order_id = poi.product_order_id
+      LEFT JOIN ingredient i ON poi.ingredient_id = i.ingredient_id
+      LEFT JOIN ingredient_category ic ON i.type_id = ic.id
+      WHERE po.status IN ('pending', 'shipped')
+        AND (
+          po.status = 'pending'
+          OR (po.status = 'shipped' AND po.order_end_date < NOW())
+        )
+      ORDER BY 
+        CASE 
+          WHEN po.status = 'pending' THEN 1
+          WHEN po.order_end_date < NOW() THEN 2
+          ELSE 3
+        END,
+        po.order_start_date ASC,
+        poi.id ASC
+    `);
+
+    // Group items by order and format the response
+    const orderMap = new Map();
+    
+    rows.forEach(row => {
+      const orderId = row.order_id;
+      
+      if (!orderMap.has(orderId)) {
+        // Create new order entry
+        orderMap.set(orderId, {
+          product_order_id: orderId,
+          supplier_name: row.supplier_name || 'Unknown Supplier',
+          status: row.status,
+          order_date: row.order_start_date,
+          end_date: row.order_end_date,
+          total_amount: row.total_price,
+          order_type: row.status === 'pending' ? 'Pending Order' : 'Expired Delivery',
+          customer_name: `Order #${orderId}`,
+          phone: row.supplier_phone || 'N/A',
+          email: row.supplier_email || 'N/A',
+          category: 'Product Order',
+          is_pending: row.status === 'pending',
+          is_expired: row.status === 'shipped' && row.order_end_date < new Date(),
+          days_overdue: row.status === 'shipped' && row.order_end_date < new Date() 
+            ? Math.ceil((new Date() - new Date(row.order_end_date)) / (1000 * 60 * 60 * 24))
+            : 0,
+          items: [],
+          item_count: 0,
+          total_quantity: 0
+        });
+      }
+      
+      // Add item to the order
+      const order = orderMap.get(orderId);
+      if (row.order_item_id) {
+        order.items.push({
+          order_item_id: row.order_item_id,
+          ingredient_id: row.ingredient_id,
+          ingredient_name: row.ingredient_name,
+          quantity_ordered: parseFloat(row.quantity_ordered) || 0,
+          unit_cost: parseFloat(row.unit_cost) || 0,
+          item_total_cost: parseFloat(row.item_total_cost) || 0,
+          unit: row.unit,
+          brand: row.brand,
+          category: row.ingredient_category
+        });
+        
+        order.item_count = order.items.length;
+        order.total_quantity += parseFloat(row.quantity_ordered) || 0;
+      }
+    });
+    
+    const orders = Array.from(orderMap.values());
+    
+    sendSuccess(res, { orders: orders });
+    
+  } catch (error) {
+    handleError(res, error, 'Failed to fetch product order alerts');
+  }
+}));
 
 /**
  * GET /product-orders/supplier/:supplier_id/ingredients
@@ -740,5 +858,7 @@ router.delete('/:id', asyncHandler(async (req, res) => {
     handleError(res, error, 'Failed to delete product order');
   }
 }));
+
+
 
 module.exports = router;

@@ -3,10 +3,11 @@ import { useOutletContext } from 'react-router-dom';
 import styles from './Dashboard.module.css';
 import FinancialKPISection from "../../components/admin/FinancialKPISection";
 import OrderAnalyticsSection from "../../components/admin/OrderAnalyticsSection";
-import CustomerSatisfactionSection from "../../components/admin/CustomerSatisfactionSection";
 import RevenueAnalyticsSection from "../../components/admin/RevenueAnalyticsSection";
 import useFinancialKPIs from "../../hooks/useFinancialKPIs.js";
 import useOrderAnalytics from "../../hooks/useOrderAnalytics.js";
+import GeneralAlertsSection from "../../components/admin/GeneralAlertsSection";
+import DashboardScheduleWrapper from "../../components/admin/DashboardScheduleWrapper";
 
 const AdminDashboard = () => {
   const { isSidebarCollapsed } = useOutletContext() || { isSidebarCollapsed: false };
@@ -56,8 +57,15 @@ const AdminDashboard = () => {
       {/* Revenue Analytics Section */}
       <RevenueAnalyticsSection />
 
-      {/* Customer Satisfaction Section */}
-      <CustomerSatisfactionSection />
+      {/* Business Alerts Section - Smaller and Flexed */}
+      <div className="flex gap-6 mb-8 mt-8">
+        <div className="flex-1">
+          <GeneralAlertsSection />
+        </div>
+        <div className="flex-1">
+          <DashboardScheduleWrapper />
+        </div>
+      </div>
 
       {/* Refresh Targets Button */}
       <div className="flex justify-center mt-12 mb-8">

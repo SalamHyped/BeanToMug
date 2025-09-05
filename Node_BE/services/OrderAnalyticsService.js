@@ -32,22 +32,18 @@ class OrderAnalyticsService {
 
   async _initializeTargets() {
     try {
-      // Initialize default targets
+      // Initialize default targets (only keeping non-order related targets)
       this.defaultTargets = {
-        onlineOrders: await databaseConfig.get('online_orders_target') || 70,
         totalOrders: await databaseConfig.get('total_orders_target') || 100,
-        customerSatisfaction: await databaseConfig.get('customer_satisfaction_target') || 4.5,
-        orderCompletion: await databaseConfig.get('order_completion_target') || 95
+        customerSatisfaction: await databaseConfig.get('customer_satisfaction_target') || 4.5
       };
       
       console.log('🎯 Targets initialized:', this.defaultTargets);
     } catch (error) {
       console.error('Failed to initialize targets, using defaults:', error.message);
       this.defaultTargets = {
-        onlineOrders: 70,
         totalOrders: 100,
-        customerSatisfaction: 4.5,
-        orderCompletion: 95
+        customerSatisfaction: 4.5
       };
     }
   }
@@ -92,14 +88,18 @@ class OrderAnalyticsService {
         this.getMostPopularItems(startDate, endDate)
       ]);
 
-      // Calculate order completion rate
-      const orderCompletionData = await this._calculateOrderCompletionRate(connection, startDate, endDate);
-      
+      // Calculate customer satisfaction and processing time
+      const [customerSatisfactionData, processingTimeData] = await Promise.all([
+        this._calculateCustomerSatisfaction(connection, startDate, endDate),
+        this._calculateProcessingTime(connection, startDate, endDate)
+      ]);
+
       return {
         onlineOrders: onlineOrdersData,
         orderTypes: orderTypeDistribution,
         popularItems: popularItems,
-        orderCompletion: orderCompletionData,
+        customerSatisfaction: customerSatisfactionData,
+        processingTime: processingTimeData,
         targets: this.defaultTargets,
         metadata: {
           startDate: startDate.toISOString(),
@@ -185,9 +185,6 @@ class OrderAnalyticsService {
       onlineOrders: currentOnlineOrders,
       cartOrders: currentCartOrders,
       formatted: `${currentPercentage.toFixed(1)}%`,
-      target: this.defaultTargets?.onlineOrders || 70,
-      targetFormatted: `${this.defaultTargets?.onlineOrders || 70}%`,
-      percentageAchievement: Math.round((currentPercentage / (this.defaultTargets?.onlineOrders || 70)) * 100),
       change: change,
       comparison: "vs previous period", // Will be updated by frontend
       trend: trend
@@ -226,27 +223,32 @@ class OrderAnalyticsService {
     }));
   }
 
-  async _calculateOrderCompletionRate(connection, startDate, endDate) {
+  /**
+   * Calculate customer satisfaction score for a date range
+   * @param {Object} connection - Database connection
+   * @param {Date} startDate - Start of date range
+   * @param {Date} endDate - End of date range
+   * @returns {Object} Customer satisfaction data
+   */
+  async _calculateCustomerSatisfaction(connection, startDate, endDate) {
     try {
-      // Get current period order completion data
+      // Get current period ratings from orders table
       const [currentResult] = await connection.execute(`
         SELECT 
-          COUNT(*) as total_orders,
-          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_orders,
-          SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_orders,
-          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_orders
+          AVG(rating) as average_rating,
+          COUNT(*) as total_ratings,
+          SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_star,
+          SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four_star,
+          SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three_star,
+          SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two_star,
+          SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one_star
         FROM orders 
-        WHERE created_at >= ? AND created_at < ?
+        WHERE created_at >= ? AND created_at < ? AND rating > 0
       `, [startDate, endDate]);
 
       const currentData = currentResult[0];
-      const currentTotalOrders = parseInt(currentData.total_orders || 0);
-      const currentCompletedOrders = parseInt(currentData.completed_orders || 0);
-      const currentCancelledOrders = parseInt(currentData.cancelled_orders || 0);
-      const currentPendingOrders = parseInt(currentData.pending_orders || 0);
-
-      // Calculate completion rate
-      const currentCompletionRate = currentTotalOrders > 0 ? (currentCompletedOrders / currentTotalOrders) * 100 : 0;
+      const currentScore = parseFloat(currentData.average_rating || 0);
+      const currentTotalRatings = parseInt(currentData.total_ratings || 0);
 
       // Get previous period for comparison
       const periodDuration = endDate.getTime() - startDate.getTime();
@@ -254,49 +256,106 @@ class OrderAnalyticsService {
       const previousEndDate = new Date(startDate.getTime());
 
       const [previousResult] = await connection.execute(`
-        SELECT 
-          COUNT(*) as total_orders,
-          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_orders
+        SELECT AVG(rating) as average_rating
         FROM orders 
-        WHERE created_at >= ? AND created_at < ?
+        WHERE created_at >= ? AND created_at < ? AND rating > 0
       `, [previousStartDate, previousEndDate]);
 
       const previousData = previousResult[0];
-      const previousTotalOrders = parseInt(previousData.total_orders || 0);
-      const previousCompletedOrders = parseInt(previousData.completed_orders || 0);
-      const previousCompletionRate = previousTotalOrders > 0 ? (previousCompletedOrders / previousTotalOrders) * 100 : 0;
+      const previousScore = parseFloat(previousData.average_rating || 0);
 
       // Calculate change and trend
-      const change = this._calculateChange(currentCompletionRate, previousCompletionRate);
-      const trend = this._calculateTrend(currentCompletionRate, previousCompletionRate);
+      const change = this._calculateChange(currentScore, previousScore);
+      const trend = this._calculateTrend(currentScore, previousScore);
 
       return {
-        rate: currentCompletionRate,
-        formatted: `${currentCompletionRate.toFixed(1)}%`,
-        totalOrders: currentTotalOrders,
-        completedOrders: currentCompletedOrders,
-        cancelledOrders: currentCancelledOrders,
-        pendingOrders: currentPendingOrders,
-        target: this.defaultTargets?.orderCompletion || 95,
-        targetFormatted: `${this.defaultTargets?.orderCompletion || 95}%`,
-        percentageAchievement: Math.round((currentCompletionRate / (this.defaultTargets?.orderCompletion || 95)) * 100),
+        score: currentScore,
         change: change,
-        trend: trend
+        trend: trend,
+        totalRatings: currentTotalRatings,
+        distribution: {
+          fiveStar: parseInt(currentData.five_star || 0),
+          fourStar: parseInt(currentData.four_star || 0),
+          threeStar: parseInt(currentData.three_star || 0),
+          twoStar: parseInt(currentData.two_star || 0),
+          oneStar: parseInt(currentData.one_star || 0)
+        }
       };
     } catch (error) {
-      console.error('Error calculating order completion rate:', error);
+      console.error('Error calculating customer satisfaction:', error);
       return {
-        rate: 0,
-        formatted: "0.0%",
-        totalOrders: 0,
-        completedOrders: 0,
-        cancelledOrders: 0,
-        pendingOrders: 0,
-        target: this.defaultTargets?.orderCompletion || 95,
-        targetFormatted: `${this.defaultTargets?.orderCompletion || 95}%`,
-        percentageAchievement: 0,
-        change: "0.0%",
-        trend: "neutral"
+        score: 0,
+        change: "0.0",
+        trend: "neutral",
+        totalRatings: 0,
+        distribution: {}
+      };
+    }
+  }
+
+  /**
+   * Calculate order processing time for a date range
+   * @param {Object} connection - Database connection
+   * @param {Date} startDate - Start of date range
+   * @param {Date} endDate - End of date range
+   * @returns {Object} Processing time data
+   */
+  async _calculateProcessingTime(connection, startDate, endDate) {
+    try {
+      // Get current period processing times (using updated_at as completion time)
+      const [currentResult] = await connection.execute(`
+        SELECT 
+          AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as average_time,
+          MIN(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as fastest_time,
+          MAX(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as slowest_time,
+          COUNT(*) as total_orders
+        FROM orders 
+        WHERE created_at >= ? AND created_at < ? 
+        AND status = 'completed'
+      `, [startDate, endDate]);
+
+      const currentData = currentResult[0];
+      const currentAverage = parseFloat(currentData.average_time || 0);
+      const currentFastest = parseFloat(currentData.fastest_time || 0);
+      const currentSlowest = parseFloat(currentData.slowest_time || 0);
+      const currentTotalOrders = parseInt(currentData.total_orders || 0);
+
+      // Get previous period for comparison
+      const periodDuration = endDate.getTime() - startDate.getTime();
+      const previousStartDate = new Date(startDate.getTime() - periodDuration);
+      const previousEndDate = new Date(startDate.getTime());
+
+      const [previousResult] = await connection.execute(`
+        SELECT AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as average_time
+        FROM orders 
+        WHERE created_at >= ? AND created_at < ? 
+        AND status = 'completed'
+      `, [previousStartDate, previousEndDate]);
+
+      const previousData = previousResult[0];
+      const previousAverage = parseFloat(previousData.average_time || 0);
+
+      // Calculate change and trend (lower is better for processing time)
+      const change = this._calculateChange(currentAverage, previousAverage);
+      const trend = currentAverage < previousAverage ? 'up' : currentAverage > previousAverage ? 'down' : 'neutral';
+
+      return {
+        average: currentAverage,
+        change: change,
+        trend: trend,
+        fastest: currentFastest,
+        slowest: currentSlowest,
+        totalOrders: currentTotalOrders
+      };
+    } catch (error) {
+      console.error('Error calculating processing time:', error);
+      return {
+        average: 0,
+        change: "0.0 min",
+        trend: "neutral",
+        fastest: 0,
+        slowest: 0,
+        totalOrders: 0
       };
     }
   }
@@ -588,68 +647,6 @@ class OrderAnalyticsService {
     return 'neutral';
   }
 
-  /**
-   * Get current targets
-   * @returns {Object} Current target values
-   */
-  getTargets() {
-    return this.defaultTargets || {};
-  }
-
-  /**
-   * Update targets dynamically
-   * @param {Object} newTargets - New target values
-   */
-  async updateTargets(newTargets) {
-    try {
-      const connection = await dbSingleton.getConnection();
-      
-      // Update database config directly
-      for (const [key, value] of Object.entries(newTargets)) {
-        await connection.execute(`
-          UPDATE business_config 
-          SET config_value = ?, updated_at = NOW()
-          WHERE config_key = ?
-        `, [value.toString(), key]);
-      }
-      
-      // Update local targets
-      this.defaultTargets = { ...this.defaultTargets, ...newTargets };
-      
-      // Clear cache to ensure fresh data
-      this.clearCache();
-      
-      console.log('🎯 Targets updated:', this.defaultTargets);
-    } catch (error) {
-      console.error('Failed to update targets:', error.message);
-      throw new Error(`Failed to update targets: ${error.message}`);
-    }
-  }
-
-  /**
-   * Force refresh targets from database
-   * This method resets the service initialization and fetches fresh targets
-   */
-  async forceRefreshTargets() {
-    try {
-      console.log('🔄 Force refreshing targets from database...');
-      
-      // Reset initialization flag
-      this._initialized = false;
-      
-      // Clear existing cache
-      this.clearCache();
-      
-      // Force reinitialize targets from database
-      await this._ensureInitialized();
-      
-      console.log('✅ Targets refreshed successfully:', this.defaultTargets);
-      return this.defaultTargets;
-    } catch (error) {
-      console.error('❌ Failed to refresh targets:', error.message);
-      throw new Error(`Failed to refresh targets: ${error.message}`);
-    }
-  }
 
   /**
    * Clear all cached data

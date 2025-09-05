@@ -31,7 +31,7 @@ import { RiMenuAddFill } from "react-icons/ri";
 // Static navigation items - better for tree-shaking
 const ADMIN_NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", icon: FaHome },
-  { to: "/admin/tasks", label: "Task Management", icon: FaTasks },
+  { to: "/admin/task-management", label: "Task Management", icon: FaTasks },
   { 
     to: "/admin/orders", 
     label: "Menu Management", 

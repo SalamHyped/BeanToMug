@@ -499,58 +499,6 @@ const RevenueAnalyticsSection = () => {
         onPDFExport={handleItemsPDFExport}
         formatCurrency={formatCurrency}
       />
-
-      {/* Sales Performance Table */}
-      <div className="bg-white rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-coffee-brown">
-            Sales Performance Details
-          </h3>
-          <ExportButtons 
-            onCSVExport={handleCSVExport}
-            onPDFExport={handlePDFExport}
-            variant="primary"
-          />
-        </div>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-coffee-cream">
-                <th className="text-left py-2 px-3 text-coffee-brown font-semibold">Date</th>
-                <th className="text-right py-2 px-3 text-coffee-brown font-semibold">Revenue</th>
-                <th className="text-right py-2 px-3 text-coffee-brown font-semibold">Orders</th>
-                <th className="text-right py-2 px-3 text-coffee-brown font-semibold">Avg Order</th>
-              </tr>
-            </thead>
-            <tbody>
-              {salesData.revenueTrend.map((item, index) => (
-                <tr key={index} className="border-b border-coffee-cream hover:bg-coffee-snow">
-                  <td className="py-2 px-3 text-coffee-dark">
-                    {granularity === 'weekly' 
-                      ? `Week ${item.date}` 
-                      : new Date(item.date).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric',
-                          year: 'numeric'
-                        })
-                    }
-                  </td>
-                  <td className="py-2 px-3 text-right font-medium text-coffee-brown">
-                    {formatCurrency(item.revenue)}
-                  </td>
-                  <td className="py-2 px-3 text-right text-coffee-dark">
-                    {formatNumber(item.orderCount)}
-                  </td>
-                  <td className="py-2 px-3 text-right text-coffee-dark">
-                    {formatCurrency(item.avgOrderValue)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 };

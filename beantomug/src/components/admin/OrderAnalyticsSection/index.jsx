@@ -65,36 +65,32 @@ const OrderAnalyticsSection = ({ orderData, loading, onDateRangeChange }) => {
       }
     },
     {
-      title: "Online Orders",
-      value: orderData?.onlineOrders?.formatted || "0.0%",
-      target: orderData?.onlineOrders?.targetFormatted || "70%",
-      percentage: orderData?.onlineOrders?.percentageAchievement || 0,
-      change: orderData?.onlineOrders?.change || "+0.0%",
+      title: "Average Customer Satisfaction",
+      value: orderData?.customerSatisfaction?.score || "0.0",
+      change: orderData?.customerSatisfaction?.change || "+0.0",
       comparison: getComparisonText(currentRange),
       color: "success",
-      trend: orderData?.onlineOrders?.trend || "up",
-      dataQuality: orderData?.dataQuality || "low",
+      trend: orderData?.customerSatisfaction?.trend || "neutral",
+      dataQuality: "high",
       additionalInfo: {
-        totalOrders: orderData?.onlineOrders?.totalOrders || 0,
-        onlineOrders: orderData?.onlineOrders?.onlineOrders || 0,
-        cartOrders: orderData?.onlineOrders?.cartOrders || 0
+        totalRatings: orderData?.customerSatisfaction?.totalRatings || 0,
+        averageScore: orderData?.customerSatisfaction?.score || 0,
+        ratingDistribution: orderData?.customerSatisfaction?.distribution || {}
       }
     },
     {
-      title: "Order Completion",
-      value: orderData?.orderCompletion?.formatted || "0.0%",
-      target: orderData?.orderCompletion?.targetFormatted || "95%",
-      percentage: orderData?.orderCompletion?.percentageAchievement || 0,
-      change: orderData?.orderCompletion?.change || "+0.0%",
+      title: "Average Order Processing Time",
+      value: orderData?.processingTime?.average || "0.0",
+      change: orderData?.processingTime?.change || "+0.0 min",
       comparison: getComparisonText(currentRange),
       color: "warning",
-      trend: orderData?.orderCompletion?.trend || "neutral",
+      trend: orderData?.processingTime?.trend || "neutral",
       dataQuality: "medium",
       additionalInfo: {
-        totalOrders: orderData?.orderCompletion?.totalOrders || 0,
-        completedOrders: orderData?.orderCompletion?.completedOrders || 0,
-        cancelledOrders: orderData?.orderCompletion?.cancelledOrders || 0,
-        pendingOrders: orderData?.orderCompletion?.pendingOrders || 0
+        averageTime: orderData?.processingTime?.average || 0,
+        fastestTime: orderData?.processingTime?.fastest || 0,
+        slowestTime: orderData?.processingTime?.slowest || 0,
+        totalOrders: orderData?.processingTime?.totalOrders || 0
       }
     }
   ];
@@ -260,7 +256,7 @@ const OrderAnalyticsSection = ({ orderData, loading, onDateRangeChange }) => {
                      <div className="flex items-center gap-4">
              <span className="flex items-center gap-2">
                <FaBullseye className="text-coffee-mocha" />
-               Target: {orderData?.onlineOrders?.targetFormatted || '70%'} online orders
+               Analytics updated in real-time
              </span>
            </div>
         </div>

@@ -240,32 +240,100 @@ router.put('/:taskId', authenticateToken, canAccessTask, async (req, res) => {
     const taskId = req.params.taskId;
     const { title, description, status, priority, due_date, estimated_hours, actual_hours } = req.body;
     
+    // Validate status transition if status is being changed
+    if (status !== undefined) {
+      // Get current task status
+      const [currentTask] = await req.db.execute(
+        'SELECT status FROM tasks WHERE task_id = ?', 
+        [taskId]
+      );
+      
+      if (currentTask.length === 0) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+      
+      const currentStatus = currentTask[0].status;
+      const newStatus = status;
+      
+      // Define allowed status transitions
+      const allowedTransitions = {
+        'pending': ['pending', 'in_progress', 'cancelled'],
+        'in_progress': ['pending', 'in_progress', 'completed', 'cancelled'],
+        'completed': ['completed'], // Cannot change from completed
+        'cancelled': ['cancelled']  // Cannot change from cancelled
+      };
+      
+      // Validate transition
+      if (!allowedTransitions[currentStatus]?.includes(newStatus)) {
+        return res.status(400).json({ 
+          error: `Invalid status transition from ${currentStatus} to ${newStatus}` 
+        });
+      }
+    }
+    
+    // Build dynamic query based on provided fields
+    const updateFields = [];
+    const updateValues = [];
+    
+    if (title !== undefined) {
+      updateFields.push('title = ?');
+      updateValues.push(title);
+    }
+    if (description !== undefined) {
+      updateFields.push('description = ?');
+      updateValues.push(description);
+    }
+    if (status !== undefined) {
+      updateFields.push('status = ?');
+      updateValues.push(status);
+    }
+    if (priority !== undefined) {
+      updateFields.push('priority = ?');
+      updateValues.push(priority);
+    }
+    if (due_date !== undefined) {
+      updateFields.push('due_date = ?');
+      updateValues.push(due_date);
+    }
+    if (estimated_hours !== undefined) {
+      updateFields.push('estimated_hours = ?');
+      updateValues.push(estimated_hours);
+    }
+    if (actual_hours !== undefined) {
+      updateFields.push('actual_hours = ?');
+      updateValues.push(actual_hours);
+    }
+    
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    
     const query = `
       UPDATE tasks 
-      SET title = ?, description = ?, status = ?, priority = ?, 
-          due_date = ?, estimated_hours = ?, actual_hours = ?
+      SET ${updateFields.join(', ')}
       WHERE task_id = ?
     `;
     
-    await req.db.execute(query, [
-      title, description, status, priority, due_date, 
-      estimated_hours, actual_hours, taskId
-    ]);
+    updateValues.push(taskId);
+    
+    await req.db.execute(query, updateValues);
     
     // Emit real-time notification for task update
     req.socketService.emitTaskUpdate({
       taskId,
-      title,
-      status,
-      priority,
+      title: title || 'Task',
+      status: status || 'updated',
+      priority: priority || 'medium',
       updatedBy: req.user.username,
       updatedAt: new Date().toISOString()
     });
     
     // Emit notification to staff
+    const taskTitle = title || 'Task';
+    const taskStatus = status || 'updated';
     req.socketService.emitNotification({
       targetRole: 'staff',
-      message: `Task "${title}" updated to ${status}`,
+      message: `Task "${taskTitle}" updated to ${taskStatus}`,
       type: 'task_update'
     });
     

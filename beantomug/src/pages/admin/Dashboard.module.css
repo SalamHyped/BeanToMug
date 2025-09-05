@@ -3,18 +3,15 @@
   margin: 0 auto;
   min-height: 100vh;
   padding: 2rem;
-  background: 
-    linear-gradient(135deg, #3E2723 0%, #5D4037 15%, #8D6E63 30%, #A1887F 45%, #D7CCC8 60%, #EFEBE9 75%, #D7CCC8 90%, #8D6E63 100%);
-  background-size: 300% 300%;
-  animation: coffeeSteam 12s ease-in-out infinite;
+  background: #FDF8F0;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding: 2rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -28,7 +25,7 @@
 }
 
 .header h1 {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #EFEBE9;
   margin: 0;

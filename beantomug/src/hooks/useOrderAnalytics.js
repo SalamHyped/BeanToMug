@@ -19,6 +19,21 @@ const useOrderAnalytics = () => {
     orderTypes: [],
     popularItems: [],
     orderCompletion: {},
+    customerSatisfaction: {
+      score: 0,
+      change: "+0.0",
+      trend: "neutral",
+      totalRatings: 0,
+      distribution: {}
+    },
+    processingTime: {
+      average: 0,
+      change: "+0.0 min",
+      trend: "neutral",
+      fastest: 0,
+      slowest: 0,
+      totalOrders: 0
+    },
     metadata: {
       startDate: null,
       endDate: null,
@@ -73,6 +88,21 @@ const useOrderAnalytics = () => {
           popularItems: popularItems || [],
           orderCompletion: apiData.orderCompletion || {},
           targets: apiData.targets || {},
+          customerSatisfaction: {
+            score: apiData.customerSatisfaction?.score || 0,
+            change: apiData.customerSatisfaction?.change || "+0.0",
+            trend: apiData.customerSatisfaction?.trend || "neutral",
+            totalRatings: apiData.customerSatisfaction?.totalRatings || 0,
+            distribution: apiData.customerSatisfaction?.distribution || {}
+          },
+          processingTime: {
+            average: apiData.processingTime?.average || 0,
+            change: apiData.processingTime?.change || "+0.0 min",
+            trend: apiData.processingTime?.trend || "neutral",
+            fastest: apiData.processingTime?.fastest || 0,
+            slowest: apiData.processingTime?.slowest || 0,
+            totalOrders: apiData.processingTime?.totalOrders || 0
+          },
           metadata: {
             startDate: apiData.metadata?.startDate || null,
             endDate: apiData.metadata?.endDate || null,

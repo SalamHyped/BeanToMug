@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import { useUser } from '../../context/UserContext/UserContext';
 import axios from 'axios';
+import PasswordChangeForm from '../../components/forms/PasswordChangeForm';
 import classes from './Profile.module.css';
 
 export default function Profile() {
@@ -30,6 +31,9 @@ export default function Profile() {
     isVerifying: false,
     countdown: 0
   });
+
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   // Ref to store timer for cleanup
   const countdownTimerRef = useRef(null);
@@ -358,8 +362,23 @@ export default function Profile() {
   }, [user]);
 
   const handleChangePassword = useCallback(() => {
-    // This would typically open a modal or navigate to a password change page
-    setError('Password change functionality will be implemented separately');
+    setShowPasswordForm(prev => !prev);
+    setError(null);
+    setSuccess(null);
+  }, []);
+
+  const handlePasswordSuccess = useCallback((message) => {
+    setSuccess(message || 'Password changed successfully!');
+    setShowPasswordForm(false);
+  }, []);
+
+  const handlePasswordError = useCallback((errorMessage) => {
+    setError(errorMessage);
+  }, []);
+
+  const handlePasswordCancel = useCallback(() => {
+    setShowPasswordForm(false);
+    setError(null);
   }, []);
 
   // Memoized SMS code change handler
@@ -615,9 +634,18 @@ export default function Profile() {
                 className={classes.securityButton}
                 onClick={handleChangePassword}
               >
-                Change Password
+                {showPasswordForm ? 'Cancel' : 'Change Password'}
               </button>
             </div>
+
+            {/* Password Change Form */}
+            {showPasswordForm && (
+              <PasswordChangeForm
+                onSuccess={handlePasswordSuccess}
+                onError={handlePasswordError}
+                onCancel={handlePasswordCancel}
+              />
+            )}
 
             <div className={classes.securityOption}>
               <div className={classes.securityInfo}>

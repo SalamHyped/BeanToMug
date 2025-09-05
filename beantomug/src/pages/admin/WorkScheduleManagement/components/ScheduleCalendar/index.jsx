@@ -122,10 +122,10 @@ const ScheduleCalendar = ({
   // Get status color
   const getStatusColor = (status) => {
     switch (status) {
-      case 'completed': return '#28a745';
-      case 'absent': return '#dc3545';
-      case 'cancelled': return '#6c757d';
-      default: return '#007bff';
+      case 'completed': return '#8B4513'; // coffee-brown
+      case 'absent': return '#DC143C'; // crimson red
+      case 'cancelled': return '#6B4423'; // dark coffee
+      default: return '#4A2C2A'; // coffee-espresso
     }
   };
 
@@ -284,19 +284,19 @@ const ScheduleCalendar = ({
       {/* Legend */}
       <div className={styles.legend}>
         <div className={styles.legendItem}>
-          <div className={styles.legendColor} style={{ backgroundColor: '#007bff' }}></div>
+          <div className={styles.legendColor} style={{ backgroundColor: '#4A2C2A' }}></div>
           <span>Scheduled</span>
         </div>
         <div className={styles.legendItem}>
-          <div className={styles.legendColor} style={{ backgroundColor: '#28a745' }}></div>
+          <div className={styles.legendColor} style={{ backgroundColor: '#8B4513' }}></div>
           <span>Completed</span>
         </div>
         <div className={styles.legendItem}>
-          <div className={styles.legendColor} style={{ backgroundColor: '#dc3545' }}></div>
+          <div className={styles.legendColor} style={{ backgroundColor: '#DC143C' }}></div>
           <span>Absent</span>
         </div>
         <div className={styles.legendItem}>
-          <div className={styles.legendColor} style={{ backgroundColor: '#6c757d' }}></div>
+          <div className={styles.legendColor} style={{ backgroundColor: '#6B4423' }}></div>
           <span>Cancelled</span>
         </div>
       </div>
