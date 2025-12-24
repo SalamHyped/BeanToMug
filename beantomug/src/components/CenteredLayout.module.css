@@ -4,7 +4,7 @@
   align-items: flex-start;
   width: 100%;
   min-height: calc(100vh - 90px); /* Account for header height */
-  margin-top: 90px; /* Match header height */
+  margin-top: 10px; /* Match header height */
   padding: 2rem;
   background-color: #f9f9f9;
 }

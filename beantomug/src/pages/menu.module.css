@@ -16,7 +16,7 @@
   max-width: 1400px;
   margin: 0 auto;
   position: relative;
-  margin-top: 90px;
+  margin-top: 0;
   background: transparent;
 }
 
@@ -131,7 +131,7 @@
   .menuWrapper {
     flex-direction: column;
     padding: 1rem;
-    margin-top: 90px;
+    margin-top: 0;
   }
 
   .sidebar {

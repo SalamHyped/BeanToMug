@@ -11,7 +11,6 @@ import {
   FaBoxes, 
   FaImages,
   FaClock,
-  FaChartBar,
   FaSignOutAlt,
   FaUserCog,
   FaPlus,
@@ -38,7 +37,6 @@ const ADMIN_NAV_ITEMS = [
     icon: FaUtensils,
     subItems: [
       { to: "/admin/orders/queue", label: "Order Queue", icon: FaClock },
-      { to: "/admin/orders/analytics", label: "Analytics", icon: FaChartBar },
       { to: "/admin/menuManagement/menuSettings", label: "Menu Settings", icon: RiMenuAddFill },
       { to: "/admin/menuManagement/ingredients", label: "Ingredients", icon: FaLeaf },
       { 
@@ -57,7 +55,6 @@ const ADMIN_NAV_ITEMS = [
   { to: "/admin/work-schedule", label: "Work Schedule", icon: FaCalendarAlt },
   { to: "/admin/suppliers", label: "Supplier Management", icon: FaTruck },
   { to: "/admin/product-orders", label: "Product Orders", icon: FaShoppingCart },
-  { to: "/admin/inventory", label: "Inventory", icon: FaBoxes },
   { to: "/admin/gallery", label: "Gallery", icon: FaImages },
   { to: "/admin/profile", label: "Profile", icon: FaUserCog }
 ];

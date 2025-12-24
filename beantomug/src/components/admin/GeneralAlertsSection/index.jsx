@@ -8,7 +8,6 @@ import { getApiConfig } from '../../../utils/config';
 const GeneralAlertsSection = () => {
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState({
-    inventory: [],
     productOrders: [],
     general: []
   });
@@ -25,13 +24,11 @@ const GeneralAlertsSection = () => {
   // WebSocket listeners for real-time updates
   useEffect(() => {
     if (socketService.isConnected) {
-      socketService.on('stockAlert', handleInventoryAlert);
       socketService.on('productOrderAlert', handleProductOrderAlert);
       socketService.on('generalAlert', handleGeneralAlert);
       socketService.on('staffAlertActivity', handleStaffAlertActivity);
 
       return () => {
-        socketService.off('stockAlert', handleInventoryAlert);
         socketService.off('productOrderAlert', handleProductOrderAlert);
         socketService.off('generalAlert', handleGeneralAlert);
         socketService.off('staffAlertActivity', handleStaffAlertActivity);
@@ -42,15 +39,9 @@ const GeneralAlertsSection = () => {
   const fetchAllAlerts = async () => {
     try {
       setLoading(true);
-      const [inventoryRes, productOrdersRes] = await Promise.all([
-        axios.get('/inventory/alerts', getApiConfig()).catch(() => ({ data: { alerts: [] } })),
-        axios.get('/product-orders/alerts', getApiConfig()).catch(() => ({ data: { orders: [] } }))
-      ]);
-
-
+      const productOrdersRes = await axios.get('/product-orders/alerts', getApiConfig()).catch(() => ({ data: { orders: [] } }));
 
       setAlerts({
-        inventory: inventoryRes.data.alerts || [],
         productOrders: productOrdersRes.data.orders || [],
         general: []
       });
@@ -62,20 +53,6 @@ const GeneralAlertsSection = () => {
     }
   };
 
-  const handleInventoryAlert = (data) => {
-    setAlerts(prev => ({
-      ...prev,
-      inventory: [{
-        id: Date.now(),
-        item_id: data.ingredientId,
-        alert_type: data.alertType,
-        message: data.message,
-        created_at: data.timestamp,
-        is_read: false,
-        category: 'inventory'
-      }, ...prev.inventory]
-    }));
-  };
 
   const handleProductOrderAlert = (data) => {
     setAlerts(prev => ({
@@ -163,8 +140,6 @@ const GeneralAlertsSection = () => {
 
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'inventory':
-        return <Package size={14} className="text-coffee-dark" />;
       case 'productOrders':
         return <Coffee size={14} className="text-coffee-dark" />;
       case 'general':
@@ -176,8 +151,6 @@ const GeneralAlertsSection = () => {
 
   const getCategoryLabel = (category) => {
     switch (category) {
-      case 'inventory':
-        return 'Inventory';
       case 'productOrders':
         return 'Product Orders';
       case 'general':
@@ -189,8 +162,6 @@ const GeneralAlertsSection = () => {
 
   const getNavigationPath = (category) => {
     switch (category) {
-      case 'inventory':
-        return '/admin/inventory';
       case 'productOrders':
         return '/admin/product-orders';
       default:
@@ -200,7 +171,6 @@ const GeneralAlertsSection = () => {
 
   const getAllAlerts = () => {
     return [
-      ...alerts.inventory.map(alert => ({ ...alert, category: 'inventory' })),
       ...alerts.productOrders.map(alert => ({ ...alert, category: 'productOrders' })),
       ...alerts.general.map(alert => ({ ...alert, category: 'general' }))
     ].sort((a, b) => {
@@ -225,7 +195,6 @@ const GeneralAlertsSection = () => {
 
   const tabs = [
     { key: 'all', label: 'All', count: getTotalAlerts() },
-    { key: 'inventory', label: 'Inventory', count: alerts.inventory.length },
     { key: 'productOrders', label: 'Product Orders', count: alerts.productOrders.length }
   ];
 

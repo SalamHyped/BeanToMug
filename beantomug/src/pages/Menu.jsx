@@ -17,6 +17,13 @@ export default function Menu() {
   
   const selectedCategory = category || '';
 
+  // Function to clean display name by removing cascade characters
+  const getDisplayName = (categoryName) => {
+    if (!categoryName ) return '';
+    // Remove dash characters and trim whitespace
+    return categoryName.replace(/-/g, ' ').trim();
+  };
+
   // Fetch categories regardless of selected category
   useEffect(() => {
     const fetchCategories = async () => {
@@ -71,7 +78,7 @@ export default function Menu() {
                     to={`/menu/${item.category_name}`} 
                     className={classes.categoryItem}
                   >
-                    {item.category_name}
+                    {getDisplayName(item.category_name)}
                   </Link>
                 </li>
               ))}

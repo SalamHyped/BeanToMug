@@ -407,26 +407,6 @@ export default function PayPal({ onSuccess, onError, onCancel }) {
           </div>
         )}
         
-        {/* Cart Items */}
-        <div className={classes.paypalItems}>
-          {cartItems.map((item, index) => (
-            <div key={index} className={classes.paypalItem}>
-              <span className={classes.itemName}>
-                {item.item_name}
-                {item.options && Object.keys(item.options).length > 0 && (
-                  <span className={classes.itemOptions}>
-                    ({formatOptions(item.options)})
-                  </span>
-                )}
-              </span>
-              <span className={classes.itemQuantity}>Qty: {item.quantity}</span>
-              <span className={classes.itemPrice}>
-                ${((item.item_price || item.price) * item.quantity).toFixed(2)}
-              </span>
-            </div>
-          ))}
-        </div>
-        
         {/* VAT Breakdown */}
         {(() => {
           const vatBreakdown = getVATBreakdown();

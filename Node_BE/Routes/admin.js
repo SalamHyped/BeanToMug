@@ -406,14 +406,19 @@ router.get('/financial-kpis', authenticateToken, requireRole(['admin']), async (
         todaysRevenue: kpis.revenue.today.formatted,
         todaysPercentage: kpis.revenue.today.percentage,
         todaysChange: kpis.revenue.today.change,
+        todaysTarget: kpis.revenue.today.target,
         
         weeklyRevenue: kpis.revenue.weekly.formatted,
         weeklyPercentage: kpis.revenue.weekly.percentage,
         weeklyChange: kpis.revenue.weekly.change,
+        weeklyTarget: kpis.revenue.weekly.target,
         
         averageOrderValue: kpis.aov.formatted,
         aovPercentage: kpis.aov.percentage,
         aovChange: `${kpis.aov.changeDirection === 'up' ? '+' : '-'}${kpis.aov.change}`,
+        aovChangeDirection: kpis.aov.changeDirection,
+        aovTarget: kpis.aov.target,
+        orderCount: kpis.aov.orderCount,
         
         dailyProfit: kpis.profit.formatted,
         profitMargin: kpis.profit.marginFormatted,

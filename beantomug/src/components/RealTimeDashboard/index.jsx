@@ -6,6 +6,7 @@ import DashboardHeader from './DashboardHeader';
 import RecentOrders from './body/RecentOrders';
 import RecentTasks from './body/RecentTasks';
 import Inventory from '../../pages/staff/Inventory';
+import TodayQuickStats from '../../components/staff/TodayQuickStats';
 import styles from './realTimeDashboard.module.css';
 
 const RealTimeDashboard = () => {
@@ -164,16 +165,12 @@ const RealTimeDashboard = () => {
                 
                     <Inventory />
                     
-               
                 
-                    <div className={styles.contentDiv1}>
-                    </div>
-                    <div className={styles.contentDiv2}>
-                        {/* Second content div */}
-                    </div>
+                
 
                 </div>
-                
+                                    <TodayQuickStats />
+
 
         </div>
     );
