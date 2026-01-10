@@ -440,7 +440,7 @@ export default function ItemHandler({ item, onClose, onAddToCartComplete }) {
             className={classes.addToCartBtn}
             disabled={!isAvailable}
           >
-            {isAvailable ? `Add to Cart - $${estimatedTotalPrice.toFixed(2)}` : 'Currently Unavailable'}
+            {isAvailable ? `Add to Cart - ${estimatedTotalPrice.toFixed(2)} ₪` : 'Currently Unavailable'}
           </button>
         </div>
       </div>

@@ -20,7 +20,7 @@ const CustomerReceipts = () => {
                 showPagination={true}
                 pageSize={20}
                 endpoint="/orders/customer/all"
-                customFilters={{ userOnly: true }} // Only show current user's orders
+                // Note: customFilters not needed - backend already filters by authenticated user
             />
         </div>
     );

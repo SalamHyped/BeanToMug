@@ -94,14 +94,14 @@ export const generateReceiptContent = (order) => {
         const itemTotal = itemPriceWithVat * itemQuantity;
 
         receipt += `${itemName}\n`;
-        receipt += `  ${itemQuantity} x $${itemPriceWithVat.toFixed(2)} = $${itemTotal.toFixed(2)}\n`;
+        receipt += `  ${itemQuantity} x ₪${itemPriceWithVat.toFixed(2)} = ₪${itemTotal.toFixed(2)}\n`;
      
         // Add ingredients if available (from database structure)
         if (item.ingredients && item.ingredients.length > 0) {
             receipt += `  Customizations:\n`;
             item.ingredients.forEach(ingredient => {
                 const ingredientPrice = parseFloat(ingredient.price || 0);
-                const priceText = ingredientPrice > 0 ? ` (+$${ingredientPrice.toFixed(2)})` : '';
+                const priceText = ingredientPrice > 0 ? ` (+₪${ingredientPrice.toFixed(2)})` : '';
                 receipt += `    • ${ingredient.ingredient_name}${priceText}\n`;
             });
         }
@@ -116,9 +116,9 @@ export const generateReceiptContent = (order) => {
     });
 
     receipt += '-'.repeat(40) + '\n';
-    receipt += `Subtotal: $${subtotal.toFixed(2)}\n`;
-    receipt += `VAT (15%): $${totalVatAmount.toFixed(2)}\n`;
-    receipt += `TOTAL: $${totalAmount.toFixed(2)}\n`;
+    receipt += `Subtotal: ₪${subtotal.toFixed(2)}\n`;
+    receipt += `VAT (): ₪${totalVatAmount.toFixed(2)}\n`;
+    receipt += `TOTAL: ₪${totalAmount.toFixed(2)}\n`;
     receipt += '='.repeat(40) + '\n';
     receipt += 'Thank you for your order!\n';
     receipt += '='.repeat(40) + '\n';

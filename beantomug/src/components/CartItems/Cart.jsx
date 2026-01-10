@@ -6,7 +6,6 @@ import RoundedPhoto from '../roundedPhoto/RoundedPhoto';
 export default function Cart({ item }) {
   const { removeFromCart, updateQuantity, error } = useContext(CartContext);
   const [localError, setLocalError] = useState(null);
-
   function handleOptions() {
     if (!item.options) return "";
     
@@ -78,7 +77,7 @@ export default function Cart({ item }) {
 
       <div className={classes.cartImage}>
         <RoundedPhoto
-          src={item.item_photo_url}
+          src={item.item_photo_url || ''}
           alt={item.item_name}
           size={80}
         />

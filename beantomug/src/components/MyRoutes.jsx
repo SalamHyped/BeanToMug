@@ -17,6 +17,7 @@ import Home from '../pages/home/Home'
 import OrderHistory from '../pages/OrderHistory';
 import Profile from '../pages/customer/Profile';
 import Gallery from '../pages/Gallery';
+import Contact from '../pages/Contact';
 import Footer from './footer/Footer';
 
 // Layouts load immediately (no lazy loading for better UX)
@@ -93,6 +94,8 @@ export default function MyRoutes(){
             <Route path="/profile-completion" element={<ProfileCompletion/>} />
             <Route path="/cart" element={<CartPage/>} />
             <Route path="/gallery" element={<PublicGallery/>} />
+            <Route path="/contact" element={<Contact/>} />
+            <Route path="/test" element={<Contact/>} />
             <Route path="/payment-success" element={<PaymentSuccess/>} />
             <Route path="/payment-cancel" element={<PaymentCancel/>} />
             

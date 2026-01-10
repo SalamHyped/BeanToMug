@@ -336,7 +336,7 @@ const ReceiptOrders = ({
                                     {/* Receipt Header */}
                                     <div className={styles.receiptHeader}>
                                         <div className={styles.receiptId}>
-                                            <span className={styles.receiptNumber}>#{order.id}</span>
+                                            <span className={styles.receiptNumber}>#{order.order_id || order.id || order.orderId}</span>
                                             <span className={`${styles.statusBadge} ${styles[order.status?.toLowerCase() || 'default']}`}>
                                                 {order.status || 'Unknown'}
                                             </span>
@@ -354,10 +354,15 @@ const ReceiptOrders = ({
                                     {/* Customer Info */}
                                     <div className={styles.customerSection}>
                                         <div className={styles.customerName}>
-                                            {order.customer_name || order.customerName || 'Customer'}
+                                            {order.customer_name || 
+                                             order.customerName || 
+                                             (order.first_name && order.last_name ? `${order.first_name} ${order.last_name}` : order.first_name || order.last_name || 'Customer')}
                                         </div>
                                         <div className={styles.customerEmail}>
-                                            {order.customer_email || order.customerEmail || 'No email'}
+                                            {order.customer_email || 
+                                             order.customerEmail || 
+                                             order.email || 
+                                             'No email'}
                                         </div>
                                     </div>
 
@@ -373,23 +378,29 @@ const ReceiptOrders = ({
                                             <div className={styles.itemsCount}>
                                                 {order.items?.length || 0} items
                                             </div>
-                                            <div className={styles.itemsList}>
-                                                {order.items?.slice(0, 3).map((item, index) => (
-                                                    <div key={index} className={styles.itemPreview}>
-                                                        <span className={styles.itemName}>
-                                                            {item.item_name || item.name}
-                                                        </span>
-                                                        <span className={styles.itemQuantity}>
-                                                            x{item.quantity || 1}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                                {order.items?.length > 3 && (
-                                                    <div className={styles.moreItems}>
-                                                        +{order.items.length - 3} more items
-                                                    </div>
-                                                )}
-                                            </div>
+                                            {order.items && order.items.length > 0 ? (
+                                                <div className={styles.itemsList}>
+                                                    {order.items.slice(0, 3).map((item, index) => (
+                                                        <div key={item.order_item_id || index} className={styles.itemPreview}>
+                                                            <span className={styles.itemName}>
+                                                                {item.item_name || item.name || `Item ${index + 1}`}
+                                                            </span>
+                                                            <span className={styles.itemQuantity}>
+                                                                x{item.quantity || 1}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    {order.items.length > 3 && (
+                                                        <div className={styles.moreItems}>
+                                                            +{order.items.length - 3} more items
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className={styles.noItems}>
+                                                    No items found
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className={styles.paymentInfo}>

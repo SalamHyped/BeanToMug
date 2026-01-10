@@ -53,8 +53,13 @@ export default function Profile() {
     // Remove all non-digit characters except +
     const cleaned = value.replace(/[^\d+]/g, '');
     
-    // If it already has +972, keep it as is
+    // If it already has +972, ensure it has exactly 9 digits after
     if (cleaned.startsWith('+972')) {
+      const digitsAfter = cleaned.substring(4); // Get digits after +972
+      // Limit to 9 digits after +972
+      if (digitsAfter.length > 9) {
+        return `+972${digitsAfter.substring(0, 9)}`;
+      }
       return cleaned;
     }
     // If it's a 9-digit number starting with 0 (Israeli mobile), replace 0 with +972
@@ -65,9 +70,9 @@ export default function Profile() {
     else if (cleaned.length === 9 && !cleaned.startsWith('0')) {
       return `+972${cleaned}`;
     }
-    // If it's a 10-digit number starting with 0 (Israeli mobile), replace 0 with +972
+    // If it's a 10-digit number starting with 0 (Israeli mobile), replace 0 with +972 and take first 9 digits
     else if (cleaned.length === 10 && cleaned.startsWith('0')) {
-      return `+972${cleaned.substring(1)}`;
+      return `+972${cleaned.substring(1, 10)}`;
     }
     // If it has any other format, keep the original input
     else {
@@ -110,11 +115,19 @@ export default function Profile() {
         }
         break;
       case 'phoneNumber':
-        const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-        if (value && !phoneRegex.test(value.replace(/\s/g, ''))) {
-          errors.phoneNumber = 'Please enter a valid phone number';
-        } else if (value && !value.startsWith('+972') && value.length > 0) {
-          errors.phoneNumber = 'Please enter a valid Israeli phone number (should start with +972)';
+        if (value) {
+          const phoneWithoutSpaces = value.replace(/\s/g, '');
+          // Must start with +972 and have exactly 9 digits after
+          if (!phoneWithoutSpaces.startsWith('+972')) {
+            errors.phoneNumber = 'Please enter a valid Israeli phone number (should start with +972)';
+          } else {
+            const digitsAfter = phoneWithoutSpaces.substring(4); // Get digits after +972
+            if (digitsAfter.length !== 9) {
+              errors.phoneNumber = 'Phone number must have exactly 9 digits after +972';
+            } else if (!/^\d{9}$/.test(digitsAfter)) {
+              errors.phoneNumber = 'Phone number must contain only digits after +972';
+            }
+          }
         }
         break;
       case 'username':
@@ -516,11 +529,11 @@ export default function Profile() {
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   className={`${classes.input} ${validationErrors.phoneNumber ? classes.inputError : ''}`}
-                  placeholder="e.g., 525881614 or 0525881614"
+                  placeholder="e.g., 525881614 or 0525881614 (9 digits)"
                 />
               </div>
               <small className={classes.helpText}>
-                Enter your Israeli mobile number (9 or 10 digits). Examples: 525881614, 0525881614, or +972525881614. The +972 prefix will be added automatically.
+                Enter your Israeli mobile number (9 digits). Examples: 525881614, 0525881614, or +972525881614. The +972 prefix will be added automatically. Must have exactly 9 digits after +972.
               </small>
               {validationErrors.phoneNumber && (
                 <span className={classes.errorText}>{validationErrors.phoneNumber}</span>

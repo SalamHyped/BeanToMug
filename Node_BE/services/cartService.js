@@ -862,6 +862,7 @@ class CartService {
       const cartItem = {
         item_id: item.item_id,
         item_name: item.item_name,
+        item_photo_url: item.item_photo_url,            // Item photo URL
         price: processedResult.pricing.totalPrice,     // Base price without VAT
         priceWithVAT: priceWithVAT,                    // Price including VAT
         vatAmount: vatAmount,                          // VAT amount for this item

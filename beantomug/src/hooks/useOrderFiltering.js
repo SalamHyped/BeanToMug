@@ -83,20 +83,24 @@ export const useOrderFiltering = (orders = [], options = {}) => {
                     endDate: endOfDay.toISOString()
                 };
             case 'custom':
-                if (customTimeRange.startDate && customTimeRange.endDate) {
-                    const start = new Date(customTimeRange.startDate);
-                    const end = new Date(customTimeRange.endDate);
-                    
+                // ALLOW open-ended range (just start or just end)
+                if (customTimeRange.startDate || customTimeRange.endDate) {
+                    let start = customTimeRange.startDate ? new Date(customTimeRange.startDate) : null;
+                    let end = customTimeRange.endDate ? new Date(customTimeRange.endDate) : null;
+
                     // Add time if specified
-                    if (customTimeRange.startTime) {
+                    if (start && customTimeRange.startTime) {
                         const [hours, minutes] = customTimeRange.startTime.split(':');
                         start.setHours(parseInt(hours), parseInt(minutes), 0);
                     }
-                    if (customTimeRange.endTime) {
+                    if (end && customTimeRange.endTime) {
                         const [hours, minutes] = customTimeRange.endTime.split(':');
                         end.setHours(parseInt(hours), parseInt(minutes), 59);
                     }
-                    
+                    // Default open-ended ranges
+                    if (!start) start = new Date('1990-01-01T00:00:00Z');
+                    if (!end) end = new Date('2099-12-31T23:59:59Z');
+
                     return {
                         startDate: start.toISOString(),
                         endDate: end.toISOString()
@@ -118,8 +122,9 @@ export const useOrderFiltering = (orders = [], options = {}) => {
             if (timeRange) {
                 filtered = filtered.filter(order => {
                     const orderDate = new Date(order.created_at);
-                    return orderDate >= new Date(timeRange.startDate) && 
+                    const result = orderDate >= new Date(timeRange.startDate) && 
                            orderDate <= new Date(timeRange.endDate);
+                    return result;
                 });
             }
         }
@@ -172,8 +177,20 @@ export const useOrderFiltering = (orders = [], options = {}) => {
         if (timeFilter !== 'all') {
             const timeRange = getTimeRange(timeFilter);
             if (timeRange) {
-                params.startDate = timeRange.startDate.split('T')[0]; // Date only
-                params.endDate = timeRange.endDate.split('T')[0]; // Date only
+                // For custom range, send full datetime if time is specified
+                if (timeFilter === 'custom' && (customTimeRange.startTime || customTimeRange.endTime)) {
+                    // Send full datetime string in MySQL format (YYYY-MM-DD HH:MM:SS)
+                    // Convert ISO string to MySQL datetime format
+                    const startDateTime = new Date(timeRange.startDate);
+                    const endDateTime = new Date(timeRange.endDate);
+                    
+                    params.startDate = startDateTime.toISOString().slice(0, 19).replace('T', ' ');
+                    params.endDate = endDateTime.toISOString().slice(0, 19).replace('T', ' ');
+                } else {
+                    // For preset filters or date-only custom range, send date only
+                    params.startDate = timeRange.startDate.split('T')[0]; // Date only (YYYY-MM-DD)
+                    params.endDate = timeRange.endDate.split('T')[0]; // Date only (YYYY-MM-DD)
+                }
             }
         }
         
@@ -182,7 +199,7 @@ export const useOrderFiltering = (orders = [], options = {}) => {
         }
         
         return params;
-    }, [timeFilter, debouncedSearchTerm, getTimeRange]);
+    }, [timeFilter, debouncedSearchTerm, getTimeRange, customTimeRange]);
 
     return {
         // State

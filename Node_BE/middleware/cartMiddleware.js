@@ -146,7 +146,6 @@ const validateIngredientSelection = (options, availableIngredients) => {
       // Mark type as required if this group is required
       if (group.required) {
         requiredTypes.add(group.label);
-        console.log(`Added required type: ${group.label}`);
       }
     }
   }

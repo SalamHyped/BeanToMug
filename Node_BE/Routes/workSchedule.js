@@ -840,19 +840,21 @@ router.post('/schedules', requireRole(['admin', 'staff']), asyncHandler(async (r
   `, [user_id, shift_id, schedule_date]);
 
   if (existingSchedule.length > 0) {
-    return handleError(res, new Error('Duplicate schedule'), 'User is already scheduled for this shift on this date', 409);
+    return handleError(res, new Error('User is already scheduled for this shift on this date'), 'User is already scheduled for this shift on this date', 409);
   }
 
   // Check for shift overlaps
   const overlapCheck = await checkShiftOverlap(req.db, user_id, schedule_date, shift_id);
   if (overlapCheck && overlapCheck.conflict) {
-    return handleError(res, new Error('Scheduling conflict'), `Scheduling conflict: ${overlapCheck.message}`, 409);
+    const conflictMessage = `Scheduling conflict: ${overlapCheck.message}`;
+    return handleError(res, new Error(conflictMessage), conflictMessage, 409);
   }
 
   // Check staffing limits
   const staffingInfo = await checkShiftStaffing(req.db, shift_id, schedule_date);
   if (staffingInfo.current_staff >= staffingInfo.max_staff) {
-    return handleError(res, new Error('Staff limit reached'), `Maximum staff limit (${staffingInfo.max_staff}) reached for ${staffingInfo.shift_name} on ${schedule_date}`, 409);
+    const limitMessage = `Maximum staff limit (${staffingInfo.max_staff}) reached for ${staffingInfo.shift_name} on ${schedule_date}`;
+    return handleError(res, new Error(limitMessage), limitMessage, 409);
   }
 
   // Insert new schedule

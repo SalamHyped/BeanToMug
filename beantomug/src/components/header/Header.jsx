@@ -14,7 +14,7 @@ export default function Header() {
   const headerBackground = useTransform(
     scrollY,
     [0, 150],
-    ["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 1)"]
+    ["rgba(111, 86, 72, 0.5)", "rgba(255, 255, 255, 1)"]
   );
   const headerShadow = useTransform(
     scrollY,
@@ -63,7 +63,7 @@ export default function Header() {
     >
       <div className={classes.headerWrapper}>
         <div>
-          <img src="/images/logo.png" alt="" />
+          <img src="/images/logo.png" alt="" className={classes.logo} />
         </div>
 
         <nav>
@@ -141,7 +141,7 @@ export default function Header() {
                 }}
               >
                 <NavLink
-                  to="/test"
+                  to="/contact"
                   className={({ isActive }) =>
                     isActive
                       ? `${classes.menuItem} ${classes.active}`

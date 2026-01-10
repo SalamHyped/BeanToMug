@@ -312,6 +312,7 @@ async function getCartItems(connection, cartId) {
       oi.vat_amount,
       oi.created_at,
       d.item_name,
+      d.item_photo_url,
       d.price as current_price
     FROM order_item oi
     JOIN dish d ON oi.item_id = d.item_id
@@ -349,6 +350,7 @@ async function getCartItems(connection, cartId) {
     result.push({
       item_id: item.item_id,
       item_name: item.item_name,
+      item_photo_url: item.item_photo_url,
       price: item.price,
       priceWithVAT: item.price_with_vat || item.price, // Fallback for items without VAT data
       vatAmount: item.vat_amount || 0, // Default to 0 if no VAT data

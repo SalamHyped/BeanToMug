@@ -14,6 +14,11 @@ function processOrderRows(rows) {
     rows.forEach(row => {
         // If this is a new order (not seen before), create the order object
         if (!ordersMap.has(row.order_id)) {
+            // Combine first_name and last_name for customer_name
+            const firstName = row.first_name || '';
+            const lastName = row.last_name || '';
+            const customerName = `${firstName} ${lastName}`.trim() || 'Guest Customer';
+            
             ordersMap.set(row.order_id, {
                 order_id: row.order_id,
                 user_id: row.user_id,
@@ -27,10 +32,14 @@ function processOrderRows(rows) {
                 paypal_order_id: row.paypal_order_id,
                 payment_method: row.paypal_order_id ? 'PayPal' : 'Not specified',
                 payment_status: row.paypal_order_id ? 'Paid' : 'Pending',
-                // Customer information
+                // Customer information - include both formats for compatibility
                 first_name: row.first_name,
                 last_name: row.last_name,
+                customer_name: customerName,
+                customerName: customerName,  // camelCase variant
                 email: row.email,
+                customer_email: row.email,
+                customerEmail: row.email,  // camelCase variant
                 phone_number: row.phone_number || row.user_phone,
                 items: []                      // Array to hold order items
             });
@@ -38,22 +47,30 @@ function processOrderRows(rows) {
         
         // If this row contains item data (not just order data), add it to the order
         // Some rows might only have order data if an order has no items (edge case)
-        if (row.item_id) {
+        // Check for both item_id and order_item_id to handle NULL cases properly
+        if (row.item_id != null && row.order_item_id != null) {
             const order = ordersMap.get(row.order_id);
+            
+            if (!order) {
+                console.warn(`Order ${row.order_id} not found in map when processing item ${row.order_item_id}`);
+                return; // Skip this row if order doesn't exist
+            }
             
             // Check if this item already exists in the order
             let existingItem = order.items.find(item => item.order_item_id === row.order_item_id);
             
             if (!existingItem) {
-                // Create new item
+                // Create new item - include both item_name and name for frontend compatibility
+                const itemName = row.item_name || 'Unknown Item';
                 existingItem = {
                     order_item_id: row.order_item_id,
                     item_id: row.item_id,
-                    item_name: row.item_name,
-                    price: parseFloat(row.price),  // Convert string to number for consistency
-                    price_with_vat: parseFloat(row.price_with_vat || row.price),  // Fallback to base price if VAT not available
+                    item_name: itemName,
+                    name: itemName,  // Alias for frontend compatibility
+                    price: parseFloat(row.price || 0),  // Convert string to number for consistency
+                    price_with_vat: parseFloat(row.price_with_vat || row.price || 0),  // Fallback to base price if VAT not available
                     vat_amount: parseFloat(row.vat_amount || 0),  // Default to 0 if not available
-                    quantity: row.quantity,
+                    quantity: parseInt(row.quantity || 1),  // Ensure quantity is an integer
                     ingredients: []  // Array to hold ingredients/options
                 };
                 order.items.push(existingItem);
@@ -104,10 +121,39 @@ function buildWhereClause(options) {
         }
     }
     
-    // Add date range filter
-    if (options.startDate && options.endDate) {
-        whereClause += ' AND DATE(o.created_at) BETWEEN ? AND ?';
-        params.push(options.startDate, options.endDate);
+    // Add open-ended date range filter - support date-only and datetime
+    if (options.startDate || options.endDate) {
+        // Check if startDate/endDate contain time (datetime format: has space or colon)
+        const hasTime = (options.startDate.includes(' ') || options.startDate.includes(':')) ||
+                        (options.endDate.includes(' ') || options.endDate.includes(':'));
+        
+        if (hasTime) {
+            // Use datetime comparison for more precise filtering (includes time)
+            // MySQL datetime format: 'YYYY-MM-DD HH:MM:SS'
+            if (options.startDate && options.endDate) {
+                whereClause += ' AND o.created_at >= ? AND o.created_at <= ?';
+                params.push(options.startDate, options.endDate);
+            } else if (options.startDate) {
+                whereClause += ' AND o.created_at >= ?';
+                params.push(options.startDate);
+            } else if (options.endDate) {
+                whereClause += ' AND o.created_at <= ?';
+                params.push(options.endDate);
+            }
+        } else {
+            // Date-only comparison (backward compatible)
+            // MySQL date format: 'YYYY-MM-DD'
+            if (options.startDate && options.endDate) {
+                whereClause += ' AND DATE(o.created_at) BETWEEN ? AND ?';
+                params.push(options.startDate, options.endDate);
+            } else if (options.startDate) {
+                whereClause += ' AND DATE(o.created_at) >= ?';
+                params.push(options.startDate);
+            } else if (options.endDate) {
+                whereClause += ' AND DATE(o.created_at) <= ?';
+                params.push(options.endDate);
+            }
+        }
     }
     
     // Add status filter

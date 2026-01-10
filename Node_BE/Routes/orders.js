@@ -655,7 +655,7 @@ router.get('/customer/all', authenticateToken, async (req, res) => {
       startDate,
       endDate,
       status, // Pass status to backend filtering
-      userId: req.user.user_id // Filter by authenticated user
+      userId: req.user.id // Filter by authenticated user
     });
     
     // Return successful response with paginated data

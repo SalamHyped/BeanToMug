@@ -10,6 +10,7 @@ export default function RoundedPhoto({ src, alt, size = 150, borderWidth = 3, bo
       border: `${borderWidth}px solid ${borderColor}`,
       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
     };
+    console.log("src", src);
   
     // If no src, show icon placeholder
     if (!src) {
