@@ -40,6 +40,7 @@ router.get('/staff/all', authenticateToken, async (req, res) => {
     const startDate = req.query.startDate || null;
     const endDate = req.query.endDate || null;
     const status = req.query.status || null; // Add status parameter
+    const timezone = req.query.timezone || 'UTC'; // Default to UTC if not provided
     
     // Get filtered orders with pagination
     const { orders, totalCount, totalPages } = await getCompleteOrderData(null, { 
@@ -50,7 +51,8 @@ router.get('/staff/all', authenticateToken, async (req, res) => {
       searchTerm,
       startDate,
       endDate,
-      status // Pass status to backend filtering
+      status, // Pass status to backend filtering
+      timezone // Pass timezone to backend filtering
     });
     
     // Return successful response with paginated data
@@ -681,4 +683,4 @@ router.get('/customer/all', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;

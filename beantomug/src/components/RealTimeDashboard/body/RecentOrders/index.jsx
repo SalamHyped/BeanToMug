@@ -44,6 +44,7 @@ const RecentOrders = ({ orders = [] }) => {
     // Memoize order content renderer
     const renderOrderContent = useCallback((order, isExpanded, handleToggle) => {
         // Pre-calculate dates to avoid repeated calculations
+        // Backend sends dates as ISO strings with Z (UTC), JavaScript automatically parses them correctly
         const createdDate = new Date(order.created_at || order.createdAt);
         const timeString = createdDate.toLocaleTimeString();
         const dateString = createdDate.toLocaleDateString();

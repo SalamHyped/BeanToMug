@@ -7,6 +7,33 @@ import { Clock, Calendar, Filter } from 'lucide-react';
  * @param {Object} options - Configuration options
  * @returns {Object} Filtering state and functions
  */
+// Helper to format a Date object as YYYY-MM-DD HH:MM:SS (local time)
+function formatDateToMySQL(date) {
+    const pad = (n) => n.toString().padStart(2, '0');
+    return (
+        date.getFullYear() + '-' +
+        pad(date.getMonth() + 1) + '-' +
+        pad(date.getDate()) + ' ' +
+        pad(date.getHours()) + ':' +
+        pad(date.getMinutes()) + ':' +
+        pad(date.getSeconds())
+    );
+}
+
+// Helper to convert local datetime string to UTC datetime string for MySQL
+// Input: 'YYYY-MM-DD HH:MM:SS' (local time)
+// Output: 'YYYY-MM-DD HH:MM:SS' (UTC time)
+// Helper to get timezone offset in format '+02:00' or '-05:00'
+function getTimezoneOffset() {
+    const now = new Date();
+    // getTimezoneOffset returns offset in minutes, negative for ahead of UTC
+    const offsetMinutes = -now.getTimezoneOffset();
+    const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+    const offsetMins = Math.abs(offsetMinutes) % 60;
+    const sign = offsetMinutes >= 0 ? '+' : '-';
+    return `${sign}${offsetHours.toString().padStart(2, '0')}:${offsetMins.toString().padStart(2, '0')}`;
+}
+
 export const useOrderFiltering = (orders = [], options = {}) => {
     const {
         enableTimeFilter = true,
@@ -48,102 +75,69 @@ export const useOrderFiltering = (orders = [], options = {}) => {
         return () => clearTimeout(timer);
     }, [searchTerm, debounceDelay]);
 
-    // Get time range based on filter
+    // Get time range for custom filter
     const getTimeRange = useCallback((filter) => {
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        
-        switch (filter) {
-            case 'today':
-                return {
-                    startDate: startOfDay.toISOString(),
-                    endDate: endOfDay.toISOString()
-                };
-            case 'yesterday':
-                const yesterday = new Date(startOfDay);
-                yesterday.setDate(yesterday.getDate() - 1);
-                const endOfYesterday = new Date(yesterday);
-                endOfYesterday.setHours(23, 59, 59);
-                return {
-                    startDate: yesterday.toISOString(),
-                    endDate: endOfYesterday.toISOString()
-                };
-            case 'week':
-                const startOfWeek = new Date(startOfDay);
-                startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-                return {
-                    startDate: startOfWeek.toISOString(),
-                    endDate: endOfDay.toISOString()
-                };
-            case 'month':
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                return {
-                    startDate: startOfMonth.toISOString(),
-                    endDate: endOfDay.toISOString()
-                };
-            case 'custom':
-                // ALLOW open-ended range (just start or just end)
-                if (customTimeRange.startDate || customTimeRange.endDate) {
-                    let start = customTimeRange.startDate ? new Date(customTimeRange.startDate) : null;
-                    let end = customTimeRange.endDate ? new Date(customTimeRange.endDate) : null;
-
-                    // Add time if specified
-                    if (start && customTimeRange.startTime) {
-                        const [hours, minutes] = customTimeRange.startTime.split(':');
-                        start.setHours(parseInt(hours), parseInt(minutes), 0);
-                    }
-                    if (end && customTimeRange.endTime) {
-                        const [hours, minutes] = customTimeRange.endTime.split(':');
-                        end.setHours(parseInt(hours), parseInt(minutes), 59);
-                    }
-                    // Default open-ended ranges
-                    if (!start) start = new Date('1990-01-01T00:00:00Z');
-                    if (!end) end = new Date('2099-12-31T23:59:59Z');
-
-                    return {
-                        startDate: start.toISOString(),
-                        endDate: end.toISOString()
-                    };
-                }
-                return null;
-            default:
-                return null;
+        if (filter !== 'custom') {
+            return null;
         }
+        
+
+        // ALLOW open-ended range (just start or just end)
+        if (customTimeRange.startDate || customTimeRange.endDate) {
+            let start = null;
+            let end = null;
+
+            // Parse dates in local time (not UTC)
+            if (customTimeRange.startDate) {
+                const [year, month, day] = customTimeRange.startDate.split('-').map(Number);
+                start = new Date(year, month - 1, day);
+                
+                // Add time if specified
+                if (customTimeRange.startTime && customTimeRange.startTime.trim()) {
+                    const [hours, minutes] = customTimeRange.startTime.split(':').map(Number);
+                    if (!isNaN(hours) && !isNaN(minutes)) {
+                        start.setHours(hours, minutes, 0, 0);
+                    } else {
+                        start.setHours(0, 0, 0, 0);
+                    }
+                } else {
+                    start.setHours(0, 0, 0, 0);
+                }
+            } else {
+                // Default to very early date if no start date
+                start = new Date(1990, 0, 1, 0, 0, 0);
+            }
+
+            if (customTimeRange.endDate) {
+                const [year, month, day] = customTimeRange.endDate.split('-').map(Number);
+                end = new Date(year, month - 1, day);
+                
+                // Add time if specified
+                if (customTimeRange.endTime && customTimeRange.endTime.trim()) {
+                    const [hours, minutes] = customTimeRange.endTime.split(':').map(Number);
+                    if (!isNaN(hours) && !isNaN(minutes)) {
+                        end.setHours(hours, minutes, 59, 999);
+                    } else {
+                        end.setHours(23, 59, 59, 999);
+                    }
+                } else {
+                    end.setHours(23, 59, 59, 999);
+                }
+            } else {
+                // If no end date provided - set to far future (open-ended range)
+                end = new Date(2099, 11, 31, 23, 59, 59);
+            }
+
+            return {
+                startDate: formatDateToMySQL(start),
+                endDate: formatDateToMySQL(end)
+            };
+        }
+        return null;
     }, [customTimeRange]);
 
-    // Filter orders based on time and search
-    const filteredOrders = useMemo(() => {
-        let filtered = orders;
-
-        // Apply time filter
-        if (enableTimeFilter && timeFilter !== 'all') {
-            const timeRange = getTimeRange(timeFilter);
-            if (timeRange) {
-                filtered = filtered.filter(order => {
-                    const orderDate = new Date(order.created_at);
-                    const result = orderDate >= new Date(timeRange.startDate) && 
-                           orderDate <= new Date(timeRange.endDate);
-                    return result;
-                });
-            }
-        }
-
-        // Apply search filter
-        if (enableSearch && debouncedSearchTerm.trim()) {
-            const searchLower = debouncedSearchTerm.toLowerCase();
-            filtered = filtered.filter(order => {
-                return order.order_id.toString().includes(searchLower) ||
-                       order.items?.some(item => 
-                           item.item_name?.toLowerCase().includes(searchLower)
-                       ) ||
-                       order.status?.toLowerCase().includes(searchLower) ||
-                       order.order_type?.toLowerCase().includes(searchLower);
-            });
-        }
-
-        return filtered;
-    }, [orders, timeFilter, debouncedSearchTerm, getTimeRange, enableTimeFilter, enableSearch]);
+    // Since filtering is done by the backend, filteredOrders is just the input orders.
+    const filteredOrders = orders;
 
     // Clear filters function
     const clearFilters = useCallback(() => {
@@ -170,36 +164,50 @@ export const useOrderFiltering = (orders = [], options = {}) => {
         activeTimeFilter: timeFilterOptions.find(opt => opt.value === timeFilter)?.label
     }), [orders.length, filteredOrders.length, timeFilter, searchTerm, timeFilterOptions]);
 
-    // Get API request parameters for backend filtering
+    // Get API parameters for backend fetching
     const getApiParams = useCallback(() => {
         const params = {};
-        
-        if (timeFilter !== 'all') {
-            const timeRange = getTimeRange(timeFilter);
-            if (timeRange) {
-                // For custom range, send full datetime if time is specified
-                if (timeFilter === 'custom' && (customTimeRange.startTime || customTimeRange.endTime)) {
-                    // Send full datetime string in MySQL format (YYYY-MM-DD HH:MM:SS)
-                    // Convert ISO string to MySQL datetime format
-                    const startDateTime = new Date(timeRange.startDate);
-                    const endDateTime = new Date(timeRange.endDate);
+
+        if (enableSearch && debouncedSearchTerm.trim()) {
+            params.searchTerm = debouncedSearchTerm.trim();
+        }
+
+        if (enableTimeFilter) {
+            params.dateFilter = timeFilter;
+            if (timeFilter === 'custom') {
+                const timeRange = getTimeRange('custom');
+                if (timeRange) {
+                    // Check if times are included
+                    const hasStartTime = customTimeRange.startTime && customTimeRange.startTime.trim();
+                    const hasEndTime = customTimeRange.endTime && customTimeRange.endTime.trim();
                     
-                    params.startDate = startDateTime.toISOString().slice(0, 19).replace('T', ' ');
-                    params.endDate = endDateTime.toISOString().slice(0, 19).replace('T', ' ');
-                } else {
-                    // For preset filters or date-only custom range, send date only
-                    params.startDate = timeRange.startDate.split('T')[0]; // Date only (YYYY-MM-DD)
-                    params.endDate = timeRange.endDate.split('T')[0]; // Date only (YYYY-MM-DD)
+                    if (hasStartTime || hasEndTime) {
+                        // Send local time directly - backend will handle conversion
+                        // This ensures comparison happens in user's timezone context
+                        params.startDate = timeRange.startDate;
+                        // Only send endDate if user actually provided an end date
+                        if (customTimeRange.endDate && customTimeRange.endDate.trim()) {
+                            params.endDate = timeRange.endDate;
+                        }
+                        params.timezone = getTimezoneOffset();
+                    } else {
+                        // Date-only - send date part only (YYYY-MM-DD format)
+                        // No time conversion needed for date-only comparison
+                        params.startDate = timeRange.startDate.split(' ')[0]; // Extract date part
+                        params.endDate = timeRange.endDate.split(' ')[0]; // Extract date part
+                        // No timezone needed for date-only
+                    }
                 }
             }
         }
-        
-        if (debouncedSearchTerm.trim()) {
-            params.searchTerm = debouncedSearchTerm;
+
+        // Always include the timezone
+        if (!params.timezone) {
+            params.timezone = getTimezoneOffset();
         }
-        
+
         return params;
-    }, [timeFilter, debouncedSearchTerm, getTimeRange, customTimeRange]);
+    }, [timeFilter, debouncedSearchTerm, getTimeRange, enableTimeFilter, enableSearch]);
 
     return {
         // State

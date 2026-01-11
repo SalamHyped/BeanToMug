@@ -49,6 +49,49 @@ const validateProps = (props) => {
     return errors;
 };
 
+// Helper function to parse date value as UTC
+// Backend sends dates as ISO strings with Z (UTC), we parse them correctly
+const parseDateAsUTC = (dateValue) => {
+    if (!dateValue) return null;
+    try {
+        if (dateValue instanceof Date) {
+            return dateValue;
+        }
+        // Ensure string is treated as UTC
+        let dateStr = String(dateValue);
+        // If it doesn't end with Z and is ISO format, add Z to indicate UTC
+        if (dateStr.includes('T') && !dateStr.endsWith('Z') && !dateStr.includes('+') && !dateStr.includes('-', 19)) {
+            dateStr += 'Z';
+        }
+        // If it's MySQL format "YYYY-MM-DD HH:MM:SS", convert to ISO with Z
+        else if (dateStr.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
+            dateStr = dateStr.replace(' ', 'T') + 'Z';
+        }
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date;
+    } catch (e) {
+        return null;
+    }
+};
+
+// Helper function to format date in local timezone
+const formatLocalDate = (dateValue) => {
+    const date = parseDateAsUTC(dateValue);
+    return date ? date.toLocaleDateString() : '';
+};
+
+// Helper function to format time in local timezone
+const formatLocalTime = (dateValue) => {
+    const date = parseDateAsUTC(dateValue);
+    if (!date) return '';
+    return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
+};
+
 // Error Boundary Component
 const ErrorBoundary = ({ children, fallback }) => {
     const [hasError, setHasError] = useState(false);
@@ -343,10 +386,10 @@ const ReceiptOrders = ({
                                         </div>
                                         <div className={styles.receiptDate}>
                                             <div className={styles.dateMain}>
-                                                {new Date(order.created_at).toLocaleDateString()}
+                                                {order.created_at ? formatLocalDate(order.created_at) : 'N/A'}
                                             </div>
                                             <div className={styles.dateTime}>
-                                                {new Date(order.created_at).toLocaleTimeString()}
+                                                {order.created_at ? formatLocalTime(order.created_at) : 'N/A'}
                                             </div>
                                         </div>
                                     </div>

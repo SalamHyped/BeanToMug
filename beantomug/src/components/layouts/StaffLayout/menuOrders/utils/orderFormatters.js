@@ -5,9 +5,13 @@
 
 /**
  * Format time string for display
+ * Backend sends dates as ISO strings with Z (UTC), JavaScript automatically parses them correctly
  */
 export const formatTime = (dateString) => {
-  return new Date(dateString).toLocaleTimeString('en-US', {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   });

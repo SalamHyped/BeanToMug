@@ -4,7 +4,22 @@ const { dbSingleton } = require('../dbSingleton');
  * Process raw database rows into structured order data
  * @param {Array} rows - Raw database rows from the order query
  * @returns {Array} Array of structured order objects
- */
+ */              // Format dates as ISO strings
+            // UNIX_TIMESTAMP returns UTC seconds - simple, efficient, timezone-independent
+            const formatDateForResponse = (unixTimestamp) => {
+                if (unixTimestamp === null || unixTimestamp === undefined) return null;
+                
+                // Convert to number (handles both string and number from mysql2)
+                const timestamp = Number(unixTimestamp);
+                if (isNaN(timestamp) || timestamp <= 0) return null;
+                
+                // Convert seconds to milliseconds and create Date
+                const date = new Date(timestamp * 1000);
+                if (isNaN(date.getTime())) return null;
+                
+                return date.toISOString();
+            };
+            
 function processOrderRows(rows) {
     // Process the flat database results into a structured format
     // Group items by their parent order for easier frontend consumption
@@ -19,13 +34,15 @@ function processOrderRows(rows) {
             const lastName = row.last_name || '';
             const customerName = `${firstName} ${lastName}`.trim() || 'Guest Customer';
             
+            
+          
             ordersMap.set(row.order_id, {
                 order_id: row.order_id,
                 user_id: row.user_id,
                 order_type: row.order_type,    // e.g., "Dine In", "Take Away"
                 status: row.status,            // e.g., "pending", "completed", "failed"
-                created_at: row.created_at,    // When the order was placed
-                updated_at: row.updated_at,    // Last status update
+                created_at: formatDateForResponse(row.created_at_utc),    // When the order was placed (ISO format with UTC)
+                updated_at: formatDateForResponse(row.updated_at_utc),    // Last status update (ISO format with UTC)
                 total_amount: row.total_amount,
                 vat_amount: row.vat_amount,
                 subtotal: row.subtotal,
@@ -124,21 +141,73 @@ function buildWhereClause(options) {
     // Add open-ended date range filter - support date-only and datetime
     if (options.startDate || options.endDate) {
         // Check if startDate/endDate contain time (datetime format: has space or colon)
-        const hasTime = (options.startDate.includes(' ') || options.startDate.includes(':')) ||
-                        (options.endDate.includes(' ') || options.endDate.includes(':'));
+        const hasTime = (options.startDate && (options.startDate.includes(' ') || options.startDate.includes(':'))) ||
+                        (options.endDate && (options.endDate.includes(' ') || options.endDate.includes(':')));
         
         if (hasTime) {
-            // Use datetime comparison for more precise filtering (includes time)
-            // MySQL datetime format: 'YYYY-MM-DD HH:MM:SS'
-            if (options.startDate && options.endDate) {
-                whereClause += ' AND o.created_at >= ? AND o.created_at <= ?';
-                params.push(options.startDate, options.endDate);
-            } else if (options.startDate) {
+            const clientTimezone = options.timezone || 'UTC';
+            const isUTC = clientTimezone === 'UTC' || clientTimezone === '+00:00';
+            
+            // Convert local time to UTC if needed
+            let startDateUTC = options.startDate;
+            let endDateUTC = options.endDate;
+            
+            if (!isUTC && clientTimezone) {
+                // Parse timezone offset (e.g., "+02:00" -> +2 hours)
+                const parseOffset = (tz) => {
+                    if (!tz || tz === 'UTC' || tz === '+00:00') return 0;
+                    const match = tz.match(/^([+-])(\d{2}):(\d{2})$/);
+                    if (!match) return 0;
+                    const sign = match[1] === '+' ? 1 : -1;
+                    const hours = parseInt(match[2], 10);
+                    const minutes = parseInt(match[3], 10);
+                    return sign * (hours + minutes / 60);
+                };
+                
+                const offsetHours = parseOffset(clientTimezone);
+                
+                // Convert local datetime to UTC
+                // Examples:
+                //   "2026-01-09 18:24:00" in UTC+02:00 → "2026-01-09 16:24:00" UTC (subtract 2 hours)
+                //   "2026-01-09 14:30:00" in UTC-05:00 → "2026-01-09 19:30:00" UTC (add 5 hours)
+                //   "2026-01-09 23:45:00" in UTC+03:00 → "2026-01-09 20:45:00" UTC (subtract 3 hours)
+                //   "2026-01-09 00:15:00" in UTC-08:00 → "2026-01-09 08:15:00" UTC (add 8 hours)
+                const convertToUTC = (localDateTime) => {
+                    if (!localDateTime) return null;
+                    // Parse local datetime and create Date object
+                    // Date constructor interprets as local time, then we adjust for timezone offset
+                    const [datePart, timePart] = localDateTime.split(' ');
+                    const [year, month, day] = datePart.split('-').map(Number);
+                    const [hours, minutes, seconds = 0] = timePart.split(':').map(Number);
+                    
+                    // Create a Date object treating the input as if it were in the client's timezone
+                    // Then subtract the offset to get UTC
+                    const localTimestamp = Date.UTC(year, month - 1, day, hours, minutes, seconds);
+                    const utcTimestamp = localTimestamp - (offsetHours * 60 * 60 * 1000);
+                    const utcDate = new Date(utcTimestamp);
+                    
+                    // Format as MySQL datetime string
+                    const pad = (n) => String(n).padStart(2, '0');
+                    return `${utcDate.getUTCFullYear()}-${pad(utcDate.getUTCMonth() + 1)}-${pad(utcDate.getUTCDate())} ${pad(utcDate.getUTCHours())}:${pad(utcDate.getUTCMinutes())}:${pad(utcDate.getUTCSeconds())}`;
+                };
+                
+                if (options.startDate) startDateUTC = convertToUTC(options.startDate);
+                if (options.endDate) endDateUTC = convertToUTC(options.endDate);
+            }
+            
+            // Now compare UTC to UTC
+            if (startDateUTC && endDateUTC && String(startDateUTC).trim() && String(endDateUTC).trim()) {
+                // Apply time filter to ALL days in the range
+                whereClause += ' AND DATE(o.created_at) >= DATE(?) AND DATE(o.created_at) <= DATE(?) AND TIME(o.created_at) >= TIME(?) AND TIME(o.created_at) <= TIME(?)';
+                params.push(startDateUTC, endDateUTC, startDateUTC, endDateUTC);
+            } else if (startDateUTC && String(startDateUTC).trim()) {
+                // Only start date/time - use full datetime comparison
                 whereClause += ' AND o.created_at >= ?';
-                params.push(options.startDate);
-            } else if (options.endDate) {
+                params.push(startDateUTC);
+            } else if (endDateUTC && String(endDateUTC).trim()) {
+                // Only end date/time - use full datetime comparison
                 whereClause += ' AND o.created_at <= ?';
-                params.push(options.endDate);
+                params.push(endDateUTC);
             }
         } else {
             // Date-only comparison (backward compatible)
@@ -215,8 +284,8 @@ function buildOrderQuery(orderId, options) {
             o.user_id,
             o.order_type,
             o.status,
-            o.created_at,
-            o.updated_at,
+            UNIX_TIMESTAMP(o.created_at) as created_at_utc,
+            UNIX_TIMESTAMP(o.updated_at) as updated_at_utc,
             o.total_price as total_amount,
             o.vat_amount,
             o.subtotal,
@@ -280,6 +349,11 @@ async function getCompleteOrderData(orderId = null, options = null) {
     try {
         const connection = await dbSingleton.getConnection();
         
+        // Set session timezone to UTC once - most efficient approach
+        // MySQL TIMESTAMP stores UTC internally, but converts to session timezone when SELECTed
+        // Setting to UTC ensures we get the raw UTC values without per-row conversion
+        await connection.execute('SET time_zone = "+00:00"');
+        
         // Single order fetch - use simple approach
         if (orderId) {
             const { query, params } = buildOrderQuery(orderId, options);
@@ -325,8 +399,10 @@ async function getCompleteOrderData(orderId = null, options = null) {
                     o.user_id,
                     o.order_type,
                     o.status,
-                    o.created_at,
-                    o.updated_at,
+                    UNIX_TIMESTAMP(o.created_at) as created_at_utc,
+                    UNIX_TIMESTAMP(o.updated_at) as updated_at_utc,
+                    o.created_at as created_at_raw,
+                    o.updated_at as updated_at_raw,
                     o.total_price as total_amount,
                     o.vat_amount,
                     o.subtotal,
@@ -402,8 +478,10 @@ async function getRecentOrders(limit = 5) {
                 o.user_id,
                 o.order_type,
                 o.status,
-                o.created_at,
-                o.updated_at,
+                UNIX_TIMESTAMP(o.created_at) as created_at_utc,
+                UNIX_TIMESTAMP(o.updated_at) as updated_at_utc,
+                o.created_at as created_at_raw,
+                o.updated_at as updated_at_raw,
                 o.total_price as total_amount,
                 o.vat_amount,
                 o.subtotal,
@@ -514,4 +592,4 @@ module.exports = {
     getOrderCount,
     buildOrderQuery,
     getSingleOrder
-}; 
+};
