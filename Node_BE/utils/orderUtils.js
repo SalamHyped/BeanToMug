@@ -1,24 +1,11 @@
 const { dbSingleton } = require('../dbSingleton');
+const { formatDateForResponse } = require('./dateUtils');
 
 /**
  * Process raw database rows into structured order data
  * @param {Array} rows - Raw database rows from the order query
  * @returns {Array} Array of structured order objects
- */              // Format dates as ISO strings
-            // UNIX_TIMESTAMP returns UTC seconds - simple, efficient, timezone-independent
-            const formatDateForResponse = (unixTimestamp) => {
-                if (unixTimestamp === null || unixTimestamp === undefined) return null;
-                
-                // Convert to number (handles both string and number from mysql2)
-                const timestamp = Number(unixTimestamp);
-                if (isNaN(timestamp) || timestamp <= 0) return null;
-                
-                // Convert seconds to milliseconds and create Date
-                const date = new Date(timestamp * 1000);
-                if (isNaN(date.getTime())) return null;
-                
-                return date.toISOString();
-            };
+ */
             
 function processOrderRows(rows) {
     // Process the flat database results into a structured format

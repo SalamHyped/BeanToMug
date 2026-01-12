@@ -3,6 +3,7 @@ import { ClipboardList, Clock, Calendar, Package, ChevronDown, ChevronUp, User }
 import DashboardCard from '../../shared/DashboardCard';
 import ItemDisplay from '../../shared/ItemDisplay';
 import EmptyState from '../../shared/EmptyState';
+import { parseDateAsUTC } from '../../../../utils/dateUtils';
 
 const RecentOrders = ({ orders = [] }) => {
     const [showAll, setShowAll] = useState(false);
@@ -44,10 +45,10 @@ const RecentOrders = ({ orders = [] }) => {
     // Memoize order content renderer
     const renderOrderContent = useCallback((order, isExpanded, handleToggle) => {
         // Pre-calculate dates to avoid repeated calculations
-        // Backend sends dates as ISO strings with Z (UTC), JavaScript automatically parses them correctly
-        const createdDate = new Date(order.created_at || order.createdAt);
-        const timeString = createdDate.toLocaleTimeString();
-        const dateString = createdDate.toLocaleDateString();
+        // Backend sends dates as ISO strings with Z (UTC), we convert to local time for display
+        const createdDate = parseDateAsUTC(order.created_at || order.createdAt);
+        const timeString = createdDate ? createdDate.toLocaleTimeString() : '';
+        const dateString = createdDate ? createdDate.toLocaleDateString() : '';
         
         // Pre-calculate order ID
         const orderId = order.order_id || order.orderId;

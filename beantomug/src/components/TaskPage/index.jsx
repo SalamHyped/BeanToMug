@@ -4,6 +4,7 @@ import TaskList from '../../pages/admin/TaskManagement/components/TaskList';
 import TaskForm from '../../pages/admin/TaskManagement/components/TaskForm';
 import TaskFilters from '../../pages/admin/TaskManagement/components/TaskFilters';
 import { useTaskManagement } from '../../hooks/useTaskManagement';
+import { formatLocalDateTime } from '../../utils/dateUtils';
 import styles from './index.module.css';
 
 const TaskPage = ({ 
@@ -295,7 +296,10 @@ const TaskPage = ({
                 ))}
               </div>
               {selectedTask.due_date && (
-                <p><strong>Due date:</strong> {new Date(selectedTask.due_date).toLocaleString()}</p>
+                <p><strong>Due date:</strong> {(() => {
+                  const date = new Date(selectedTask.due_date);
+                  return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleString();
+                })()}</p>
               )}
               {selectedTask.estimated_hours && (
                 <p><strong>Estimated hours:</strong> {selectedTask.estimated_hours}h</p>
@@ -309,7 +313,7 @@ const TaskPage = ({
                   <div key={comment.comment_id} className={styles.comment}>
                     <div className={styles.commentHeader}>
                       <strong>{comment.user_name}</strong>
-                      <span>{new Date(comment.created_at).toLocaleString()}</span>
+                      <span>{formatLocalDateTime(comment.created_at) || 'N/A'}</span>
                     </div>
                     <p>{comment.comment}</p>
                   </div>

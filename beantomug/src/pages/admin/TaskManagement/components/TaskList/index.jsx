@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './index.module.css';
+import { parseDateAsUTC } from '../../../../../utils/dateUtils';
 
 const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange, onViewDetails, userRole = 'admin' }) => {
   const getPriorityColor = (priority) => {
@@ -22,9 +23,11 @@ const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange, onViewDeta
     }
   };
 
+
   const formatDate = (dateString) => {
     if (!dateString) return 'No due date';
-    const date = new Date(dateString);
+    const date = parseDateAsUTC(dateString);
+    if (!date) return 'No due date';
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -229,7 +232,7 @@ const TaskList = ({ tasks, loading, onEdit, onDelete, onStatusChange, onViewDeta
               </div>
               
               <div className={styles.taskDate}>
-                Created: {new Date(task.created_at).toLocaleDateString()}
+                Created: {parseDateAsUTC(task.created_at)?.toLocaleDateString() || 'N/A'}
               </div>
             </div>
           </div>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { useDishes } from '../../hooks';
 import styles from './index.module.css';
 import RoundedPhoto from '../../../../../components/roundedPhoto/RoundedPhoto';
 
@@ -10,13 +9,10 @@ const DishList = ({
   error = null,
   filteredCount = 0,
   filteredActiveCount = 0,
-  filteredInactiveCount = 0
+  filteredInactiveCount = 0,
+  onToggleStatus,
+  onRefresh
 }) => {
-  const {
-    toggleDishStatus,
-    fetchDishes
-  } = useDishes();
-
   const handleEdit = (dish) => {
     if (onEditDish) {
       onEditDish(dish);
@@ -24,7 +20,8 @@ const DishList = ({
   };
 
   const handleToggleStatus = async (dishId, currentStatus) => {
-    const result = await toggleDishStatus(dishId, currentStatus);
+    if (!onToggleStatus) return;
+    const result = await onToggleStatus(dishId, currentStatus);
     if (!result.success) {
       // Error is already handled in the hook
       console.error('Failed to toggle dish status');
@@ -46,7 +43,7 @@ const DishList = ({
     return (
       <div className={styles.error}>
         <p>{error}</p>
-        <button onClick={fetchDishes} className={styles.retryButton}>
+        <button onClick={onRefresh} className={styles.retryButton}>
           Retry
         </button>
       </div>

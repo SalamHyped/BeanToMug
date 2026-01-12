@@ -59,8 +59,24 @@ const validateRequiredFields = (data, requiredFields) => {
  * @param {any} status - Status value to validate
  * @returns {string|null} - Error message or null if valid
  */
+/**
+ * Normalize status to number (0 or 1)
+ * @param {any} status - Status value to normalize
+ * @param {number} defaultValue - Default value if status is null/undefined
+ * @returns {number} - Normalized status (0 or 1)
+ */
+const normalizeStatus = (status, defaultValue = 1) => {
+  return status !== undefined && status !== null ? Number(status) : defaultValue;
+};
+
+/**
+ * Validate status (must be 0 or 1)
+ * @param {any} status - Status value to validate
+ * @returns {string|null} - Error message or null if valid
+ */
 const validateStatus = (status) => {
-  if (status !== 0 && status !== 1) {
+  const normalized = normalizeStatus(status);
+  if (normalized !== 0 && normalized !== 1) {
     return 'Status must be 0 (inactive) or 1 (active)';
   }
   return null;
@@ -259,6 +275,7 @@ module.exports = {
   handleError,
   sendSuccess,
   validateRequiredFields,
+  normalizeStatus,
   validateStatus,
   validateId,
   checkRecordExists,

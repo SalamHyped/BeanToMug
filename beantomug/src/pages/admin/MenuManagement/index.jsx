@@ -22,7 +22,7 @@ const MenuManagement = () => {
   });
   
   // Use the dishes hook with filters for better state management
-  const { fetchDishes, filteredDishes, loading, error, filteredCount, filteredActiveCount, filteredInactiveCount } = useDishes(filters);
+  const { fetchDishes, toggleDishStatus, filteredDishes, loading, error, filteredCount, filteredActiveCount, filteredInactiveCount } = useDishes(filters);
 
   const handleViewChange = (view) => {
     setActiveView(view);
@@ -108,6 +108,8 @@ const MenuManagement = () => {
               filteredCount={filteredCount}
               filteredActiveCount={filteredActiveCount}
               filteredInactiveCount={filteredInactiveCount}
+              onToggleStatus={toggleDishStatus}
+              onRefresh={fetchDishes}
             />
           </div>
         )}

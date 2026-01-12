@@ -1,6 +1,7 @@
 const express = require('express');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { requireRole } = require('../middleware/roleMiddleware');
+const { normalizeStatus, validateStatus } = require('../utils/routeHelpers');
 const { getDishDetails } = require('../services/dishService');
 const router = express.Router();
 
@@ -590,20 +591,22 @@ router.patch('/:id/status', authenticateToken, requireRole(['admin']), async (re
     const { id } = req.params;
     const { status } = req.body;
 
-    // Validate status value
-    if (status !== 0 && status !== 1) {
+    // Validate and normalize status (accepts boolean/strings too)
+    const statusError = validateStatus(status);
+    if (statusError) {
       return res.status(400).json({
         success: false,
-        message: 'Status must be 0 (inactive) or 1 (active)'
+        message: statusError
       });
     }
+    const normalizedStatus = normalizeStatus(status);
 
     // Update dish status
     const [result] = await req.db.execute(`
       UPDATE dish 
       SET status = ?
       WHERE item_id = ?
-    `, [status, id]);
+    `, [normalizedStatus, id]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
@@ -612,14 +615,14 @@ router.patch('/:id/status', authenticateToken, requireRole(['admin']), async (re
       });
     }
 
-    const statusText = status === 1 ? 'activated' : 'deactivated';
+    const statusText = normalizedStatus === 1 ? 'activated' : 'deactivated';
     
     res.json({
       success: true,
       message: `Dish ${statusText} successfully`,
       data: {
         item_id: id,
-        status: status
+        status: normalizedStatus
       }
     });
 

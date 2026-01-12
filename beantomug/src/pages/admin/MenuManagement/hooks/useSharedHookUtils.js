@@ -183,11 +183,10 @@ export const useCrudOperations = (endpoint, { itemKey = 'item', onSuccess } = {}
       if (response.data.success) {
         // Update local state immediately for better UX
         setData(prevData => 
-          prevData.map(item => 
-            item[itemKey + '_id'] === id || item.id === id
-              ? { ...item, status: !currentStatus }
-              : item
-          )
+          prevData.map(item => {
+            const matchesId = item[itemKey + '_id'] === id || item.id === id || item.item_id === id;
+            return matchesId ? { ...item, status: !currentStatus } : item;
+          })
         );
         if (onSuccess) onSuccess('toggleStatus', response.data);
         return { success: true };

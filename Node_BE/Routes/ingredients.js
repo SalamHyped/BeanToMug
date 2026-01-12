@@ -6,6 +6,7 @@ const {
   handleError,
   sendSuccess,
   validateRequiredFields,
+  normalizeStatus,
   validateStatus,
   validateId,
   checkRecordExists,
@@ -138,6 +139,13 @@ router.post('/', asyncHandler(async (req, res) => {
     type_id, status = 1
   } = req.body;
 
+  // Validate and normalize status
+  const statusError = validateStatus(status);
+  if (statusError) {
+    return res.status(400).json({ success: false, message: statusError });
+  }
+  const normalizedStatus = normalizeStatus(status, 1);
+
   // Validate required fields
   const validationError = validateRequiredFields(req.body, INGREDIENT_REQUIRED_FIELDS);
   if (validationError) {
@@ -150,6 +158,16 @@ router.post('/', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid ingredient type ID' });
   }
 
+  // Normalize supplier_id: validate and set to NULL if invalid
+  let finalSupplierId = null;
+  if (supplier_id) {
+    const supplierIdNum = parseInt(supplier_id);
+    if (supplierIdNum > 0) {
+      const supplierExists = await checkRecordExists(req.db, 'supplier', 'supplier_id', supplierIdNum);
+      finalSupplierId = supplierExists ? supplierIdNum : null;
+    }
+  }
+
   // Insert new ingredient
   const [result] = await req.db.execute(`
     INSERT INTO ingredient (
@@ -157,8 +175,8 @@ router.post('/', asyncHandler(async (req, res) => {
       supplier_id, quantity_in_stock, low_stock_threshold, type_id
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
-    ingredient_name, price, brand, status, expiration, unit,
-    supplier_id, quantity_in_stock, low_stock_threshold, type_id
+    ingredient_name, price, brand, normalizedStatus, expiration, unit,
+    finalSupplierId, quantity_in_stock, low_stock_threshold, type_id
   ]);
 
   sendSuccess(res, { ingredient_id: result.insertId }, 'Ingredient created successfully', 201);
@@ -187,6 +205,13 @@ router.put('/:id', asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Ingredient not found' });
   }
 
+  // Validate and normalize status
+  const statusError = validateStatus(status);
+  if (statusError) {
+    return res.status(400).json({ success: false, message: statusError });
+  }
+  const normalizedStatus = normalizeStatus(status, 1);
+
   // Validate required fields
   const validationError = validateRequiredFields(req.body, INGREDIENT_REQUIRED_FIELDS);
   if (validationError) {
@@ -199,6 +224,16 @@ router.put('/:id', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid ingredient type ID' });
   }
 
+  // Normalize supplier_id: validate and set to NULL if invalid
+  let finalSupplierId = null;
+  if (supplier_id) {
+    const supplierIdNum = parseInt(supplier_id);
+    if (supplierIdNum > 0) {
+      const supplierExists = await checkRecordExists(req.db, 'supplier', 'supplier_id', supplierIdNum);
+      finalSupplierId = supplierExists ? supplierIdNum : null;
+    }
+  }
+
   // Update ingredient
   await req.db.execute(`
     UPDATE ingredient SET 
@@ -208,7 +243,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
     WHERE ingredient_id = ?
   `, [
     ingredient_name, price, brand, expiration, unit,
-    supplier_id || null, quantity_in_stock, low_stock_threshold, type_id, status, id
+    finalSupplierId, quantity_in_stock, low_stock_threshold, type_id, normalizedStatus, id
   ]);
 
   sendSuccess(res, {}, 'Ingredient updated successfully');
@@ -228,11 +263,12 @@ router.patch('/:id/status', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: idError });
   }
 
-  // Validate status
+  // Validate and normalize status
   const statusError = validateStatus(status);
   if (statusError) {
     return res.status(400).json({ success: false, message: statusError });
   }
+  const normalizedStatus = normalizeStatus(status);
 
   // Check if ingredient exists
   const ingredientExists = await checkRecordExists(req.db, 'ingredient', 'ingredient_id', id);
@@ -241,9 +277,9 @@ router.patch('/:id/status', asyncHandler(async (req, res) => {
   }
 
   // Update status
-  await req.db.execute('UPDATE ingredient SET status = ? WHERE ingredient_id = ?', [status, id]);
+  await req.db.execute('UPDATE ingredient SET status = ? WHERE ingredient_id = ?', [normalizedStatus, id]);
 
-  const message = `Ingredient ${status === 1 ? 'activated' : 'deactivated'} successfully`;
+  const message = `Ingredient ${normalizedStatus === 1 ? 'activated' : 'deactivated'} successfully`;
   sendSuccess(res, {}, message);
 }));
 

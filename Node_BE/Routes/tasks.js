@@ -8,12 +8,15 @@ const {
   canAssignTasks, 
   canDeleteTask 
 } = require('../middleware/roleMiddleware');
+const { formatDateForResponse } = require('../utils/dateUtils');
 
 // Get all tasks with assignments (Admin only)
 router.get('/', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const query = `
       SELECT t.*, 
+             UNIX_TIMESTAMP(t.created_at) as created_at_utc,
+             UNIX_TIMESTAMP(t.updated_at) as updated_at_utc,
              u1.username as assigned_by_name,
              GROUP_CONCAT(u2.username ORDER BY u2.username SEPARATOR ',') as assignments
       FROM tasks t
@@ -26,9 +29,12 @@ router.get('/', authenticateToken, requireRole(['admin']), async (req, res) => {
     
     const [tasks] = await req.db.execute(query);
     
-    // Parse assignments string into array
+    
+    // Parse assignments string into array and format dates
     const tasksWithAssignments = tasks.map(task => ({
       ...task,
+      created_at: formatDateForResponse(task.created_at_utc),
+      updated_at: formatDateForResponse(task.updated_at_utc),
       assignments: task.assignments ? task.assignments.split(',') : []
     }));
     
@@ -44,6 +50,8 @@ router.get('/my-tasks', authenticateToken, requireRole(['admin', 'staff']), asyn
   try {
     const query = `
       SELECT t.*, 
+             UNIX_TIMESTAMP(t.created_at) as created_at_utc,
+             UNIX_TIMESTAMP(t.updated_at) as updated_at_utc,
              u1.username as assigned_by_name,
              GROUP_CONCAT(u2.username ORDER BY u2.username SEPARATOR ',') as all_assignments
       FROM tasks t
@@ -57,9 +65,11 @@ router.get('/my-tasks', authenticateToken, requireRole(['admin', 'staff']), asyn
     
     const [tasks] = await req.db.execute(query, [req.user.id]);
     
-    // Parse assignments string into array
+    // Parse assignments string into array and format dates
     const tasksWithAssignments = tasks.map(task => ({
       ...task,
+      created_at: formatDateForResponse(task.created_at_utc),
+      updated_at: formatDateForResponse(task.updated_at_utc),
       all_assignments: task.all_assignments ? task.all_assignments.split(',') : []
     }));
     
@@ -77,6 +87,8 @@ router.get('/recent', authenticateToken, requireRole(['admin', 'staff']), async 
     
     const query = `
       SELECT t.*, 
+             UNIX_TIMESTAMP(t.created_at) as created_at_utc,
+             UNIX_TIMESTAMP(t.updated_at) as updated_at_utc,
              u1.username as assigned_by_name,
              GROUP_CONCAT(u2.username ORDER BY u2.username SEPARATOR ',') as assignments
       FROM tasks t
@@ -90,9 +102,11 @@ router.get('/recent', authenticateToken, requireRole(['admin', 'staff']), async 
     
     const [tasks] = await req.db.execute(query, [limit]);
     
-    // Parse assignments string into array
+    // Parse assignments string into array and format dates
     const tasksWithAssignments = tasks.map(task => ({
       ...task,
+      created_at: formatDateForResponse(task.created_at_utc),
+      updated_at: formatDateForResponse(task.updated_at_utc),
       assignments: task.assignments ? task.assignments.split(',') : []
     }));
     
@@ -117,6 +131,8 @@ router.get('/:taskId', authenticateToken, canAccessTask, async (req, res) => {
     // Get task details with assignments
     const [tasks] = await req.db.execute(`
       SELECT t.*, 
+             UNIX_TIMESTAMP(t.created_at) as created_at_utc,
+             UNIX_TIMESTAMP(t.updated_at) as updated_at_utc,
              u1.username as assigned_by_name,
              GROUP_CONCAT(u2.username ORDER BY u2.username SEPARATOR ',') as assignments
       FROM tasks t
@@ -133,7 +149,9 @@ router.get('/:taskId', authenticateToken, canAccessTask, async (req, res) => {
     
     // Get task comments
     const [comments] = await req.db.execute(`
-      SELECT tc.*, u.username as user_name
+      SELECT tc.*, 
+             UNIX_TIMESTAMP(tc.created_at) as created_at_utc,
+             u.username as user_name
       FROM task_comments tc
       LEFT JOIN users u ON tc.user_id = u.id
       WHERE tc.task_id = ?
@@ -142,9 +160,16 @@ router.get('/:taskId', authenticateToken, canAccessTask, async (req, res) => {
     
     const task = tasks[0];
     
-    // Parse assignments string into array
+    // Parse assignments string into array and format dates
     task.assignments = task.assignments ? task.assignments.split(',') : [];
-    task.comments = comments;
+    task.created_at = formatDateForResponse(task.created_at_utc);
+    task.updated_at = formatDateForResponse(task.updated_at_utc);
+    
+    // Format comment dates
+    task.comments = comments.map(comment => ({
+      ...comment,
+      created_at: formatDateForResponse(comment.created_at_utc)
+    }));
     
     res.json(task);
   } catch (error) {

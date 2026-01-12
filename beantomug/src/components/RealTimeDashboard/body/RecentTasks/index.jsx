@@ -3,6 +3,7 @@ import { CheckSquare, Clock, Calendar, User, ChevronDown, ChevronUp, AlertTriang
 import DashboardCard from '../../shared/DashboardCard';
 import ItemDisplay from '../../shared/ItemDisplay';
 import EmptyState from '../../shared/EmptyState';
+import { parseDateAsUTC } from '../../../../utils/dateUtils';
 
 const RecentTasks = ({ tasks = [] }) => {
     const [showAll, setShowAll] = useState(false);
@@ -51,13 +52,15 @@ const RecentTasks = ({ tasks = [] }) => {
         setShowAll(prev => !prev);
     }, []);
 
+
     // Memoize task content renderer
     const renderTaskContent = useCallback((task, isExpanded, handleToggle) => {
         // Pre-calculate dates to avoid repeated calculations
-        const createdDate = new Date(task.created_at);
-        const timeString = createdDate.toLocaleTimeString();
-        const dateString = createdDate.toLocaleDateString();
-        const fullDateString = createdDate.toLocaleString();
+        // Backend sends dates as ISO strings with Z (UTC), we convert to local time for display
+        const createdDate = parseDateAsUTC(task.created_at);
+        const timeString = createdDate ? createdDate.toLocaleTimeString() : '';
+        const dateString = createdDate ? createdDate.toLocaleDateString() : '';
+        const fullDateString = createdDate ? createdDate.toLocaleString() : '';
         
         // Pre-calculate task properties
         const taskId = task.taskId;
@@ -179,7 +182,7 @@ const RecentTasks = ({ tasks = [] }) => {
                                 {hasUpdates && (
                                     <div className="flex justify-between">
                                         <span>Last Updated:</span>
-                                        <span>{new Date(updatedAt).toLocaleString()}</span>
+                                        <span>{parseDateAsUTC(updatedAt)?.toLocaleString() || ''}</span>
                                     </div>
                                 )}
                             </div>

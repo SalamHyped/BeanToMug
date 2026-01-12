@@ -2,15 +2,16 @@
  * Pure utility functions for formatting order data
  * These functions have no side effects and are easily testable
  */
+import { parseDateAsUTC } from '../../../../../utils/dateUtils';
 
 /**
  * Format time string for display
- * Backend sends dates as ISO strings with Z (UTC), JavaScript automatically parses them correctly
+ * Backend sends dates as ISO strings with Z (UTC), we parse and convert to local time
  */
 export const formatTime = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
+  const date = parseDateAsUTC(dateString);
+  if (!date) return '';
   return date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
